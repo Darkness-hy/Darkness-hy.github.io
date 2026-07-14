@@ -9,6 +9,9 @@ hongyu-insight-taste.md
 figs/11/
 figs/ChatGPT Image 2026年6月29日 16_47_22.png
 
+# Subagent-driven development scratch state
+.superpowers/
+
 # Python development environment and caches
 .venv/
 __pycache__/
