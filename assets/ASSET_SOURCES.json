@@ -1,0 +1,62 @@
+{
+  "fonts": {
+    "ibm-plex-sans-medium.woff2": {
+      "output_filename": "assets/fonts/ibm-plex-sans-medium.woff2",
+      "output_sha256": "0051f7f5ff20aa6ae9892440525b504a793a01ad79ad388c7311ba1633383d3b",
+      "source_sha256": "331c8639d7598b2cde62a911a71db195e30cb655cd6bdf2e324a7e984955f907",
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-Medium.ttf"
+    },
+    "ibm-plex-sans-regular.woff2": {
+      "output_filename": "assets/fonts/ibm-plex-sans-regular.woff2",
+      "output_sha256": "46565e42fdd123fac75905063a8085a82a248ba1b740a8dc0e039da8fdb4d2ca",
+      "source_sha256": "975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5",
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-Regular.ttf"
+    },
+    "ibm-plex-sans-semibold.woff2": {
+      "output_filename": "assets/fonts/ibm-plex-sans-semibold.woff2",
+      "output_sha256": "bf85c851363d90d8d65b71fa8ad03e19323303df37aad1cf8db696ea533bb64b",
+      "source_sha256": "a20caf8286023a6a7a85e40b1d2a4ae9fc3e3b1f9eda8f4c542dd4986af67bb1",
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-SemiBold.ttf"
+    },
+    "newsreader-variable.woff2": {
+      "output_filename": "assets/fonts/newsreader-variable.woff2",
+      "output_sha256": "dd4da31f604cbe8d68e31265eddb0f8fc10a4c75edb98bef53d85514db99150a",
+      "source_sha256": "8a08d13f8a6c0d51be379a60af84f945f65369a67e509ee3c3bdcc421254d7c1",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/991ce1de6075188e6b8977a5aa9fcd3610a4e946/ofl/newsreader/Newsreader%5Bopsz%2Cwght%5D.ttf"
+    }
+  },
+  "papers": {
+    "lavira": {
+      "decision": "accepted",
+      "output_filename": "assets/images/papers/lavira.webp",
+      "output_sha256": "8a3d071a2d70dda5ade35ed3cbe10b0a323536a5fab598a856bffa2e091fc5f0",
+      "source_sha256": "1a130e41e469ebd6d1bf75ad00d4bcecebc1705e6356b13463a76df3a7dceb10",
+      "source_url": "https://raw.githubusercontent.com/robo-lavira/lavira-zs-vln/6abf36295c1d7c86706e9b842a57f588ccbcebbf/static/images/teaser.png"
+    },
+    "mfrs": {
+      "decision": "text-only",
+      "managed_output_filename": "assets/images/papers/mfrs.webp",
+      "reason": "The Wix image is unsuitable, and repository plots are not documented as an official teaser."
+    },
+    "uni-lavira": {
+      "decision": "accepted",
+      "output_filename": "assets/images/papers/uni-lavira.webp",
+      "output_sha256": "2831478635bfa3f5274b030a769aa56a0e1089ec6d77b091ba85287b5a260354",
+      "source_sha256": "5de62f792db2571c6b82c757d887884ee165bd0d04340975129aa9630e406a60",
+      "source_url": "https://raw.githubusercontent.com/NJU-R-L-Group-Embodied-Lab/uni-lavira-code/215e7aca072b9b932bcde4d3a28c80434ff39caa/assets/teaser.png"
+    }
+  },
+  "portrait": {
+    "crop_box": [
+      199,
+      430,
+      919,
+      1330
+    ],
+    "output_filename": "assets/images/profile-hongyu-ding.webp",
+    "output_sha256": "0c63cc5388cd70a777f50ee46e58ccf47ada832e93bd92c13a2b990c0be4d48b",
+    "source_path": "figs/ChatGPT Image 2026\u5e746\u670829\u65e5 16_41_32.png",
+    "source_sha256": "6057a0ee0d6462f099eb9a9be8c5ce17bf3ac04f5154fac8231113e9734b5b0e"
+  },
+  "schema_version": 1
+}

@@ -1,15 +1,19 @@
-"""Prepare local homepage fonts and images from approved public sources."""
+"""Prepare homepage assets from reviewed, immutable source revisions."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+import os
+import tempfile
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Final
-from urllib.parse import urljoin
+from types import MappingProxyType
+from typing import Callable, Final, Mapping, Optional
 from urllib.request import Request, urlopen
 
-from bs4 import BeautifulSoup
 from fontTools.ttLib import TTFont
 from PIL import Image, ImageOps
 
@@ -18,37 +22,165 @@ ROOT: Final = Path(__file__).resolve().parents[1]
 FONT_DIR: Final = ROOT / "assets" / "fonts"
 IMAGE_DIR: Final = ROOT / "assets" / "images"
 PAPER_DIR: Final = IMAGE_DIR / "papers"
-PORTRAIT_SOURCE: Final = ROOT / "figs" / "ChatGPT Image 2026年6月29日 16_41_32.png"
+MANIFEST_PATH: Final = ROOT / "assets" / "ASSET_SOURCES.json"
 USER_AGENT: Final = "Mozilla/5.0 (compatible; HongyuDingHomepageAssetPrep/1.0)"
 
-FONT_SOURCES: Final = {
-    "newsreader-variable.woff2": (
-        "https://raw.githubusercontent.com/google/fonts/main/ofl/newsreader/"
-        "Newsreader%5Bopsz%2Cwght%5D.ttf"
-    ),
-    "ibm-plex-sans-regular.woff2": (
-        "https://raw.githubusercontent.com/IBM/plex/master/packages/plex-sans/"
-        "fonts/complete/ttf/IBMPlexSans-Regular.ttf"
-    ),
-    "ibm-plex-sans-medium.woff2": (
-        "https://raw.githubusercontent.com/IBM/plex/master/packages/plex-sans/"
-        "fonts/complete/ttf/IBMPlexSans-Medium.ttf"
-    ),
-    "ibm-plex-sans-semibold.woff2": (
-        "https://raw.githubusercontent.com/IBM/plex/master/packages/plex-sans/"
-        "fonts/complete/ttf/IBMPlexSans-SemiBold.ttf"
-    ),
-}
 
-PROJECT_PAGES: Final = {
-    "uni-lavira.webp": "https://xetroubadour.github.io/Uni-LaViRA/",
-    "lavira.webp": "https://robo-lavira.github.io/lavira-zs-vln/",
-    "mfrs.webp": "https://hongyuding.wixsite.com/mfrs",
-}
+@dataclass(frozen=True)
+class RemoteSource:
+    """Describe one immutable remote input and its generated output."""
+
+    source_url: str
+    source_sha256: str
+    output_filename: str
+    approved_output_sha256: Optional[str] = None
+    font_modified_timestamp: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class PortraitSource:
+    """Describe the approved local portrait source and crop."""
+
+    source_path: Path
+    source_sha256: str
+    crop_box: tuple[int, int, int, int]
+    output_filename: str
+
+
+@dataclass(frozen=True)
+class TextOnlyDecision:
+    """Describe a reviewed paper that must not have generated media."""
+
+    managed_output_filename: str
+    reason: str
+
+
+FONT_SOURCES: Final[Mapping[str, RemoteSource]] = MappingProxyType(
+    {
+        "ibm-plex-sans-medium.woff2": RemoteSource(
+            source_url=(
+                "https://raw.githubusercontent.com/IBM/plex/"
+                "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/"
+                "fonts/complete/ttf/IBMPlexSans-Medium.ttf"
+            ),
+            source_sha256=(
+                "331c8639d7598b2cde62a911a71db195e30cb655cd6bdf2e324a7e984955f907"
+            ),
+            output_filename="ibm-plex-sans-medium.woff2",
+            approved_output_sha256=(
+                "0051f7f5ff20aa6ae9892440525b504a793a01ad79ad388c7311ba1633383d3b"
+            ),
+            font_modified_timestamp=3866864236,
+        ),
+        "ibm-plex-sans-regular.woff2": RemoteSource(
+            source_url=(
+                "https://raw.githubusercontent.com/IBM/plex/"
+                "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/"
+                "fonts/complete/ttf/IBMPlexSans-Regular.ttf"
+            ),
+            source_sha256=(
+                "975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5"
+            ),
+            output_filename="ibm-plex-sans-regular.woff2",
+            approved_output_sha256=(
+                "46565e42fdd123fac75905063a8085a82a248ba1b740a8dc0e039da8fdb4d2ca"
+            ),
+            font_modified_timestamp=3866864234,
+        ),
+        "ibm-plex-sans-semibold.woff2": RemoteSource(
+            source_url=(
+                "https://raw.githubusercontent.com/IBM/plex/"
+                "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/"
+                "fonts/complete/ttf/IBMPlexSans-SemiBold.ttf"
+            ),
+            source_sha256=(
+                "a20caf8286023a6a7a85e40b1d2a4ae9fc3e3b1f9eda8f4c542dd4986af67bb1"
+            ),
+            output_filename="ibm-plex-sans-semibold.woff2",
+            approved_output_sha256=(
+                "bf85c851363d90d8d65b71fa8ad03e19323303df37aad1cf8db696ea533bb64b"
+            ),
+            font_modified_timestamp=3866864240,
+        ),
+        "newsreader-variable.woff2": RemoteSource(
+            source_url=(
+                "https://raw.githubusercontent.com/google/fonts/"
+                "991ce1de6075188e6b8977a5aa9fcd3610a4e946/ofl/newsreader/"
+                "Newsreader%5Bopsz%2Cwght%5D.ttf"
+            ),
+            source_sha256=(
+                "8a08d13f8a6c0d51be379a60af84f945f65369a67e509ee3c3bdcc421254d7c1"
+            ),
+            output_filename="newsreader-variable.woff2",
+            approved_output_sha256=(
+                "dd4da31f604cbe8d68e31265eddb0f8fc10a4c75edb98bef53d85514db99150a"
+            ),
+            font_modified_timestamp=3866864224,
+        ),
+    }
+)
+
+PAPER_SOURCES: Final[Mapping[str, RemoteSource]] = MappingProxyType(
+    {
+        "uni-lavira": RemoteSource(
+            source_url=(
+                "https://raw.githubusercontent.com/"
+                "NJU-R-L-Group-Embodied-Lab/uni-lavira-code/"
+                "215e7aca072b9b932bcde4d3a28c80434ff39caa/assets/teaser.png"
+            ),
+            source_sha256=(
+                "5de62f792db2571c6b82c757d887884ee165bd0d04340975129aa9630e406a60"
+            ),
+            output_filename="uni-lavira.webp",
+        ),
+        "lavira": RemoteSource(
+            source_url=(
+                "https://raw.githubusercontent.com/robo-lavira/lavira-zs-vln/"
+                "6abf36295c1d7c86706e9b842a57f588ccbcebbf/"
+                "static/images/teaser.png"
+            ),
+            source_sha256=(
+                "1a130e41e469ebd6d1bf75ad00d4bcecebc1705e6356b13463a76df3a7dceb10"
+            ),
+            output_filename="lavira.webp",
+        ),
+    }
+)
+
+TEXT_ONLY_PAPERS: Final[Mapping[str, TextOnlyDecision]] = MappingProxyType(
+    {
+        "mfrs": TextOnlyDecision(
+            managed_output_filename="mfrs.webp",
+            reason=(
+                "The Wix image is unsuitable, and repository plots are not documented "
+                "as an official teaser."
+            ),
+        )
+    }
+)
+
+PORTRAIT: Final = PortraitSource(
+    source_path=ROOT / "figs" / "ChatGPT Image 2026年6月29日 16_41_32.png",
+    source_sha256=(
+        "6057a0ee0d6462f099eb9a9be8c5ce17bf3ac04f5154fac8231113e9734b5b0e"
+    ),
+    crop_box=(199, 430, 919, 1330),
+    output_filename="profile-hongyu-ding.webp",
+)
+
+
+def _sha256_bytes(data: bytes) -> str:
+    """Return the SHA-256 digest of in-memory data."""
+    return hashlib.sha256(data).hexdigest()
+
+
+def _sha256_path(path: Path) -> str:
+    """Return the SHA-256 digest of a file."""
+    return _sha256_bytes(path.read_bytes())
 
 
 def _download(url: str) -> bytes:
-    """Download a public asset with a browser-like user agent."""
+    """Download one immutable public asset."""
     request = Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urlopen(request, timeout=30) as response:
@@ -58,110 +190,202 @@ def _download(url: str) -> bytes:
         raise
 
 
-def _convert_font(url: str, destination: Path) -> None:
-    """Convert an official TTF font source to browser-ready WOFF2."""
-    font = TTFont(BytesIO(_download(url)))
-    font.flavor = "woff2"
-    font.save(destination)
+def _verified_download(source: RemoteSource) -> bytes:
+    """Download a source and reject content that differs from review."""
+    data = _download(source.source_url)
+    actual_hash = _sha256_bytes(data)
+    if actual_hash != source.source_sha256:
+        raise ValueError(
+            "SHA-256 mismatch for "
+            f"{source.source_url}: expected {source.source_sha256}, got {actual_hash}"
+        )
+    return data
+
+
+def _atomic_write(destination: Path, writer: Callable[[Path], None]) -> None:
+    """Replace a destination only after its temporary output succeeds."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent
+    )
+    os.close(descriptor)
+    temporary_path = Path(temporary_name)
+    replaced = False
+    try:
+        writer(temporary_path)
+        os.replace(temporary_path, destination)
+        replaced = True
+    finally:
+        if not replaced:
+            temporary_path.unlink(missing_ok=True)
+
+
+def _convert_font(source_data: bytes, source: RemoteSource, destination: Path) -> None:
+    """Convert one hash-verified TTF source to deterministic WOFF2."""
+
+    def write_font(temporary_path: Path) -> None:
+        font = TTFont(BytesIO(source_data), recalcTimestamp=False)
+        try:
+            if source.font_modified_timestamp is None:
+                raise ValueError(f"Missing approved font timestamp: {source.output_filename}")
+            font["head"].modified = source.font_modified_timestamp
+            font.flavor = "woff2"
+            font.save(temporary_path)
+        finally:
+            font.close()
+
+    _atomic_write(destination, write_font)
 
 
 def _prepare_fonts() -> None:
-    """Create every self-hosted font required by the stylesheet."""
-    FONT_DIR.mkdir(parents=True, exist_ok=True)
-    for filename, url in FONT_SOURCES.items():
+    """Verify all font sources and preserve reviewed matching outputs."""
+    for filename, source in FONT_SOURCES.items():
+        LOGGER.info("Preparing font %s", filename)
+        source_data = _verified_download(source)
         destination = FONT_DIR / filename
-        LOGGER.info("Preparing font %s", destination.name)
-        _convert_font(url, destination)
+        if (
+            destination.exists()
+            and source.approved_output_sha256 is not None
+            and _sha256_path(destination) == source.approved_output_sha256
+        ):
+            LOGGER.info("Keeping approved font output %s", filename)
+            continue
+        _convert_font(source_data, source, destination)
 
 
 def _prepare_portrait() -> None:
-    """Export the approved crop without changing the original portrait."""
-    IMAGE_DIR.mkdir(parents=True, exist_ok=True)
-    with Image.open(PORTRAIT_SOURCE) as source:
-        rgb = source.convert("RGB")
-        crop = rgb.crop((199, 430, 919, 1330))
-        if crop.size != (720, 900):
-            raise ValueError(f"Unexpected portrait crop size: {crop.size}")
-        crop.save(
-            IMAGE_DIR / "profile-hongyu-ding.webp",
-            "WEBP",
-            quality=90,
-            method=6,
+    """Verify and export the approved portrait crop atomically."""
+    actual_hash = _sha256_path(PORTRAIT.source_path)
+    if actual_hash != PORTRAIT.source_sha256:
+        raise ValueError(
+            "SHA-256 mismatch for "
+            f"{PORTRAIT.source_path}: expected {PORTRAIT.source_sha256}, "
+            f"got {actual_hash}"
         )
+    with Image.open(PORTRAIT.source_path) as source_image:
+        crop = source_image.convert("RGB").crop(PORTRAIT.crop_box)
+    if crop.size != (720, 900):
+        raise ValueError(f"Unexpected portrait crop size: {crop.size}")
+
+    def write_portrait(temporary_path: Path) -> None:
+        crop.save(temporary_path, "WEBP", quality=90, method=6)
+
+    _atomic_write(IMAGE_DIR / PORTRAIT.output_filename, write_portrait)
 
 
-def _candidate_image_urls(page_url: str) -> list[str]:
-    """Collect author-controlled image candidates from a project page."""
-    html = _download(page_url).decode("utf-8", errors="replace")
-    soup = BeautifulSoup(html, "html.parser")
-    candidates: list[str] = []
-    for selector, attribute in (
-        ('meta[property="og:image"]', "content"),
-        ('meta[name="twitter:image"]', "content"),
-    ):
-        tag = soup.select_one(selector)
-        if tag and tag.get(attribute):
-            candidates.append(urljoin(page_url, str(tag[attribute])))
-    for image in soup.select("img[src]"):
-        source = urljoin(page_url, str(image["src"]))
-        if source.startswith("http"):
-            candidates.append(source)
-    return list(dict.fromkeys(candidates))
-
-
-def _select_teaser(page_url: str) -> Image.Image | None:
-    """Choose the largest plausible editorial teaser from a project page."""
-    best_image: Image.Image | None = None
-    best_area = 0
-    for url in _candidate_image_urls(page_url)[:24]:
-        try:
-            with Image.open(BytesIO(_download(url))) as candidate:
-                image = candidate.convert("RGB")
-        except (OSError, ValueError):
-            continue
-        width, height = image.size
-        ratio = width / height if height else 0.0
-        area = width * height
-        if width < 600 or height < 300 or not 1.2 <= ratio <= 2.6:
-            continue
-        if area > best_area:
-            best_image = image.copy()
-            best_area = area
-    return best_image
-
-
-def _prepare_paper_media() -> list[str]:
-    """Export real project imagery and report pages that need text-only rows."""
-    PAPER_DIR.mkdir(parents=True, exist_ok=True)
-    missing: list[str] = []
-    for filename, page_url in PROJECT_PAGES.items():
-        LOGGER.info("Inspecting project media for %s", page_url)
-        teaser = _select_teaser(page_url)
-        if teaser is None:
-            LOGGER.warning("No suitable teaser found for %s", page_url)
-            missing.append(filename)
-            continue
+def _prepare_paper(source: RemoteSource, destination: Path) -> None:
+    """Create one reviewed 16:9 paper image without risking prior output."""
+    source_data = _verified_download(source)
+    with Image.open(BytesIO(source_data)) as source_image:
+        if source_image.mode == "P" and "transparency" in source_image.info:
+            rgb_image = source_image.convert("RGBA").convert("RGB")
+        else:
+            rgb_image = source_image.convert("RGB")
         fitted = ImageOps.fit(
-            teaser,
+            rgb_image,
             (960, 540),
             method=Image.Resampling.LANCZOS,
             centering=(0.5, 0.5),
         )
-        fitted.save(PAPER_DIR / filename, "WEBP", quality=88, method=6)
-    return missing
+
+    def write_paper(temporary_path: Path) -> None:
+        fitted.save(temporary_path, "WEBP", quality=88, method=6)
+
+    _atomic_write(destination, write_paper)
+
+
+def _prepare_paper_media() -> None:
+    """Generate only the two reviewed official paper teasers."""
+    for name, source in PAPER_SOURCES.items():
+        LOGGER.info("Preparing approved paper media for %s", name)
+        _prepare_paper(source, PAPER_DIR / source.output_filename)
+
+
+def _prepare_text_only_media() -> None:
+    """Remove stale managed outputs for conclusive text-only decisions."""
+    for name, decision in TEXT_ONLY_PAPERS.items():
+        destination = PAPER_DIR / decision.managed_output_filename
+        LOGGER.info("Enforcing text-only media state for %s", name)
+        destination.unlink(missing_ok=True)
+
+
+def _write_font_checksums() -> None:
+    """Write exactly the four current font output hashes."""
+    lines = [
+        f"{_sha256_path(FONT_DIR / filename)}  {filename}\n"
+        for filename in sorted(FONT_SOURCES)
+    ]
+    _atomic_write(
+        FONT_DIR / "SHA256SUMS",
+        lambda temporary_path: temporary_path.write_text("".join(lines), encoding="utf-8"),
+    )
+
+
+def _build_manifest() -> dict[str, object]:
+    """Build provenance records from immutable descriptors and outputs."""
+    fonts = {
+        filename: {
+            "source_url": source.source_url,
+            "source_sha256": source.source_sha256,
+            "output_filename": f"assets/fonts/{filename}",
+            "output_sha256": _sha256_path(FONT_DIR / filename),
+        }
+        for filename, source in FONT_SOURCES.items()
+    }
+    papers: dict[str, object] = {
+        name: {
+            "decision": "accepted",
+            "source_url": source.source_url,
+            "source_sha256": source.source_sha256,
+            "output_filename": f"assets/images/papers/{source.output_filename}",
+            "output_sha256": _sha256_path(PAPER_DIR / source.output_filename),
+        }
+        for name, source in PAPER_SOURCES.items()
+    }
+    papers.update(
+        {
+            name: {
+                "decision": "text-only",
+                "managed_output_filename": (
+                    f"assets/images/papers/{decision.managed_output_filename}"
+                ),
+                "reason": decision.reason,
+            }
+            for name, decision in TEXT_ONLY_PAPERS.items()
+        }
+    )
+    return {
+        "schema_version": 1,
+        "portrait": {
+            "source_path": PORTRAIT.source_path.relative_to(ROOT).as_posix(),
+            "source_sha256": PORTRAIT.source_sha256,
+            "crop_box": list(PORTRAIT.crop_box),
+            "output_filename": f"assets/images/{PORTRAIT.output_filename}",
+            "output_sha256": _sha256_path(IMAGE_DIR / PORTRAIT.output_filename),
+        },
+        "fonts": fonts,
+        "papers": papers,
+    }
+
+
+def _write_manifest() -> None:
+    """Write the generated provenance manifest atomically."""
+    content = json.dumps(_build_manifest(), indent=2, sort_keys=True) + "\n"
+    _atomic_write(
+        MANIFEST_PATH,
+        lambda temporary_path: temporary_path.write_text(content, encoding="utf-8"),
+    )
 
 
 def main() -> int:
-    """Prepare all local assets and print deterministic fallback actions."""
+    """Generate all approved assets and their provenance records."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     _prepare_fonts()
     _prepare_portrait()
-    missing = _prepare_paper_media()
-    if missing:
-        LOGGER.warning(
-            "Use text-only publication markup for missing files: %s",
-            ", ".join(missing),
-        )
+    _prepare_paper_media()
+    _prepare_text_only_media()
+    _write_font_checksums()
+    _write_manifest()
     return 0
 
 
