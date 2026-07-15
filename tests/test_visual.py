@@ -251,6 +251,14 @@ def _assert_keyboard_navigation(browser: Browser) -> None:
     page.close()
 
 
+def _assert_mobile_touch_targets(browser: Browser) -> None:
+    """Keep 44px targets through the full single-column breakpoint."""
+    page = browser.new_page(viewport={"width": 640, "height": 1000})
+    page.goto(BASE_URL, wait_until="networkidle")
+    _assert_mobile_link_targets(page)
+    page.close()
+
+
 def _assert_page(browser: Browser, width: int) -> None:
     """Verify one rendered viewport and save screenshot evidence."""
     page = browser.new_page(viewport={"width": width, "height": 1000})
@@ -374,6 +382,7 @@ def main() -> int:
         for width in VIEWPORTS:
             _assert_page(browser, width)
         _assert_keyboard_navigation(browser)
+        _assert_mobile_touch_targets(browser)
         _assert_font_fallback_layout(browser)
         _assert_motion_preferences(browser)
         browser.close()
