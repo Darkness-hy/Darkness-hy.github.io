@@ -1,6 +1,6 @@
 # Bundled font notices
 
-The production WOFF2 files are local conversions of fonts from immutable upstream revisions. Their license and copyright notices are preserved beside them.
+The IBM Plex Sans production files are official upstream WOFF2 files copied byte-for-byte from an immutable revision. Newsreader is converted from its pinned TTF to WOFF2. Their license and copyright notices are preserved beside them.
 
 | Production file | Source family | License notice | Pinned source family |
 | --- | --- | --- | --- |

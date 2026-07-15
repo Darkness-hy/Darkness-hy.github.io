@@ -35,7 +35,7 @@ python3 "/Users/dinghongyu/.claude/skills/webapp-testing/scripts/with_server.py"
   -- .venv/bin/python tests/test_visual.py
 ```
 
-The Playwright gate checks responsive layout, local assets and fonts, keyboard focus, touch targets, reduced motion, and overflow. It writes four screenshots to `temp/homepage-review/`:
+The Playwright gate checks responsive layout, local assets and fonts, keyboard focus, touch targets, reduced motion, narrow-print destinations, overflow, and rejection of external HTTP(S) requests. It writes four screenshots to `temp/homepage-review/`:
 
 - `homepage-375.png`
 - `homepage-768.png`

@@ -345,6 +345,10 @@ h1 {
     color: inherit;
     text-decoration: underline;
   }
+  .contact-links a[href]::after, .resource-links a[href]::after {
+    content: " (" attr(href) ")";
+    overflow-wrap: anywhere;
+  }
   .publication-card, .research-grid { display: block; }
   .research-theme, .publication-card {
     break-inside: avoid;

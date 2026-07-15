@@ -2,21 +2,21 @@
   "fonts": {
     "ibm-plex-sans-medium.woff2": {
       "output_filename": "assets/fonts/ibm-plex-sans-medium.woff2",
-      "output_sha256": "0051f7f5ff20aa6ae9892440525b504a793a01ad79ad388c7311ba1633383d3b",
-      "source_sha256": "331c8639d7598b2cde62a911a71db195e30cb655cd6bdf2e324a7e984955f907",
-      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-Medium.ttf"
+      "output_sha256": "5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d",
+      "source_sha256": "5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d",
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/woff2/IBMPlexSans-Medium.woff2"
     },
     "ibm-plex-sans-regular.woff2": {
       "output_filename": "assets/fonts/ibm-plex-sans-regular.woff2",
-      "output_sha256": "46565e42fdd123fac75905063a8085a82a248ba1b740a8dc0e039da8fdb4d2ca",
-      "source_sha256": "975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5",
-      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-Regular.ttf"
+      "output_sha256": "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a",
+      "source_sha256": "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a",
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/woff2/IBMPlexSans-Regular.woff2"
     },
     "ibm-plex-sans-semibold.woff2": {
       "output_filename": "assets/fonts/ibm-plex-sans-semibold.woff2",
-      "output_sha256": "bf85c851363d90d8d65b71fa8ad03e19323303df37aad1cf8db696ea533bb64b",
-      "source_sha256": "a20caf8286023a6a7a85e40b1d2a4ae9fc3e3b1f9eda8f4c542dd4986af67bb1",
-      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-SemiBold.ttf"
+      "output_sha256": "f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205",
+      "source_sha256": "f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205",
+      "source_url": "https://raw.githubusercontent.com/IBM/plex/c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/fonts/complete/woff2/IBMPlexSans-SemiBold.woff2"
     },
     "newsreader-variable.woff2": {
       "output_filename": "assets/fonts/newsreader-variable.woff2",

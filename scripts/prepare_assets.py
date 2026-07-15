@@ -24,6 +24,7 @@ IMAGE_DIR: Final = ROOT / "assets" / "images"
 PAPER_DIR: Final = IMAGE_DIR / "papers"
 MANIFEST_PATH: Final = ROOT / "assets" / "ASSET_SOURCES.json"
 USER_AGENT: Final = "Mozilla/5.0 (compatible; HongyuDingHomepageAssetPrep/1.0)"
+PUBLIC_FILE_MODE: Final = 0o644
 
 
 @dataclass(frozen=True)
@@ -61,46 +62,43 @@ FONT_SOURCES: Final[Mapping[str, RemoteSource]] = MappingProxyType(
             source_url=(
                 "https://raw.githubusercontent.com/IBM/plex/"
                 "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/"
-                "fonts/complete/ttf/IBMPlexSans-Medium.ttf"
+                "fonts/complete/woff2/IBMPlexSans-Medium.woff2"
             ),
             source_sha256=(
-                "331c8639d7598b2cde62a911a71db195e30cb655cd6bdf2e324a7e984955f907"
+                "5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d"
             ),
             output_filename="ibm-plex-sans-medium.woff2",
             approved_output_sha256=(
-                "0051f7f5ff20aa6ae9892440525b504a793a01ad79ad388c7311ba1633383d3b"
+                "5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d"
             ),
-            font_modified_timestamp=3866864236,
         ),
         "ibm-plex-sans-regular.woff2": RemoteSource(
             source_url=(
                 "https://raw.githubusercontent.com/IBM/plex/"
                 "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/"
-                "fonts/complete/ttf/IBMPlexSans-Regular.ttf"
+                "fonts/complete/woff2/IBMPlexSans-Regular.woff2"
             ),
             source_sha256=(
-                "975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5"
+                "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a"
             ),
             output_filename="ibm-plex-sans-regular.woff2",
             approved_output_sha256=(
-                "46565e42fdd123fac75905063a8085a82a248ba1b740a8dc0e039da8fdb4d2ca"
+                "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a"
             ),
-            font_modified_timestamp=3866864234,
         ),
         "ibm-plex-sans-semibold.woff2": RemoteSource(
             source_url=(
                 "https://raw.githubusercontent.com/IBM/plex/"
                 "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans/"
-                "fonts/complete/ttf/IBMPlexSans-SemiBold.ttf"
+                "fonts/complete/woff2/IBMPlexSans-SemiBold.woff2"
             ),
             source_sha256=(
-                "a20caf8286023a6a7a85e40b1d2a4ae9fc3e3b1f9eda8f4c542dd4986af67bb1"
+                "f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205"
             ),
             output_filename="ibm-plex-sans-semibold.woff2",
             approved_output_sha256=(
-                "bf85c851363d90d8d65b71fa8ad03e19323303df37aad1cf8db696ea533bb64b"
+                "f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205"
             ),
-            font_modified_timestamp=3866864240,
         ),
         "newsreader-variable.woff2": RemoteSource(
             source_url=(
@@ -168,16 +166,13 @@ PORTRAIT: Final = PortraitSource(
     output_filename="profile-hongyu-ding.webp",
 )
 
-
 def _sha256_bytes(data: bytes) -> str:
     """Return the SHA-256 digest of in-memory data."""
     return hashlib.sha256(data).hexdigest()
 
-
 def _sha256_path(path: Path) -> str:
     """Return the SHA-256 digest of a file."""
     return _sha256_bytes(path.read_bytes())
-
 
 def _download(url: str) -> bytes:
     """Download one immutable public asset."""
@@ -188,7 +183,6 @@ def _download(url: str) -> bytes:
     except OSError as exc:
         LOGGER.error("Failed to download %s: %s", url, exc)
         raise
-
 
 def _verified_download(source: RemoteSource) -> bytes:
     """Download a source and reject content that differs from review."""
@@ -201,7 +195,6 @@ def _verified_download(source: RemoteSource) -> bytes:
         )
     return data
 
-
 def _atomic_write(destination: Path, writer: Callable[[Path], None]) -> None:
     """Replace a destination only after its temporary output succeeds."""
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -213,15 +206,24 @@ def _atomic_write(destination: Path, writer: Callable[[Path], None]) -> None:
     replaced = False
     try:
         writer(temporary_path)
+        os.chmod(temporary_path, PUBLIC_FILE_MODE)
         os.replace(temporary_path, destination)
         replaced = True
     finally:
         if not replaced:
             temporary_path.unlink(missing_ok=True)
 
+def _write_binary(source_data: bytes, destination: Path) -> None:
+    """Write verified upstream binary bytes without transformation."""
+
+    def write_bytes(temporary_path: Path) -> None:
+        """Write the approved bytes to an atomic temporary path."""
+        temporary_path.write_bytes(source_data)
+
+    _atomic_write(destination, write_bytes)
 
 def _convert_font(source_data: bytes, source: RemoteSource, destination: Path) -> None:
-    """Convert one hash-verified TTF source to deterministic WOFF2."""
+    """Convert the hash-verified Newsreader TTF to deterministic WOFF2."""
 
     def write_font(temporary_path: Path) -> None:
         font = TTFont(BytesIO(source_data), recalcTimestamp=False)
@@ -236,7 +238,6 @@ def _convert_font(source_data: bytes, source: RemoteSource, destination: Path) -
 
     _atomic_write(destination, write_font)
 
-
 def _prepare_fonts() -> None:
     """Verify all font sources and preserve reviewed matching outputs."""
     for filename, source in FONT_SOURCES.items():
@@ -249,9 +250,12 @@ def _prepare_fonts() -> None:
             and _sha256_path(destination) == source.approved_output_sha256
         ):
             LOGGER.info("Keeping approved font output %s", filename)
+            destination.chmod(PUBLIC_FILE_MODE)
             continue
-        _convert_font(source_data, source, destination)
-
+        if source.font_modified_timestamp is None:
+            _write_binary(source_data, destination)
+        else:
+            _convert_font(source_data, source, destination)
 
 def _prepare_portrait() -> None:
     """Verify and export the approved portrait crop atomically."""
@@ -271,7 +275,6 @@ def _prepare_portrait() -> None:
         crop.save(temporary_path, "WEBP", quality=90, method=6)
 
     _atomic_write(IMAGE_DIR / PORTRAIT.output_filename, write_portrait)
-
 
 def _prepare_paper(source: RemoteSource, destination: Path) -> None:
     """Create one reviewed 16:9 paper image without risking prior output."""
@@ -293,13 +296,11 @@ def _prepare_paper(source: RemoteSource, destination: Path) -> None:
 
     _atomic_write(destination, write_paper)
 
-
 def _prepare_paper_media() -> None:
     """Generate only the two reviewed official paper teasers."""
     for name, source in PAPER_SOURCES.items():
         LOGGER.info("Preparing approved paper media for %s", name)
         _prepare_paper(source, PAPER_DIR / source.output_filename)
-
 
 def _prepare_text_only_media() -> None:
     """Remove stale managed outputs for conclusive text-only decisions."""
@@ -307,7 +308,6 @@ def _prepare_text_only_media() -> None:
         destination = PAPER_DIR / decision.managed_output_filename
         LOGGER.info("Enforcing text-only media state for %s", name)
         destination.unlink(missing_ok=True)
-
 
 def _write_font_checksums() -> None:
     """Write exactly the four current font output hashes."""
@@ -319,7 +319,6 @@ def _write_font_checksums() -> None:
         FONT_DIR / "SHA256SUMS",
         lambda temporary_path: temporary_path.write_text("".join(lines), encoding="utf-8"),
     )
-
 
 def _build_manifest() -> dict[str, object]:
     """Build provenance records from immutable descriptors and outputs."""
@@ -367,7 +366,6 @@ def _build_manifest() -> dict[str, object]:
         "papers": papers,
     }
 
-
 def _write_manifest() -> None:
     """Write the generated provenance manifest atomically."""
     content = json.dumps(_build_manifest(), indent=2, sort_keys=True) + "\n"
@@ -375,7 +373,6 @@ def _write_manifest() -> None:
         MANIFEST_PATH,
         lambda temporary_path: temporary_path.write_text(content, encoding="utf-8"),
     )
-
 
 def main() -> int:
     """Generate all approved assets and their provenance records."""
