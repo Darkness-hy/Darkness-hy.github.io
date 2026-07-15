@@ -18,6 +18,36 @@ IMAGE_DIR = ROOT / "assets" / "images"
 PAPER_DIR = IMAGE_DIR / "papers"
 INDEX_PATH = ROOT / "index.html"
 MANIFEST_PATH = ROOT / "assets" / "ASSET_SOURCES.json"
+FONT_LICENSE_ROWS = {
+    "newsreader-variable.woff2": (
+        "Newsreader",
+        "LICENSE-Newsreader.txt",
+        "https://github.com/google/fonts/tree/"
+        "991ce1de6075188e6b8977a5aa9fcd3610a4e946/ofl/newsreader",
+    ),
+    "ibm-plex-sans-regular.woff2": (
+        "IBM Plex Sans",
+        "LICENSE-IBM-Plex.txt",
+        "https://github.com/IBM/plex/tree/"
+        "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans",
+    ),
+    "ibm-plex-sans-medium.woff2": (
+        "IBM Plex Sans",
+        "LICENSE-IBM-Plex.txt",
+        "https://github.com/IBM/plex/tree/"
+        "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans",
+    ),
+    "ibm-plex-sans-semibold.woff2": (
+        "IBM Plex Sans",
+        "LICENSE-IBM-Plex.txt",
+        "https://github.com/IBM/plex/tree/"
+        "c5f949677f6f163e8dfe98ca2c326bd48b42fa1b/packages/plex-sans",
+    ),
+}
+FONT_LICENSE_NOTICES = {
+    "LICENSE-Newsreader.txt": "Copyright 2020 The Newsreader Project Authors",
+    "LICENSE-IBM-Plex.txt": "Copyright © 2017 IBM Corp.",
+}
 
 EXPECTED_FONT_SOURCES = {
     "ibm-plex-sans-medium.woff2": (
@@ -144,6 +174,21 @@ def test_no_orphan_paper_webps_exist() -> None:
     }
     actual = {path.name for path in PAPER_DIR.glob("*.webp")}
     assert actual == referenced
+
+
+def test_font_license_notices_and_readme_are_complete_offline() -> None:
+    """Map every bundled font to its exact pinned OFL notice offline."""
+    readme = (FONT_DIR / "README.md").read_text(encoding="utf-8")
+    for notice_name, copyright_line in FONT_LICENSE_NOTICES.items():
+        notice = (FONT_DIR / notice_name).read_text(encoding="utf-8")
+        assert "SIL OPEN FONT LICENSE Version 1.1" in notice
+        assert copyright_line in notice
+
+    for binary, (family, notice_name, source_url) in FONT_LICENSE_ROWS.items():
+        expected_row = (
+            f"| `{binary}` | {family} | `{notice_name}` | {source_url} |"
+        )
+        assert expected_row in readme
 
 
 def test_font_checksums_are_exact_and_current() -> None:

@@ -212,7 +212,6 @@ h1 {
   border-top: 1px solid var(--color-line);
 }
 .publication-card--featured {
-  margin-inline: -1rem;
   padding-inline: 1rem;
   background: var(--color-highlight);
   border-radius: 12px;
@@ -312,8 +311,10 @@ h1 {
   }
   .contact-links a, .resource-links a {
     display: inline-flex;
+    min-inline-size: 44px;
     min-height: 44px;
     align-items: center;
+    justify-content: center;
   }
   .site-footer { flex-direction: column; }
 }
