@@ -215,46 +215,52 @@ def test_ibm_sources_and_outputs_are_official_woff2_bytes() -> None:
         assert _sha256(FONT_DIR / filename) == source_hash
 
 
-def test_prepare_fonts_copies_ibm_and_converts_only_newsreader(
+def test_prepare_fonts_routes_real_descriptors_and_converts_newsreader(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Write verified IBM bytes directly while retaining Newsreader conversion."""
-    source_data = {
-        "ibm-plex-sans-regular.woff2": b"official IBM WOFF2 bytes",
-        "newsreader-variable.woff2": b"approved Newsreader TTF bytes",
-    }
-    sources = {
-        filename: prepare_assets.RemoteSource(
-            source_url=f"https://example.invalid/{filename}",
-            source_sha256=_sha256_bytes(data),
-            output_filename=filename,
-            approved_output_sha256=None,
-            font_modified_timestamp=1 if filename.startswith("newsreader") else None,
-        )
-        for filename, data in source_data.items()
-    }
+    """Route production descriptors and reproduce the approved Newsreader WOFF2."""
+    newsreader_name = "newsreader-variable.woff2"
+    newsreader = prepare_assets.FONT_SOURCES[newsreader_name]
+    source_data = (
+        ROOT / "tests" / "fixtures" / "newsreader-variable-source.ttf"
+    ).read_bytes()
+
+    assert _sha256_bytes(source_data) == newsreader.source_sha256
+    assert newsreader.font_modified_timestamp == 3866864224
+    assert all(
+        prepare_assets.FONT_SOURCES[name].font_modified_timestamp is None
+        for name in IBM_FONT_FILENAMES
+    )
+
+    copied: list[str] = []
     converted: list[str] = []
+    real_convert = prepare_assets._convert_font
 
     def fake_download(source: prepare_assets.RemoteSource) -> bytes:
-        """Return the test bytes associated with a descriptor."""
-        return source_data[source.output_filename]
+        """Return the pinned TTF only for the production Newsreader descriptor."""
+        return source_data if source is newsreader else b"official IBM WOFF2 bytes"
 
-    def fake_convert(
-        _data: bytes, source: prepare_assets.RemoteSource, destination: Path
+    def record_write(_data: bytes, destination: Path) -> None:
+        """Record descriptors routed through byte-for-byte writes."""
+        copied.append(destination.name)
+
+    def record_convert(
+        data: bytes, source: prepare_assets.RemoteSource, destination: Path
     ) -> None:
-        """Record conversion attempts without parsing a real font."""
+        """Record conversion routing while executing the production converter."""
         converted.append(source.output_filename)
-        destination.write_bytes(b"converted Newsreader")
+        real_convert(data, source, destination)
 
     monkeypatch.setattr(prepare_assets, "FONT_DIR", tmp_path)
-    monkeypatch.setattr(prepare_assets, "FONT_SOURCES", sources)
     monkeypatch.setattr(prepare_assets, "_verified_download", fake_download)
-    monkeypatch.setattr(prepare_assets, "_convert_font", fake_convert)
+    monkeypatch.setattr(prepare_assets, "_write_binary", record_write)
+    monkeypatch.setattr(prepare_assets, "_convert_font", record_convert)
     prepare_assets._prepare_fonts()
-    assert converted == ["newsreader-variable.woff2"]
-    assert (tmp_path / "ibm-plex-sans-regular.woff2").read_bytes() == source_data[
-        "ibm-plex-sans-regular.woff2"
-    ]
+    output = tmp_path / newsreader_name
+    assert copied == list(IBM_FONT_FILENAMES)
+    assert converted == [newsreader_name]
+    assert output.read_bytes()[:4] == b"wOF2"
+    assert _sha256(output) == newsreader.approved_output_sha256
 
 
 def test_font_checksums_are_exact_and_current() -> None:
