@@ -50,8 +50,7 @@ def _guard_network(page: Page, blocked_local_paths: tuple[str, ...] = ()) -> lis
 
     page.route("**/*", route_request)
     page.on("response", lambda response: errors.append(
-        f"{response.status} {response.url}"
-    ) if _is_loopback_request(response.url) and response.status >= 400 else None)
+        f"{response.status} {response.url}") if _is_loopback_request(response.url) and response.status >= 400 else None)
     page.on("requestfailed", record_failed_request)
     return errors
 
@@ -62,8 +61,7 @@ def _new_page(browser: Browser, width: int = 1280, blocked_local_paths: tuple[st
 
 def _assert_no_horizontal_overflow(page: Page, width: int) -> None:
     """Require rendered content to stay within the viewport width."""
-    dimensions = page.evaluate("() => [document.documentElement.scrollWidth, "
-                               "document.documentElement.clientWidth]")
+    dimensions = page.evaluate("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]")
     assert dimensions[0] <= dimensions[1], (width, dimensions)
 
 def _grid_columns(page: Page, selector: str) -> int:
@@ -160,10 +158,8 @@ def _assert_fonts_loaded_and_applied(page: Page) -> None:
     """Force-load every local face and verify the declared production stacks."""
     font_state = page.evaluate(
         """async () => {
-            const requests = [
-                "400 16px 'IBM Plex Sans'", "500 16px 'IBM Plex Sans'",
-                "600 16px 'IBM Plex Sans'", "400 32px 'Newsreader'",
-                "600 32px 'Newsreader'"
+            const requests = ["400 16px 'IBM Plex Sans'", "500 16px 'IBM Plex Sans'",
+                "600 16px 'IBM Plex Sans'", "400 32px 'Newsreader'", "600 32px 'Newsreader'"
             ];
             const loadCounts = {};
             for (const request of requests) {
@@ -178,8 +174,7 @@ def _assert_fonts_loaded_and_applied(page: Page) -> None:
                 })),
                 bodyStack: getComputedStyle(document.body).fontFamily,
                 h1Stack: getComputedStyle(document.querySelector("h1")).fontFamily,
-                h2Stacks: Array.from(document.querySelectorAll("h2"), heading =>
-                    getComputedStyle(heading).fontFamily)
+                h2Stacks: Array.from(document.querySelectorAll("h2"), heading => getComputedStyle(heading).fontFamily)
             };
         }"""
     )
@@ -292,6 +287,14 @@ def _assert_print_destinations(browser: Browser) -> None:
         "a[href]:not(.contact-links a):not(.resource-links a)"
     ).evaluate_all('links => links.map(link => getComputedStyle(link, "::after").content)')
     assert other_content and set(other_content) == {"none"}
+    pagination_styles = page.locator(
+        "#selected-publications .section-heading, #publications .section-heading, "
+        "#publications .publication-year h3"
+    ).evaluate_all("""elements => elements.map(element => {
+        const style = getComputedStyle(element);
+        return [style.breakAfter, style.pageBreakAfter];
+    })""")
+    assert pagination_styles == [["avoid", "avoid"]] * 4, pagination_styles
     assert not network_errors, network_errors
     page.close()
 
@@ -300,11 +303,8 @@ def _assert_page(browser: Browser, width: int) -> None:
     page, network_errors = _new_page(browser, width)
     console_errors: list[str] = []
     page.on(
-        "console",
-        lambda message: console_errors.append(message.text)
-        if message.type == "error"
-        else None,
-    )
+        "console", lambda message: console_errors.append(message.text)
+        if message.type == "error" else None)
     page.goto(BASE_URL, wait_until="networkidle")
     _assert_no_horizontal_overflow(page, width)
     assert page.locator("h1").inner_text() == "Hongyu Ding"

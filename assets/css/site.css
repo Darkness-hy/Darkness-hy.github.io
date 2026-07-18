@@ -350,6 +350,10 @@ h1 {
     overflow-wrap: anywhere;
   }
   .publication-card, .research-grid { display: block; }
+  .section-heading, .publication-year h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
   .research-theme, .publication-card {
     break-inside: avoid;
     padding: 0.8rem 0;
