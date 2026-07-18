@@ -9,9 +9,9 @@ Design and implement a restrained, research-first academic homepage for Hongyu D
 - [x] Phase 3: Compare 2–3 design approaches and obtain design approval
 - [x] Phase 4: Write and review the approved design specification
 - [x] Phase 5: Write the implementation plan and obtain execution approval
-- [ ] Phase 6: Implement the homepage and content model
-- [ ] Phase 7: Review code, test responsive behavior, and visually refine
-- [ ] Phase 8: Deliver the finished site with exact file and verification reporting
+- [x] Phase 6: Implement the homepage and content model
+- [x] Phase 7: Review code, test responsive behavior, and visually refine
+- [x] Phase 8: Deliver the finished site with exact file and verification reporting
 
 ## Key Questions
 1. Which identity/contact facts and links cannot be discovered reliably from the supplied sources?
@@ -46,6 +46,11 @@ Design and implement a restrained, research-first academic homepage for Hongyu D
 ## Errors Encountered
 - Implementation-plan review workflow failed on 2026-07-14 because all five agents received temporary API 500/EOF connection errors. Resolution: retried once; the retry remained stuck without results and was stopped after the implementation plan had been completed and self-reviewed inline.
 - Local tool check: `uv` and ImageMagick are unavailable; `/usr/bin/python3`, `npx`, `/usr/bin/sips`, and `/usr/bin/tidy` are available. The implementation plan must not assume `uv` or `magick`.
+- Task 4 delegation was initially denied because `npx --yes html-validate` may download and execute an unapproved external npm package. Resolution: completed all local checks first, then obtained explicit approval for `html-validate` from the official npm registry; version 11.4.0 found one doctype-style error, which was fixed and revalidated with zero errors.
+- Final whole-branch review confirmed five defects: missing printed link destinations, converted IBM Plex files with reserved-family-name risk, unenforced static runtime/content contracts, incomplete exact-record tests, and generated mode `0600`. Resolution: fixed and committed in `18647d4`.
+- Follow-up code review found that the Newsreader conversion test used synthetic descriptors and did not protect the production conversion route. Resolution: added a pinned real-source fixture and mutation-proven regression in `ab42725`.
+- Follow-up visual review found A4 section headings could be orphaned from their first content item. Resolution: added print-only break avoidance and a Chromium regression in `eadfc83`; independent code and visual re-reviews approved the result.
+- Apple Tidy build 4474 reports valid HTML5 elements as unsupported. Resolution: the documented UTF-8/custom-tag compatibility command exits `1` with zero structural diagnostics; `html-validate 11.4.0` exits `0`.
 
 ## Status
-**Currently in Phase 6** — initializing the approved local Git workflow, then executing the four implementation tasks with TDD and per-task review.
+**Complete** — implementation, responsive and print verification, licensing/provenance checks, exact content contracts, final code review, and final visual review all passed. Local delivery state is recorded; no remote, push, deployment, or publication action was performed.
