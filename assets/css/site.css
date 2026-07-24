@@ -443,21 +443,6 @@ h1 {
   font-weight: 600;
 }
 
-.author-legend {
-  margin: -0.35rem 0 1.25rem;
-  color: var(--color-muted);
-  font-size: 0.84rem;
-  line-height: 1.45;
-}
-
-.author-legend sup {
-  position: relative;
-  top: -0.08em;
-  color: var(--color-accent);
-  font-size: 0.78em;
-  font-weight: 600;
-}
-
 .publication-summary {
   max-width: 68ch;
   color: var(--color-muted);
