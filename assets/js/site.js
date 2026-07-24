@@ -74,6 +74,10 @@
       en: "Selected Publications",
       zh: "代表性论文",
     },
+    "author-legend": {
+      en: "<sup>*</sup> Equal contribution. <sup>†</sup> Corresponding author.",
+      zh: "<sup>*</sup> 共同一作。<sup>†</sup> 通讯作者。",
+    },
     "status-uni-lavira": {
       en: "arXiv · 2026",
       zh: "arXiv · 2026",
