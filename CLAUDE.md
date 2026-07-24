@@ -27,8 +27,7 @@ Single-page static site:
 | `assets/css/site.css` | Full visual system (layout, type, light/dark theme tokens, print/reduced-motion) |
 | `assets/js/site.js` | Language (en/zh) and theme toggles; bilingual strings live in a `TRANSLATIONS` map keyed by `data-i18n` attributes |
 | `assets/fonts/` | Self-hosted Newsreader + IBM Plex Sans (woff2) and licenses |
-| `assets/images/` | Portrait, site icon, institution logos, paper teasers (webp; some animated, with `prefers-reduced-motion` posters) |
-| `figs/hongyu-ding-portrait-source.png` | Original portrait source (not linked by the page; profile export is `assets/images/profile-hongyu-ding.webp`) |
+| `assets/images/` | Portrait (`profile-hongyu-ding.webp`), site icon, institution logos, paper teasers (webp; some animated, with `prefers-reduced-motion` posters) |
 | `.nojekyll` | Disables Jekyll so `assets/` is served as-is on GitHub Pages |
 
 ### Content model

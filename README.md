@@ -21,5 +21,4 @@ Open `http://127.0.0.1:4173`.
 
 1. Update English structure/copy in `index.html`.
 2. Keep bilingual strings in sync in `assets/js/site.js` (`TRANSLATIONS`, keys via `data-i18n`).
-3. Place new media under `assets/images/` (or `assets/images/papers/`, `assets/images/logos/`) and reference relative paths only.
-4. Portrait source material (if regenerating the hero crop) lives at `figs/hongyu-ding-portrait-source.png`; the served file is `assets/images/profile-hongyu-ding.webp`.
+3. Place new media under `assets/images/` (or `assets/images/papers/`, `assets/images/logos/`) and reference relative paths only. Served portrait: `assets/images/profile-hongyu-ding.webp`.
