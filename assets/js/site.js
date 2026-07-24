@@ -167,8 +167,8 @@
       zh: "计算机科学与技术专业 · 博士研究生",
     },
     "education-phd-mentors": {
-      en: `Supervised by <a href="https://cs.nju.edu.cn/huojing/">Assoc. Prof. Jing Huo</a> and <a href="https://people.ucas.ac.cn/~yifanzhang">Prof. Yifan Zhang</a>.`,
-      zh: `导师：<a href="https://cs.nju.edu.cn/huojing/">霍静 副教授</a>、<a href="https://people.ucas.ac.cn/~yifanzhang">张一帆 教授</a>。`,
+      en: `Supervised by <a href="https://cs.nju.edu.cn/huojing/">Assoc. Prof. Jing Huo</a> and <a href="https://people.ucas.ac.cn/~yifanzhang">Prof. Yifan Zhang</a>`,
+      zh: `导师：<a href="https://cs.nju.edu.cn/huojing/">霍静 副教授</a>、<a href="https://people.ucas.ac.cn/~yifanzhang">张一帆 教授</a>`,
     },
     "education-master-institution": {
       en: `<a href="https://www.nju.edu.cn/en/">Nanjing University</a>`,
@@ -179,8 +179,8 @@
       zh: "控制科学与工程专业 · 工学硕士",
     },
     "education-master-mentors": {
-      en: `Advised by <a href="https://heyuanmingong.github.io/">Assoc. Prof. Zhi Wang</a> and <a href="https://ra.nju.edu.cn/szll/zzjs/20251120/i352846.html">Prof. Chunlin Chen</a>.`,
-      zh: `导师：<a href="https://heyuanmingong.github.io/">王志 副教授</a>、<a href="https://ra.nju.edu.cn/szll/zzjs/20251120/i352846.html">陈春林 教授</a>。`,
+      en: `Advised by <a href="https://heyuanmingong.github.io/">Assoc. Prof. Zhi Wang</a> and <a href="https://ra.nju.edu.cn/szll/zzjs/20251120/i352846.html">Prof. Chunlin Chen</a>`,
+      zh: `导师：<a href="https://heyuanmingong.github.io/">王志 副教授</a>、<a href="https://ra.nju.edu.cn/szll/zzjs/20251120/i352846.html">陈春林 教授</a>`,
     },
     "education-bachelor-institution": {
       en: `<a href="https://www.ecust.edu.cn/en/">East China University of Science and Technology</a>`,
@@ -207,8 +207,8 @@
       zh: `<a href="https://tairos.tencent.com/">腾讯 Robotics X 实验室</a>`,
     },
     "internship-detail": {
-      en: `Intern · Mentored by <a href="https://teaganli.github.io/">Tingguang Li</a>.`,
-      zh: `实习生 · 导师：<a href="https://teaganli.github.io/">李珽光</a>。`,
+      en: `Intern · Mentored by <a href="https://teaganli.github.io/">Tingguang Li</a>`,
+      zh: `实习生 · 导师：<a href="https://teaganli.github.io/">李珽光</a>`,
     },
     "footer-updated": {
       en: "Last updated July 2026",
