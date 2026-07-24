@@ -4,28 +4,53 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hongyu Ding — Embodied AI, Robotics, and Reinforcement Learning</title>
-  <meta name="description" content="Hongyu Ding is a PhD student at Nanjing University working on embodied intelligence, language–vision–action translation, navigation, and reinforcement learning.">
+  <meta name="description" content="Hongyu Ding is a Ph.D. student at Nanjing University and CASIA working on embodied navigation and mobile manipulation.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Hongyu Ding — Embodied AI, Robotics, and Reinforcement Learning">
-  <meta property="og:description" content="Hongyu Ding is a PhD student at Nanjing University working on embodied intelligence, language–vision–action translation, navigation, and reinforcement learning.">
+  <meta property="og:description" content="Hongyu Ding is a Ph.D. student at Nanjing University and CASIA working on embodied navigation and mobile manipulation.">
   <meta property="og:image" content="assets/images/profile-hongyu-ding.webp">
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/images/site-icon.png">
+  <link rel="apple-touch-icon" href="assets/images/site-icon.png">
   <link rel="stylesheet" href="assets/css/site.css">
+  <script src="assets/js/site.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
+  <a class="skip-link" href="#main" data-i18n="skip-link">Skip to content</a>
+
+  <nav class="site-controls" aria-label="Display controls">
+    <button class="site-control" id="language-toggle" type="button" aria-label="切换到中文" aria-pressed="false" title="切换到中文">
+      <span class="site-control__language" aria-hidden="true">中</span>
+    </button>
+    <button class="site-control" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+      <svg class="site-control__icon site-control__icon--moon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20.1 15.6A8.5 8.5 0 0 1 8.4 3.9 8.5 8.5 0 1 0 20.1 15.6Z"></path>
+      </svg>
+      <svg class="site-control__icon site-control__icon--sun" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.6"></circle>
+        <path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"></path>
+      </svg>
+    </button>
+  </nav>
 
   <div class="page-shell">
     <header class="site-header" aria-labelledby="page-title">
       <div class="hero">
         <div class="hero__copy">
-          <p class="eyebrow">Embodied AI · Robotics · Reinforcement Learning</p>
-          <h1 id="page-title">Hongyu Ding</h1>
-          <p class="role">PhD Student at Nanjing University</p>
-          <p class="thesis">I study embodied intelligence, focusing on how language, vision, and robot actions can be translated into unified navigation and decision-making systems.</p>
-          <p class="bio">I am a PhD student at Nanjing University. My research lies at the intersection of embodied AI, robotics, and reinforcement learning. I study how language, vision, and robot actions can be translated into unified navigation and decision-making systems, with a focus on training-free adaptation, zero-shot generalization, and structured learning signals for agents operating in continuous environments.</p>
+          <div class="hero__title">
+            <h1 id="page-title">Hongyu Ding - <span class="name-chinese" lang="zh-CN">丁泓宇</span></h1>
+          </div>
+          <div class="thesis">
+            <p data-i18n="thesis-1">I am a PhD student at NJU &amp; CASIA.</p>
+            <p data-i18n="thesis-2">I study embodied agents.</p>
+            <p data-i18n="thesis-3">My long-term goal is to build a simple and general-purpose agent for home robots.</p>
+          </div>
+          <div class="bio">
+            <p data-i18n="bio-1">Hi! I am a second-year Ph.D. student in Computer Science and Engineering at <a href="https://www.nju.edu.cn/en/">Nanjing University</a> and the <a href="https://english.ia.cas.cn/">Institute of Automation, Chinese Academy of Sciences</a>, jointly supervised by <a href="https://cs.nju.edu.cn/huojing/">Jing Huo</a> and <a href="https://people.ucas.ac.cn/~yifanzhang">Yifan Zhang</a>. I received my M.Eng. degree in Control Science and Engineering from Nanjing University, where I was advised by <a href="https://heyuanmingong.github.io/">Zhi Wang</a> and <a href="https://ra.nju.edu.cn/szll/zzjs/20251120/i352846.html">Chunlin Chen</a>.</p>
+            <p data-i18n="bio-2">My current research focuses on embodied navigation and mobile manipulation. I am open to academic discussions and collaborations. Feel free to email me at <a href="mailto:skyhyding@gmail.com">skyhyding@gmail.com</a>.</p>
+          </div>
           <nav class="contact-links" aria-label="Profile links">
-            <a href="mailto:hongyuding@smail.nju.edu.cn">Email</a>
-            <a href="https://scholar.google.com/citations?user=IvWH8tcAAAAJ">Scholar</a>
+            <a href="mailto:skyhyding@gmail.com" data-i18n="contact-email">Email</a>
+            <a href="https://scholar.google.com/citations?user=IvWH8tcAAAAJ" data-i18n="contact-scholar">Google Scholar</a>
             <a href="https://github.com/Darkness-hy">GitHub</a>
           </nav>
         </div>
@@ -36,136 +61,180 @@
     </header>
 
     <main id="main">
-      <section class="section" id="news" aria-labelledby="news-title">
+      <section class="section" id="recent-activities" aria-labelledby="activities-title">
         <div class="section-heading">
           <span class="section-number" aria-hidden="true">01</span>
-          <h2 id="news-title">News</h2>
+          <h2 id="activities-title" data-i18n="heading-activities">Recent Activities</h2>
         </div>
         <ol class="news-list">
           <li class="news-item">
-            <time datetime="2026-05">May 2026</time>
-            <p>Released <a href="https://xetroubadour.github.io/Uni-LaViRA/">Uni-LaViRA</a>, a training-free framework for unified embodied navigation, with a paper, project page, and code.</p>
+            <time datetime="2026-06-01" data-i18n="date-news-1">Jun 1, 2026</time>
+            <p data-i18n="news-1"><strong><a href="https://jia-handsome.github.io/v-Dreamer/">V-Dreamer</a></strong> received the <strong>Best Paper Award</strong> at the <a href="https://awesomedigitaltwin.github.io/2026_ICRA.html">ICRA 2026 Workshop on Generative Digital Twins for Real2Sim and Sim2Real Transfer</a>! Congrats to Songjia!</p>
           </li>
           <li class="news-item">
-            <time datetime="2026-03">March 2026</time>
-            <p>Updated <a href="https://robo-lavira.github.io/lavira-zs-vln/">LaViRA</a> with its ICRA 2026 version for zero-shot vision-language navigation in continuous environments.</p>
+            <time datetime="2026-05-26" data-i18n="date-news-2">May 26, 2026</time>
+            <p data-i18n="news-2">Our latest work on unified embodied navigation, <strong><a href="https://xetroubadour.github.io/Uni-LaViRA/">Uni-LaViRA</a></strong>, was released and open-sourced.</p>
           </li>
           <li class="news-item">
-            <time datetime="2025-10">October 2025</time>
-            <p>Released <a href="https://arxiv.org/abs/2510.19655">LaViRA</a> with its paper, project page, and code.</p>
+            <time datetime="2026-01-31" data-i18n="date-news-3">Jan 31, 2026</time>
+            <p data-i18n="news-3"><strong><a href="https://robo-lavira.github.io/lavira-zs-vln/">LaViRA</a></strong> was accepted to <strong>ICRA 2026</strong>! Congrats to Team LaViRA!</p>
           </li>
           <li class="news-item">
-            <time datetime="2023-12">December 2023</time>
-            <p><a href="https://doi.org/10.1109/JAS.2023.123477">Magnetic Field-Based Reward Shaping</a> appeared in IEEE/CAA Journal of Automatica Sinica, volume 10, issue 12.</p>
-          </li>
-          <li class="news-item">
-            <time datetime="2023-07">July 2023</time>
-            <p>Magnetic Field-Based Reward Shaping became available online with project, code, and supplementary-video resources.</p>
+            <time datetime="2025-10-22" data-i18n="date-news-4">Oct 22, 2025</time>
+            <p data-i18n="news-4">Our zero-shot vision-language navigation work, <strong><a href="https://robo-lavira.github.io/lavira-zs-vln/">LaViRA</a></strong>, was released and open-sourced.</p>
           </li>
         </ol>
       </section>
 
-      <section class="section" id="research" aria-labelledby="research-title">
-        <div class="section-heading">
-          <span class="section-number" aria-hidden="true">02</span>
-          <h2 id="research-title">Research</h2>
-        </div>
-        <div class="research-grid">
-          <article class="research-theme">
-            <p class="theme-number">01</p>
-            <h3>Language–Vision–Action Translation</h3>
-            <p>Translating knowledge expressed through language and visual representations into robot actions without retraining a separate policy for every task.</p>
-          </article>
-          <article class="research-theme">
-            <p class="theme-number">02</p>
-            <h3>Unified Embodied Navigation</h3>
-            <p>Building interfaces that let embodied agents address multiple navigation settings and continuous environments through a shared action-translation perspective.</p>
-          </article>
-          <article class="research-theme">
-            <p class="theme-number">03</p>
-            <h3>Goal-Conditioned Reinforcement Learning</h3>
-            <p>Designing structured learning signals that improve exploration and decision-making when rewards are sparse and goals vary across episodes.</p>
-          </article>
-        </div>
-      </section>
-
       <section class="section" id="selected-publications" aria-labelledby="selected-title">
         <div class="section-heading">
-          <span class="section-number" aria-hidden="true">03</span>
-          <h2 id="selected-title">Selected Publications</h2>
+          <span class="section-number" aria-hidden="true">02</span>
+          <h2 id="selected-title" data-i18n="heading-publications">Selected Publications</h2>
         </div>
 
         <div class="publication-cards">
-          <article class="publication-card publication-card--featured">
+          <article class="publication-card">
             <figure class="publication-card__media">
               <img src="assets/images/papers/uni-lavira.webp" width="960" height="540" loading="lazy" alt="Uni-LaViRA unified embodied navigation overview.">
             </figure>
             <div class="publication-card__body">
-              <p class="publication-status">arXiv · 2026</p>
               <h3><a href="https://arxiv.org/abs/2605.27582">Uni-LaViRA: Language-Vision-Robot Actions Translation for Unified Embodied Navigation</a></h3>
-              <p class="authors"><strong>Hongyu Ding</strong>, Sizhuo Zhang, Ziming Xu, Jinwen Guo, Hongxiu Liu, Xingzhi Cheng, Zixuan Chen, Haifei Qi, Duo Wang, Hao Xu, Jieqi Shi, Yifan Zhang, Jing Huo, Jian Cheng, Yang Gao, Jiebo Luo</p>
-              <p class="publication-summary">Training-free unified embodied navigation through language–vision–robot action translation.</p>
-              <p class="resource-links"><a href="https://arxiv.org/abs/2605.27582">Paper</a><a href="https://xetroubadour.github.io/Uni-LaViRA/">Project</a><a href="https://github.com/NJU-R-L-Group-Embodied-Lab/uni-lavira-code">Code</a></p>
+              <p class="authors"><strong>Hongyu Ding<sup class="equal-contribution">*</sup></strong>, Sizhuo Zhang<sup class="equal-contribution">*</sup>, Ziming Xu<sup class="equal-contribution">*</sup>, Jinwen Guo, Hongxiu Liu, Xingzhi Cheng, Zixuan Chen, Haifei Qi, Duo Wang, Hao Xu, Jieqi Shi, Yifan Zhang, Jing Huo, Jian Cheng, Yang Gao, Jiebo Luo</p>
+              <p class="publication-status" data-i18n="status-uni-lavira">arXiv · 2026</p>
+              <p class="publication-summary" data-i18n="summary-uni-lavira">A unified training-free embodied navigation framework spanning VLN-CE, ObjectNav, EQA, and Aerial-VLN across multiple robot platforms.</p>
+              <p class="resource-links"><a href="https://xetroubadour.github.io/Uni-LaViRA/" data-i18n="resource-project">Project</a><a href="https://arxiv.org/abs/2605.27582" data-i18n="resource-paper">Paper</a><a href="https://github.com/NJU-R-L-Group-Embodied-Lab/uni-lavira-code" data-i18n="resource-code">Code</a><a href="https://mp.weixin.qq.com/s/PQSwS61fSHUJ1pq4ZZ0Yxw">具身智能之心</a><a href="https://mp.weixin.qq.com/s/1cwP9lpXCAziXMccxYqGMw">视觉语言导航</a><a href="https://mp.weixin.qq.com/s/nG_IVewC5SZteHOr02BDrw">宝马南京</a></p>
             </div>
           </article>
 
           <article class="publication-card">
             <figure class="publication-card__media">
-              <img src="assets/images/papers/lavira.webp" width="960" height="540" loading="lazy" alt="LaViRA zero-shot continuous navigation overview.">
+              <picture>
+                <source media="(prefers-reduced-motion: reduce)" srcset="assets/images/papers/v-dreamer-poster.webp">
+                <img src="assets/images/papers/v-dreamer.webp" width="640" height="360" loading="lazy" alt="Animated V-Dreamer robot-arm trajectories across real-world manipulation tasks.">
+              </picture>
             </figure>
             <div class="publication-card__body">
-              <p class="publication-status">ICRA · 2026</p>
-              <h3><a href="https://arxiv.org/abs/2510.19655">LaViRA: Language-Vision-Robot Actions Translation for Zero-Shot Vision Language Navigation in Continuous Environments</a></h3>
-              <p class="authors"><strong>Hongyu Ding</strong>, Ziming Xu, Yudong Fang, You Wu, Zixuan Chen, Jieqi Shi, Jing Huo, Yifan Zhang, Yang Gao</p>
-              <p class="publication-summary">Zero-shot continuous navigation through language–vision–robot action translation.</p>
-              <p class="resource-links"><a href="https://arxiv.org/abs/2510.19655">Paper</a><a href="https://robo-lavira.github.io/lavira-zs-vln/">Project</a><a href="https://github.com/NJU-R-L-Group-Embodied-Lab/lavira-code">Code</a></p>
+              <h3><a href="https://scholar.google.com/citations?view_op=view_citation&amp;hl=zh-CN&amp;user=IvWH8tcAAAAJ&amp;citation_for_view=IvWH8tcAAAAJ:d1gkVwhDpl0C">V-Dreamer: Automating Robotic Simulation and Trajectory Synthesis via Video Generation Priors</a></h3>
+              <p class="authors">Songjia He<sup class="equal-contribution">*</sup>, Zixuan Chen<sup class="equal-contribution">*</sup>, <strong>Hongyu Ding</strong>, Dian Shao, Jieqi Shi, Chenxu Li, Jing Huo, Yang Gao</p>
+              <p class="publication-status publication-status--award" data-i18n="status-v-dreamer"><strong>🏆 ICRA 2026 Workshop Best Paper Award</strong></p>
+              <p class="publication-summary" data-i18n="summary-v-dreamer">A fully automated framework that turns language instructions into simulation-ready scenes and executable robot trajectories using video generation priors.</p>
+              <p class="resource-links"><a href="https://jia-handsome.github.io/v-Dreamer/" data-i18n="resource-project">Project</a><a href="https://arxiv.org/abs/2603.18811" data-i18n="resource-paper">Paper</a></p>
             </div>
           </article>
 
-          <article class="publication-card publication-card--text-only">
+          <article class="publication-card">
+            <figure class="publication-card__media">
+              <picture>
+                <source media="(prefers-reduced-motion: reduce)" srcset="assets/images/papers/lavira-poster.webp">
+                <img src="assets/images/papers/lavira.webp" width="640" height="360" loading="lazy" alt="Animated LaViRA ALOHA navigation experiment sampled across the complete video.">
+              </picture>
+            </figure>
             <div class="publication-card__body">
-              <p class="publication-status">IEEE/CAA JAS · 2023</p>
+              <h3><a href="https://arxiv.org/abs/2510.19655">LaViRA: Language-Vision-Robot Actions Translation for Zero-Shot Vision Language Navigation in Continuous Environments</a></h3>
+              <p class="authors"><strong>Hongyu Ding<sup class="equal-contribution">*</sup></strong>, Ziming Xu<sup class="equal-contribution">*</sup>, Yudong Fang, You Wu, Zixuan Chen, Jieqi Shi, Jing Huo, Yifan Zhang, Yang Gao</p>
+              <p class="publication-status" data-i18n="status-lavira">ICRA · 2026</p>
+              <p class="publication-summary" data-i18n="summary-lavira">A zero-shot VLN framework that decomposes navigation into language, vision, and robot actions for stronger generalization in continuous environments.</p>
+              <p class="resource-links"><a href="https://robo-lavira.github.io/lavira-zs-vln/" data-i18n="resource-project">Project</a><a href="https://arxiv.org/abs/2510.19655" data-i18n="resource-paper">Paper</a><a href="https://github.com/NJU-R-L-Group-Embodied-Lab/lavira-code" data-i18n="resource-code">Code</a><a href="https://mp.weixin.qq.com/s/D63gBeAA92Z7wvD6A_U07w">视觉语言导航</a></p>
+            </div>
+          </article>
+
+          <article class="publication-card">
+            <figure class="publication-card__media">
+              <img src="assets/images/papers/acorm.webp" width="960" height="455" loading="lazy" alt="ACORM attention-guided contrastive role-representation architecture.">
+            </figure>
+            <div class="publication-card__body">
+              <h3><a href="https://scholar.google.com/citations?view_op=view_citation&amp;hl=zh-CN&amp;user=IvWH8tcAAAAJ&amp;citation_for_view=IvWH8tcAAAAJ:UeHWp8X0CEIC">Attention-Guided Contrastive Role Representations for Multi-Agent Reinforcement Learning</a></h3>
+              <p class="authors">Zican Hu, Zongzhang Zhang, Huaxiong Li, Chunlin Chen, <strong>Hongyu Ding</strong>, Zhi Wang</p>
+              <p class="publication-status" data-i18n="status-acorm">ICLR · 2024</p>
+              <p class="publication-summary" data-i18n="summary-acorm">Attention-guided contrastive role representations for heterogeneous behavior and coordination in multi-agent reinforcement learning.</p>
+              <p class="resource-links"><a href="https://iclr.cc/virtual/2024/poster/18863" data-i18n="resource-project">Project</a><a href="https://proceedings.iclr.cc/paper_files/paper/2024/hash/66e226469f20625aaebddbe47f0ca997-Abstract-Conference.html" data-i18n="resource-paper">Paper</a><a href="https://github.com/NJU-RL/ACORM" data-i18n="resource-code">Code</a></p>
+            </div>
+          </article>
+
+          <article class="publication-card">
+            <figure class="publication-card__media">
+              <picture>
+                <source media="(prefers-reduced-motion: reduce)" srcset="assets/images/papers/mfrs-poster.webp">
+                <img src="assets/images/papers/mfrs.webp" width="640" height="360" loading="lazy" alt="Animated MFRS simulated and real-world robot goal-reaching comparison.">
+              </picture>
+            </figure>
+            <div class="publication-card__body">
               <h3><a href="https://doi.org/10.1109/JAS.2023.123477">Magnetic Field-Based Reward Shaping for Goal-Conditioned Reinforcement Learning</a></h3>
               <p class="authors"><strong>Hongyu Ding</strong>, Yuanze Tang, Qing Wu, Bo Wang, Chunlin Chen, Zhi Wang</p>
-              <p class="publication-summary">Magnetic-field-inspired rewards for efficient goal-conditioned reinforcement learning.</p>
-              <p class="resource-links"><a href="https://doi.org/10.1109/JAS.2023.123477">Paper</a><a href="https://hongyuding.wixsite.com/mfrs">Project</a><a href="https://github.com/Darkness-hy/mfrs">Code</a><a href="https://www.bilibili.com/video/BV1784y1z7Bj">Video</a></p>
+              <p class="publication-status" data-i18n="status-mfrs">IEEE/CAA JAS · 2023 (CAS Zone 1, Top Journal, IF: 18.3)</p>
+              <p class="publication-summary" data-i18n="summary-mfrs">A magnetic-field-based reward shaping method for efficient exploration and goal-reaching in goal-conditioned reinforcement learning.</p>
+              <p class="resource-links"><a href="https://hongyuding.wixsite.com/mfrs" data-i18n="resource-project">Project</a><a href="https://doi.org/10.1109/JAS.2023.123477" data-i18n="resource-paper">Paper</a><a href="https://github.com/Darkness-hy/mfrs" data-i18n="resource-code">Code</a></p>
             </div>
           </article>
         </div>
       </section>
 
-      <section class="section" id="publications" aria-labelledby="publications-title">
+      <section class="section" id="education" aria-labelledby="education-title">
         <div class="section-heading">
-          <span class="section-number" aria-hidden="true">04</span>
-          <h2 id="publications-title">Publications</h2>
+          <span class="section-number" aria-hidden="true">03</span>
+          <h2 id="education-title" data-i18n="heading-education">Education</h2>
         </div>
-        <div class="publication-year">
-          <h3>2026</h3>
-          <ul class="publication-list">
-            <li class="publication-entry"><a href="https://arxiv.org/abs/2605.27582">Uni-LaViRA: Language-Vision-Robot Actions Translation for Unified Embodied Navigation</a>. Hongyu Ding et al. arXiv, 2026.</li>
-            <li class="publication-entry"><a href="https://arxiv.org/abs/2510.19655">LaViRA: Language-Vision-Robot Actions Translation for Zero-Shot Vision Language Navigation in Continuous Environments</a>. Hongyu Ding et al. ICRA, 2026.</li>
-          </ul>
-        </div>
-        <div class="publication-year">
-          <h3>2023</h3>
-          <ul class="publication-list">
-            <li class="publication-entry"><a href="https://doi.org/10.1109/JAS.2023.123477">Magnetic Field-Based Reward Shaping for Goal-Conditioned Reinforcement Learning</a>. Hongyu Ding, Yuanze Tang, Qing Wu, Bo Wang, Chunlin Chen, and Zhi Wang. IEEE/CAA Journal of Automatica Sinica, 10(12):2233–2247, 2023.</li>
-          </ul>
-        </div>
+        <ol class="history-list">
+          <li class="history-item">
+            <p class="history-period"><time datetime="2024-09" data-i18n="date-edu-phd-start">Sep. 2024</time><span class="history-period__dash" aria-hidden="true">—</span><time datetime="2028-06" data-i18n="date-edu-phd-end">Jun. 2028</time><span data-i18n="date-expected">(expected)</span></p>
+            <figure class="history-logo history-logo--pair history-logo--doctoral" aria-hidden="true">
+              <img src="assets/images/logos/nju.webp" width="439" height="135" loading="lazy" decoding="async" alt="">
+              <img src="assets/images/logos/casia.webp" width="238" height="236" loading="lazy" decoding="async" alt="">
+            </figure>
+            <div class="history-details">
+              <p class="history-institution" data-i18n="education-phd-institution"><a href="https://www.nju.edu.cn/en/">Nanjing University</a> &amp; <a href="https://english.ia.cas.cn/">Institute of Automation, Chinese Academy of Sciences</a></p>
+              <p class="history-school" data-i18n="education-phd-program">Ph.D. Student in Computer Science and Engineering</p>
+              <p class="history-degree" data-i18n="education-phd-mentors">Supervised by <a href="https://cs.nju.edu.cn/huojing/">Assoc. Prof. Jing Huo</a> and <a href="https://people.ucas.ac.cn/~yifanzhang">Prof. Yifan Zhang</a>.</p>
+            </div>
+          </li>
+          <li class="history-item">
+            <p class="history-period"><time datetime="2021-09" data-i18n="date-edu-master-start">Sep. 2021</time><span class="history-period__dash" aria-hidden="true">—</span><time datetime="2024-06" data-i18n="date-edu-master-end">Jun. 2024</time></p>
+            <figure class="history-logo history-logo--master" aria-hidden="true">
+              <img src="assets/images/logos/nju.webp" width="439" height="135" loading="lazy" decoding="async" alt="">
+            </figure>
+            <div class="history-details">
+              <p class="history-institution" data-i18n="education-master-institution"><a href="https://www.nju.edu.cn/en/">Nanjing University</a></p>
+              <p class="history-school" data-i18n="education-master-program">M.Eng. in Control Science and Engineering</p>
+              <p class="history-degree" data-i18n="education-master-mentors">Advised by <a href="https://heyuanmingong.github.io/">Assoc. Prof. Zhi Wang</a> and <a href="https://ra.nju.edu.cn/szll/zzjs/20251120/i352846.html">Prof. Chunlin Chen</a>.</p>
+            </div>
+          </li>
+          <li class="history-item">
+            <p class="history-period"><time datetime="2017-09" data-i18n="date-edu-bachelor-start">Sep. 2017</time><span class="history-period__dash" aria-hidden="true">—</span><time datetime="2021-06" data-i18n="date-edu-bachelor-end">Jun. 2021</time></p>
+            <figure class="history-logo" aria-hidden="true">
+              <img src="assets/images/logos/ecust.webp" width="550" height="113" loading="lazy" decoding="async" alt="">
+            </figure>
+            <div class="history-details">
+              <p class="history-institution" data-i18n="education-bachelor-institution"><a href="https://www.ecust.edu.cn/en/">East China University of Science and Technology</a></p>
+              <p class="history-school" data-i18n="education-bachelor-program">B.Eng. in Mechanical Design, Manufacturing and Automation</p>
+            </div>
+          </li>
+        </ol>
       </section>
 
-      <section class="section" id="academic-service" aria-labelledby="service-title">
+      <section class="section" id="internships" aria-labelledby="internships-title">
         <div class="section-heading">
-          <span class="section-number" aria-hidden="true">05</span>
-          <h2 id="service-title">Academic Service</h2>
+          <span class="section-number" aria-hidden="true">04</span>
+          <h2 id="internships-title" data-i18n="heading-internships">Internships</h2>
         </div>
-        <p class="service-note">Details coming soon.</p>
+        <ul class="history-list">
+          <li class="history-item">
+            <p class="history-period"><time datetime="2023-06" data-i18n="date-intern-start">Jun. 2023</time><span class="history-period__dash" aria-hidden="true">—</span><time datetime="2024-03" data-i18n="date-intern-end">Mar. 2024</time></p>
+            <figure class="history-logo" aria-hidden="true">
+              <img src="assets/images/logos/tencent-robotics-x.webp" width="940" height="180" loading="lazy" decoding="async" alt="">
+            </figure>
+            <div class="history-details">
+              <p class="history-institution" data-i18n="internship-institution"><a href="https://tairos.tencent.com/">Tencent Robotics X Lab</a></p>
+              <p data-i18n="internship-detail">Intern · Mentored by <a href="https://teaganli.github.io/">Tingguang Li</a>.</p>
+            </div>
+          </li>
+        </ul>
       </section>
+
     </main>
 
     <footer class="site-footer">
       <p>© 2026 Hongyu Ding</p>
-      <p>Last updated July 2026</p>
+      <p data-i18n="footer-updated">Last updated July 2026</p>
     </footer>
   </div>
 </body>
