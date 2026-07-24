@@ -1,43 +1,25 @@
 # Hongyu Ding Academic Homepage
 
-Static academic homepage implementing the Evidence-Led Editorial design in `plan/2026-07-14-academic-homepage-design.md`. Production uses semantic HTML, one CSS file, local fonts and images, and no JavaScript.
+Static academic homepage for [Hongyu Ding](https://darkness-hy.github.io/), served via GitHub Pages.
+
+## Stack
+
+- Semantic HTML (`index.html`)
+- One stylesheet (`assets/css/site.css`)
+- Small client script for language + theme (`assets/js/site.js`)
+- Local fonts and images under `assets/`
 
 ## Preview
 
 ```bash
-python3 -m http.server 4173 --bind 127.0.0.1 --directory /Users/dinghongyu/Downloads/hongyuding-home-page
+python3 -m http.server 4173 --bind 127.0.0.1
 ```
 
 Open `http://127.0.0.1:4173`.
 
-## Prepare assets
+## Editing content
 
-```bash
-.venv/bin/python scripts/prepare_assets.py
-```
-
-Asset preparation downloads hash-pinned font and paper sources, then regenerates reviewed local outputs. It verifies but never modifies the source portrait at `figs/ChatGPT Image 2026年6月29日 16_41_32.png`.
-
-If an author-controlled project page does not provide a suitable official teaser, keep that publication text-only. Do not substitute an unrelated figure or a third-party image.
-
-## Run content and asset tests
-
-```bash
-.venv/bin/python -m pytest tests/test_content.py tests/test_assets.py -q
-```
-
-## Run responsive browser tests
-
-```bash
-python3 "/Users/dinghongyu/.claude/skills/webapp-testing/scripts/with_server.py" \
-  --server "python3 -m http.server 4173 --bind 127.0.0.1 --directory /Users/dinghongyu/Downloads/hongyuding-home-page" \
-  --port 4173 \
-  -- .venv/bin/python tests/test_visual.py
-```
-
-The Playwright gate checks responsive layout, local assets and fonts, keyboard focus, touch targets, reduced motion, narrow-print destinations, overflow, and rejection of external HTTP(S) requests. It writes four screenshots to `temp/homepage-review/`:
-
-- `homepage-375.png`
-- `homepage-768.png`
-- `homepage-1280.png`
-- `homepage-1920.png`
+1. Update English structure/copy in `index.html`.
+2. Keep bilingual strings in sync in `assets/js/site.js` (`TRANSLATIONS`, keys via `data-i18n`).
+3. Place new media under `assets/images/` (or `assets/images/papers/`, `assets/images/logos/`) and reference relative paths only.
+4. Portrait source material (if regenerating the hero crop) lives at `figs/hongyu-ding-portrait-source.png`; the served file is `assets/images/profile-hongyu-ding.webp`.
