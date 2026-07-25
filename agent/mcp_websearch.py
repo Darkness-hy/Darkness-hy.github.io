@@ -524,9 +524,18 @@ def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
     budget = max(0.8, float(os.environ.get("AGENT_SEARCH_BUDGET_S", "3.0") or 3.0))
     t0 = _time.perf_counter()
 
-    # free_web first (best for paper titles / general web); academic for rigor
+    # 1) Free web metasearch FIRST (single-threaded — DDGS is not thread-safe
+    #    and was silently failing under ThreadPoolExecutor).
+    buckets: Dict[str, List[Dict[str, str]]] = {}
+    try:
+        buckets["web"] = free_web_search(q, max_results=5) or []
+    except Exception:
+        buckets["web"] = []
+
+    # 2) Academic sources in parallel with remaining budget
+    elapsed = _time.perf_counter() - t0
+    remain = max(0.4, budget - elapsed)
     jobs: Dict[str, Any] = {
-        "web": lambda: free_web_search(q, max_results=5),
         "arxiv": lambda: arxiv_search(q, max_results=3),
         "wiki": lambda: wiki_search(q, max_results=1),
         "crossref": lambda: crossref_search(q, max_results=3, min_year=2018),
@@ -539,8 +548,9 @@ def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
     if (os.environ.get("SEARXNG_URL") or "").strip():
         jobs["searxng"] = lambda: searxng_search(q, max_results=3)
 
-    buckets: Dict[str, List[Dict[str, str]]] = {k: [] for k in jobs}
-    # Prefer free web metasearch, then arxiv, then the rest
+    for k in jobs:
+        buckets.setdefault(k, [])
+
     order = tuple(
         k
         for k in (
@@ -553,24 +563,20 @@ def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
             "serper",
             "searxng",
         )
-        if k in jobs
+        if k in buckets
     )
 
-    # IMPORTANT: do not use `with ThreadPoolExecutor` — its __exit__ waits for
-    # all running HTTP calls (was the 10–30s survey stall). shutdown(wait=False).
+    # If web already has strong hits, still pull arxiv quickly but keep budget tight
     ex = ThreadPoolExecutor(max_workers=len(jobs) or 1)
     futs = {ex.submit(fn): name for name, fn in jobs.items()}
     try:
         try:
-            for fut in as_completed(list(futs.keys()), timeout=budget):
+            for fut in as_completed(list(futs.keys()), timeout=remain):
                 name = futs[fut]
                 try:
                     buckets[name] = fut.result(timeout=0) or []
                 except Exception:
                     buckets[name] = []
-                n_ready = sum(len(v) for v in buckets.values())
-                if n_ready >= max_results and (_time.perf_counter() - t0) > 0.5:
-                    break
                 if (_time.perf_counter() - t0) >= budget:
                     break
         except TimeoutError:
