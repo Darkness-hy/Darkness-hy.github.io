@@ -484,7 +484,15 @@
         b.type = "button";
         b.className = "agent-suggestion";
         b.textContent = s;
-        b.addEventListener("click", () => send(s));
+        // mousedown + preventDefault: avoid input blur → render() destroying
+        // this button before click fires (needed two clicks otherwise).
+        b.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+        });
+        b.addEventListener("click", (e) => {
+          e.preventDefault();
+          send(s);
+        });
         empty.appendChild(b);
       });
       bodyEl.appendChild(empty);
@@ -1026,19 +1034,32 @@
     }
   });
 
+  /** Update avatar/mode chrome only — never rebuild message body (preserves clicks). */
+  function paintMode() {
+    const mode = currentMode();
+    fabAvatar.setMode(mode);
+    headerAvatar.setMode(mode);
+    if (mode === "idle" || mode === "listening") headerAvatar.startBlink();
+    else headerAvatar.stopBlink();
+    sendBtn.disabled = state.busy ? false : !state.input.trim();
+  }
+
   inputEl.addEventListener("input", () => {
     state.input = inputEl.value;
     inputEl.style.height = "auto";
     inputEl.style.height = `${Math.min(inputEl.scrollHeight, 112)}px`;
-    render();
+    // Do not full-render on every keystroke — keeps suggestion buttons stable
+    // and avoids wiping the transcript for mode/send-button updates only.
+    paintMode();
   });
   inputEl.addEventListener("focus", () => {
     state.inputFocused = true;
-    render();
+    paintMode();
   });
   inputEl.addEventListener("blur", () => {
     state.inputFocused = false;
-    render();
+    // Defer so a click on a suggestion can fire before any potential re-render
+    requestAnimationFrame(() => paintMode());
   });
   inputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
