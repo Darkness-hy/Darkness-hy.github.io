@@ -1,0 +1,87 @@
+% \section{METHOD}
+
+
+
+% \subsection{Scene Generation Agent} 
+% 1) Semantic Parsing And Planning:
+
+% 2) Generative Visual Synthesis:
+
+% 3) 3D Geometric Reconstruction:
+
+% 4) Physical Grounding And Layout:
+
+
+% \subsection{Robotic Task Generation}
+
+
+
+
+% \subsection{Trajectory Distillation from Generative Video Priors}
+% \begin{itemize}
+
+% \item Physics-Grounded Scene Initialization
+% \item Generative Semantic Enhancement And Animation
+% \item Foundation Model-Driven 3D Motion Lifting
+% \end{itemize}
+
+
+
+% \subsection{Verification of Physical Fidelity and Policy Utility}
+
+% \subsection{Real-World Deployment And Evaluation}
+
+\section{Methodology}
+\label{sec:method}
+
+
+\textbf{V-Dreamer} is a fully automated framework designed to synthesize large-scale, physically grounded manipulation datasets for training generalizable robot policies. The core challenge in automated data generation is bridging the substantial representational gap between abstract human intentions and executable physical simulations. As illustrated in Figure~\ref{fig:pipeline}, V-Dreamer overcomes this challenge through a cohesive pipeline comprising three core modules: (1) \textit{Semantic-to-Physics Scene Synthesis}, which translates natural language into interactive 3D environments; (2) \textit{Video-Prior-Based Trajectory Generation}, which harnesses video foundation models to simulate expert manipulation behaviors; and (3) \textit{Sim-to-Gen Alignment}, which extracts actionable 3D trajectories from 2D visual predictions.
+
+\subsection{Semantic-to-Physics Scene Synthesis}
+\label{sec:scene_gen}
+
+To transform an open-ended semantic instruction 
+%(e.g., ``A cyberpunk workspace'') 
+into a physically interactive rigid-body simulation, we propose a multi-stage procedural generation pipeline including: \ding{172} Semantic Parsing and Asset Manifest, \ding{173} Generative Visual Synthesis, \ding{174} Memory-Efficient 3D Reconstruction and \ding{175} Physically Grounded Layout. Specifically:
+
+\ding{172} \textit{Semantic Parsing and Asset Manifest.} Given a user prompt, we first employ a Large Language Model (Qwen-Max\cite{qwen2025qwen25} in our experiment) acting as a high-level semantic planner. The LLM decomposes the abstract scene description into a structured \textit{Asset Manifest} in JSON format. This manifest explicitly specifies object categories and stylistic elements.
+%(e.g., A warm and inviting kitchen with soft, diffused lighting,The colors are rich and earthy, with a gentle, hand-painted texture)
+To ensure the downstream reconstruction quality, we inject specific negative constraints into the LLM prompt. For example, we prohibit highly reflective or transparent surfaces like mirrors and glass in a cyberpunk workspace, thereby enforcing style consistency and avoiding rendering artifacts across all generated assets. Note that this part only performs object-level manifest generation without background and layouts.
+
+\ding{173} \textit{Generative Visual Synthesis.} For each manifest entry, we perform visual synthesis to obtain high-fidelity 2D image assets using the Flux diffusion model~\cite{flux2024}. To reduce environmental bias and avoid baked-in shadows which are critical for clean downstream 3D generation, we augment prompts with modifiers such as ``studio lighting'' and ``solid white background''. We then apply Segment Anything Model 3 (SAM3)~\cite{carion2025sam3} for precise background removal. For robustness, we adopt a hybrid segmentation scheme consisting of a semantic-first pathway that uses object names as prompts, and a vision-based fallback~\cite{gatis2023rembg} when semantic prompting produces suboptimal masks. With these clean, segmentation-ready 2D assets in place, the next step is to lift them into detailed 3D meshes for simulation. 
+
+\ding{174} \textit{Memory-Efficient 3D Reconstruction.} Lifting high-resolution 2D assets to 3D meshes is often the primary computational bottleneck in an automated pipeline. To address this, we introduce a memory-efficient reconstruction pipeline. This module dynamically offloads encoder and decoder sub-networks between the CPU and GPU during inference. By strategically trading computation time for VRAM optimization, this mechanism enables the reconstruction of complex, high-poly geometries on standard consumer-grade hardware, outputting raw 3D meshes ready for physical instantiation.
+
+\ding{175} \textit{Physically Grounded Layout.} After generating isolated 3D object meshes, the final step is to assemble them into a coherent and physically valid scene. We combine LLM spatial reasoning with rigorous physics-based validation. The LLM first infers approximate real-world metric dimensions for each object, after which we apply simple heuristics to correct distortions introduced during 3D lifting. Next, we generate the scene layout as a JSON specification using a foundation model, and then place each object at its corresponding 3D position accordingly. By this means, we construct a semantic scene graph that hierarchically categorizes objects into anchors and define the environment structure and accessories that serve as manipulable targets. Finally, we invoke a physics engine~\cite{Genesis} to enforce constraint-based layout via AABB collision checking and gravity alignment. Anchors are snapped to the ground plane ($Z=0$), while accessories are placed on supporting surfaces $Z=H_{\text{parent}}+\delta$ with procedural spatial jittering to systematically resolve bounding-box overlaps.
+
+
+\subsection{Video-Prior-Based Trajectory Generation}
+\label{sec:traj_gen}
+
+Traditional motion planners often require task-specific engineering and may not directly benefit from the rich visual commonsense priors needed for open-vocabulary manipulation. In contrast, V-Dreamer exploits the rich, implicit motion priors encapsulated within video foundation models to synthesize diverse, context-aware manipulation trajectories.
+
+Directly prompting a video model from a procedurally generated layout can lead to severe physical inconsistencies. Therefore, we first execute a brief dynamic settling phase within the Genesis~\cite{Genesis} simulator to resolve remaining micro-penetrations between objects. We capture this stabilized scene as the initial frame ($I_0$). We then perform style refinement on $I_0$ using Qwen-Image-Edit~\cite{wu2025qwenimagetechnicalreport} to obtain a \textit{Style-Refined Initial Frame} $I_0'$. This step is used in two ways: (i) The system automatically applies a set of pre-defined style perturbations to increase visual diversity, such as adding stripes or modifying material appearance. (ii) It provides a human-in-the-loop interface for targeted, user-specified stylization when customization is desired.
+
+Building upon the stabilized frame, we feed $I_0'$ into the Wan2.2-I2V-Flash~\cite{wan2025} video generation model to synthesize a continuous temporal sequence of the specified manipulation task. To encourage physically plausible motion for robotic execution, we apply targeted negative prompts to suppress camera motion, object deformation, and background flicker. These linguistic constraints force the diffusion model to focus exclusively on the rigid-body kinematics of the manipulator and the target object, effectively suppressing the dream-like morphing artifacts that typically violate physical feasibility.
+
+Since the synthesized video resides purely in the 2D pixel domain, the final step is to extract actionable 3D controls. We follow TraceGen~\cite{lee2026tracegen} and design a tracking-based grounding module. We first re-run SAM3 on the visually processed initial frame to obtain a high-quality mask of the target object. We then estimate per-frame depth using Visual Geometry Grounded Transformer (VGGT)~\cite{wang2025vggt}, which provides metric cues for 3D lifting. Next, we uniformly sample 2D points within the object mask and track them across frames using CoTracker3~\cite{karaev2023cotracker}, yielding dense but object-consistent 2D trajectories. These tracked points are subsequently fused into a coherent 3D motion trajectory using the TAPIP3D~\cite{tapip3d} module. Compared to TraceGen, which densely tracks pixels over the entire frame and follows moving regions, our mask-restricted tracking focuses on object-consistent motion and is empirically more precise. 
+
+Finally, we apply lightweight post-processing to remove outlier tracks and suppress temporal jitter. Subsequently, we utilize Graspgen~\cite{murali2025graspgen} to generate a feasible robotic grasp pose for the target object, and then map the resulting 3D motion to the robot's end-effector trajectory via inverse kinematics (IK). This yields a physically executable trajectory $\tau = \{(p_t, q_t)\}_{t=0}^T$, where $p_t$ denotes the continuous end-effector pose and $q_t$ represents the discrete gripper state.
+
+
+\begin{figure*}[t] % h代表放在这里，t代表放在页顶，b代表页底
+    \centering % 图片居中
+    \includegraphics[width=0.95\linewidth]{figs/image/dataset_task.png} % 这里的文件名要和上传的一致，不加后缀名也行
+    \caption{Qualitative examples of V-Dreamer synthesized tasks of increasing difficulty. Left: Input Prompts and generated 3D scenes. Middle: Generated manipulation videos and the corresponding robot manipulation results. Right: Extracted end-effector trajectories for demonstrations.} % 图片下方的文字
+    \label{fig:v_dreamer_demo} % 给图片起个代号，方便正文引用
+\end{figure*}
+
+\subsection{Sim-to-Real Alignment}
+\label{sec:sim2real}
+
+By continuously running the V-Dreamer pipeline, we automatically generate a large-scale, high-fidelity synthetic dataset $\mathcal{D}=\{ {(\tau_i, O_i)}\}_{i=1}^{N} $, where each expert trajectory $\tau_i$ is paired with a diverse semantic and visual context $O_i$. For long instructions, the foundation model decomposes the instruction into several sub-tasks, and then iteratively performs video generation, trajectory generation and physical operation for each sub-task in simulation.
+
+For physical deployment, we follow a strict sim-to-real transfer protocol. Specifically, we capture a snapshot of the real target scene and use it as an additional alignment input to instantiate a scene-matched, style-refined initial frame $I_0'$ in simulation. We also calibrate the simulator to match the real camera parameters and the robot workspace bounds. Conditioned on $I_0'$, all subsequent trajectory generation and policy training are performed entirely in simulation without any human demonstrations or target-domain fine-tuning. The policy trained solely on $\mathcal{D}$ is then deployed \textbf{zero-shot} on physical hardware for evaluation. 
+
+For safety, we optionally reconstruct coarse bounding geometries of novel objects in simulation for background collision checking, while the core manipulation behavior and closed-loop control are driven entirely by the generalized representations learned from V-Dreamer’s synthesized data. 
+

@@ -1,0 +1,87 @@
+% % % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section{INTRODUCTION}
+
+% % Robotic manipulation learning increasingly relies on large-scale data to train visuomotor policies. Recent transformer-based policies have demonstrated strong performance when trained on diverse demonstrations. However, collecting real-world robotic data remains expensive, slow, and difficult to scale. Each new task, environment, or object distribution typically requires additional data collection, limiting progress toward general-purpose manipulation.
+
+% % Simulation provides a scalable alternative, but existing synthetic environments often lack diversity and physical fidelity. Procedural generation pipelines are usually rule-based and asset-limited, while recent foundation models for image, 3D, and video generation produce visually realistic content that is frequently geometrically inconsistent or physically invalid. Scenes may contain object interpenetrations, incorrect scales, unstable layouts, or temporally incoherent motions. As a result, directly applying generative models to robotic learning remains challenging.
+
+% % In this work, we investigate whether foundation models can be transformed into a physically grounded data engine for robotic manipulation. We propose a fully automated language-driven pipeline that converts high-level task descriptions into simulation-ready scenes and executable robot trajectories. Instead of relying solely on generative imagination, our system enforces explicit structural and physical constraints throughout the generation process.
+
+% % Given a natural language instruction, the pipeline (1) constructs a structured scene representation, (2) synthesizes visual and geometric assets, (3) performs scale calibration and hierarchical reasoning, (4) generates collision-free layouts stabilized under physics simulation, and (5) produces task-conditioned trajectories. To enhance visual diversity while preserving geometric consistency, we incorporate constrained foundation-model-based texture stylization and geometry-preserving video synthesis. The resulting demonstrations are physically valid, temporally coherent, and directly usable for policy learning.
+% % we propose a novel paradigm: Video Generation as Implicit Planning. Instead of relying on hand-coded motion planners that struggle with complex semantics, we prompt video foundation models to ``dream" manipulation trajectories. To ground these hallucinated videos into physical simulation, we develop a robust Sim-to-Gen Alignment algorithm. By combining K-Means motion segmentation with a vertical-anchor scaling mechanism, we recover precise, physically executable 3D trajectories from monocular generated videos.
+% % We evaluate our framework on pick-and-place and stacking tasks with Franka and Piper manipulators. Using only automatically generated data, we train ACT-style visuomotor policies that successfully learn the tasks and transfer to real hardware. These results demonstrate that physically grounded generative pipelines can enable scalable data production for robotic manipulation learning.
+
+% % Our contributions are threefold:
+% % \begin{itemize}
+% %     \item We introduce a fully automated language-to-physics pipeline for generating simulation-ready manipulation scenes and trajectories.
+% %     \item We propose a constraint-based integration of foundation models with geometric reasoning and physics stabilization to ensure data usability.
+% %     \item We demonstrate that policies trained solely on generated data achieve stable performance and gen-sim-to-real transfer.
+% % \end{itemize}
+
+% % 近年来，基于学习的视觉-运动策略在多任务场景中取得了显著进展，但这些方法通常依赖于大规模示范数据。真实世界中的机器人数据采集成本高昂、过程繁琐且难以扩展。对于每一个新的任务规格、环境变化或物体组合，通常都需要额外采集示范数据，这在很大程度上限制了数据驱动机器人系统的规模化发展与实际部署。
+
+% % 仿真提供了一种可扩展的数据获取替代方案，但构建仿真环境及其对应的操作轨迹在很大程度上仍依赖人工设计。现有流程通常需要手工构建资产、编排场景布局以及设计任务特定的运动规划策略。程序化生成方法在多样性方面受限，而近年来的图像、三维和视频生成模型虽然能够生成视觉上丰富的内容，但其输出往往在几何一致性与物理可行性方面存在缺陷。常见问题包括物体尺度不准确、几何穿插、布局不稳定以及不可执行的运动轨迹。因此，仿真场景生成与轨迹合成仍然被视为两个相互割裂的工程问题，而非统一的自动化系统过程。
+
+% % 本文旨在解决从高层任务描述出发，自动化生成机器人仿真环境与操作轨迹的问题。为此，我们提出 V-Dreamer，一个能够将自然语言指令转换为物理有效的仿真场景与可执行操作轨迹的统一系统，并且在整个生成过程中无需人工干预。V-Dreamer 的核心设计目标是在生成流程中将生成式先验与显式几何推理及基于物理的验证机制进行系统级整合，从而在实现端到端自动化的同时保证结果的物理可执行性。
+
+% % 给定一条自然语言任务描述，V-Dreamer 执行一个结构化生成流程，包括：（1）构建包含语义与空间关系的场景图表示；（2）几何资产的检索与合成；（3）尺度标定与层级空间推理；（4）基于物理仿真的布局稳定化，以确保无碰撞且稳定的场景配置；以及（5）任务条件下的操作轨迹合成。所有生成场景均在物理仿真中进行验证，仅保留满足几何一致性与物理稳定性的配置用于数据生成。
+
+% % 在自动化过程中，一个核心难点在于轨迹合成。不同于依赖手工设计的运动规划器或显式符号任务分解的方法，V-Dreamer 利用视频生成先验作为隐式运动表示。视频生成模型蕴含了丰富的物体交互模式与任务动态知识，我们利用这些先验来引导操作轨迹生成。具体而言，我们提出“视频生成作为运动先验”的系统组件，通过任务条件的视频在图像空间中提供稠密的物体运动线索。
+
+% % 为了将视觉空间中的运动转换为可执行的机器人轨迹，我们设计了 Sim-to-Gen 对齐模块，用于从单目生成视频中重建度量一致的三维轨迹。该模块结合运动分割与基于锚点的尺度恢复策略，在已知相机几何条件下推断物体的物理一致运动路径，从而生成可在仿真中执行并可映射为机器人关节指令的轨迹。
+
+% % 我们在抓取放置与堆叠任务上对 V-Dreamer 进行了系统评估，实验平台包括 Franka 机械臂 与 Piper 机械臂 两种不同结构与控制接口的操作平台。仅使用系统自动生成的数据，我们训练视觉-运动策略，并分别部署至仿真环境与真实机器人系统。实验结果表明，所学习到的策略能够稳定完成目标任务，并实现从生成数据到仿真再到真实机器人的迁移。跨平台实验验证表明，V-Dreamer 生成的数据具有良好的物理一致性与执行可行性，能够支撑不同机械臂平台的操作学习。
+
+% % 本文主要贡献如下：
+
+% %     提出 V-Dreamer，一个从自然语言指令自动生成仿真场景与操作轨迹的统一系统，实现机器人仿真与轨迹合成的自动化；
+% %     提出一种利用视频生成先验进行轨迹合成的机制，并通过 Sim-to-Gen 对齐恢复物理可执行的三维运动轨迹；
+% %     实验验证仅使用系统自动生成的数据即可训练稳定操作策略，并实现从生成数据到仿真再到真实机器人的迁移能力。
+
+
+% \section{Introduction}
+
+% In recent years, learning-based visual-motion strategies have achieved significant progress in multi-task scenarios, but these methods typically rely on large-scale demonstration data. Data collection in the real world is costly, cumbersome, and difficult to scale. For each new task specification, environmental change, or object combination, additional demonstration data is often required, which significantly limits the scalability and practical deployment of data-driven robotic systems.
+% Simulation offers a scalable alternative for data acquisition, but constructing simulation environments and their corresponding manipulation trajectories still heavily depends on manual design. Existing processes typically require manual asset creation, scene layout scripting, and the design of task-specific motion planners. Procedural generation methods are limited in diversity, and while recent image, 3D, and video generation models can produce visually rich content, their outputs often suffer from defects in geometric consistency and physical feasibility. Common issues include incorrect object scaling, geometric intersections, unstable layouts, and non-executable motion trajectories. As a result, simulation scene generation and trajectory synthesis are still regarded as two separate engineering challenges, rather than a unified automated system process.
+
+% We present a unified framework for automating the generation of robotic simulation environments and manipulation trajectories from high-level task descriptions. Specifically, we propose \textbf{V-Dreamer}, a system that converts natural language instructions into physically valid simulation scenes and executable manipulation trajectories without manual intervention. V-Dreamer integrates generative priors with explicit geometric reasoning and physics-based validation within a structured pipeline, ensuring physical feasibility while achieving end-to-end automation.
+% Given a natural language task description, V-Dreamer executes a structured generation pipeline that: (1) constructs a scene graph with semantic and spatial relationships; (2) retrieves and synthesizes geometric assets; (3) performs scale calibration and hierarchical spatial reasoning; (4) stabilizes layouts through physics simulation to ensure collision-free and stable configurations; and (5) synthesizes task-conditioned manipulation trajectories. All generated scenes are validated in physics simulation, and only physically feasible configurations are retained for data generation.
+
+% A central challenge in this automation process is trajectory synthesis. Rather than relying on manually designed motion planners or explicit symbolic task decomposition, V-Dreamer leverages \textit{video generation priors} as an implicit representation of motion. Video generation models encode rich knowledge of object interactions and task dynamics, which we exploit to guide manipulation trajectory synthesis. We introduce a component termed \textit{video generation as motion priors}, which extracts dense object motion cues from task-conditioned generated videos in the image space.
+% To transform visual motion into executable robot trajectories, we design the \textit{Sim-to-Gen Alignment Module}, which reconstructs metric-consistent 3D trajectories from monocular generated videos. This module combines motion segmentation with anchor-based scale recovery to infer physically consistent object motion under known camera geometry, producing trajectories that are executable in simulation and directly mappable to robot joint commands.
+
+% We evaluate V-Dreamer on grasping, placement, and stacking tasks using both Franka and Piper robotic arms, which differ in kinematic structure and control interfaces. Using only automatically generated data, we train visual-motion policies and deploy them in simulation and on real robotic systems. Results show that the learned policies reliably complete the target tasks and achieve transfer from generated data to simulation and real robots. Cross-platform evaluations further demonstrate that V-Dreamer produces physically consistent and executable data that supports manipulation learning across different robotic platforms.
+
+% In summary, our contributions are threefold: 
+% \begin{itemize}
+%     \item We present \textbf{V-Dreamer}, a unified system that automatically generates simulation scenes and manipulation trajectories from natural language instructions, enabling fully automated robotic simulation and trajectory synthesis.
+%     \item We introduce a trajectory synthesis framework that leverages video generation priors and recovers physically executable 3D motion through Sim-to-Gen alignment.
+%     \item We demonstrate that policies trained solely on automatically generated data achieve stable performance and transfer effectively from generated data to simulation and real robotic platforms.
+% \end{itemize}
+
+
+
+\section{Introduction}
+
+General-purpose robotic manipulation in unstructured environments requires policies capable of generalizing across diverse objects, scenes, and semantic goals. While recent advances in imitation learning have demonstrated impressive capabilities in acquiring complex behaviors from expert demonstrations~\cite{chi2023diffusion, zhao2023learning}, their performance is fundamentally bottlenecked by the scale and diversity of the training data. Collecting large-scale real-world datasets via teleoperation is prohibitively expensive, time-consuming, and difficult to scale to long-tail scenarios~\cite{brohan2022rt, padalkar2023open}. Although simulation offers a scalable alternative, existing simulators typically rely on fixed asset libraries and manually designed tasks, restricting the semantic and visual diversity necessary for robust sim-to-real transfer.
+
+
+
+The emergence of generative foundation models offers a promising avenue to address this data scarcity. Large Language Models (LLMs) and diffusion models encapsulate extensive world knowledge regarding object semantics, spatial relationships, and visual affordances~\cite{yang2023foundation, wang2023voyager}. 
+% While recent works have explored leveraging these models to procedurally generate static 3D scenes~\cite{deitke2023procthor} or synthesize high-level task plans~\cite{ahn2022can}, a critical gap remains: \textit{how to automatically synthesize dynamic, physically executable manipulation trajectories to train generalizable robot policies without human intervention.} Current video generation models can simulate realistic motion but lack the physical grounding required for robotic control, frequently violating geometric consistency or kinematic constraints~\cite{wu2023tune}.
+While recent works have explored using foundation models to generate static 3D scenes~\cite{deitke2023procthor} or high-level task plans~\cite{ahn2022can}, they rarely yield a fully executable robotic task. Video generation can produce visually plausible motion, yet often violates geometric consistency or kinematic constraints due to limited physical grounding~\cite{wu2023tune}. The critical bottleneck is to automatically synthesize dynamic, physically feasible manipulation trajectories without human supervision.
+
+To bridge this gap, we introduce \textbf{V-Dreamer}~\ref{fig:teaser}, a fully automated framework that synthesizes open-vocabulary, simulation-ready manipulation environments and executable expert trajectories directly from natural language instructions. V-Dreamer addresses the dual challenges of scene diversity and behavioral realism through a unified generative pipeline. 
+First, our \textit{Semantic-to-Physics Scene Generation} module utilizes LLMs and 3D generative models to construct physically grounded 3D scenes. By integrating geometric reasoning with physics-based validation, the system ensures stable, collision-free object layouts that accurately reflect the user's semantic intent.
+%Crucially, for behavior synthesis, we introduce a novel \textit{Video-Prior-Based Trajectory Generation} approach. Rather than relying on hand-crafted heuristics or traditional motion planners that lack semantic nuance, we leverage state-of-the-art video generation models as rich motion priors to predict the manipulation process. 
+Crucially, for behavior synthesis, we introduce a novel \textit{Video-Prior-Based Trajectory Generation} approach. Building on the previously generated simulation scene, we leverage state-of-the-art video generation models as rich motion priors to predict the manipulation process, instead of relying on hand-crafted heuristics or traditional motion planners that often lack semantic nuance.
+To ground these generated visual motions into actionable data, we develop a robust \textit{Sim-to-Gen} visual-kinematic alignment module utilizing CoTracker3~\cite{karaev2023cotracker} and VGGT~\cite{wang2025vggt}. This module extracts physically valid end-effector trajectories, allowing us to generate diverse, policy-compliant demonstrations at scale across a wide range of object categories and interaction dynamics. Overall, V-Dreamer offers a fully automated pipeline that turns natural language instructions into simulation-ready, physically grounded scenes and executable expert trajectories. By combining physics-validated scene generation with video-model motion priors and robust visual-kinematic alignment, it achieves both open-vocabulary scene diversity and behavior realism, enabling scalable, policy-compliant demonstrations across diverse objects and interaction dynamics without human supervision.
+
+In practice, V-Dreamer serves as a high-throughput data engine, generating approximately \textbf{600} LeRobot-formatted trajectories \textbf{per hour} on an \textbf{8$\times$RTX 4090} workstation. This rapid generation bypasses the bottleneck of slow manual teleoperation, enabling highly efficient policy training. Furthermore, extensive evaluations on tabletop manipulation tasks using a Piper robotic arm demonstrate that policies trained on this synthetic data robustly generalize to unseen objects in simulation. To further bridge the reality gap, V-Dreamer also support a photo-conditioned setting that instantiates a scene-matched simulation directly from real-world images and a language instruction, making the real2sim2real pipeline highly practical. By training on just a single synthesized demonstration from this pipeline, we achieve effective \textbf{zero-shot sim-to-real transfer}. This highlights the immense potential of generative video priors for scalable and generalizable robot learning.
+
+In summary, our main contributions are:
+\begin{itemize}
+    \item We propose \textbf{V-Dreamer}, which, to our knowledge, is the first fully automated full-cycle pipeline for instruction-driven open-vocabulary data synthesis. By distilling natural language into simulation-ready environments and expert trajectories, V-Dreamer enables scalable policy learning without human-in-the-loop effort.
+    \item We introduce a novel \textbf{video-prior-based behavior synthesis} method. By leveraging a robust visual-kinematic alignment module, we successfully ground generative visual motion into physically feasible end-effector trajectories, eliminating the reliance on hand-crafted heuristics.
+    \item We empirically validate V-Dreamer as a high-throughput data engine capable of supporting robust zero-shot generalization and highly data-efficient one-shot imitation learning. Notably, via a zero-shot real2sim2real workflow, a policy trained on a single synthesized demonstration achieves successful sim-to-real transfer on physical hardware while remaining robust to local spatial perturbations.
+\end{itemize}

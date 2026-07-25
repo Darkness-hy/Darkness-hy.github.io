@@ -1,0 +1,147 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{#1}
+\csname url@rmstyle\endcsname
+\providecommand{\newblock}{\relax}
+\providecommand{\bibinfo}[2]{#2}
+\providecommand\BIBentrySTDinterwordspacing{\spaceskip=0pt\relax}
+\providecommand\BIBentryALTinterwordstretchfactor{4}
+\providecommand\BIBentryALTinterwordspacing{\spaceskip=\fontdimen2\font plus
+\BIBentryALTinterwordstretchfactor\fontdimen3\font minus \fontdimen4\font\relax}
+\providecommand\BIBforeignlanguage[2]{{%
+\expandafter\ifx\csname l@#1\endcsname\relax
+\typeout{** WARNING: IEEEtran.bst: No hyphenation pattern has been}%
+\typeout{** loaded for the language `#1'. Using the pattern for}%
+\typeout{** the default language instead.}%
+\else
+\language=\csname l@#1\endcsname
+\fi
+#2}}
+
+\bibitem{chi2023diffusion}
+C.~Chi, S.~Feng, Y.~Du, Z.~Xu, E.~Cousineau, B.~Burchfiel, and S.~Song, ``Diffusion policy: Visuomotor policy learning via action diffusion,'' in \emph{Robotics: Science and Systems (RSS)}, 2023.
+
+\bibitem{zhao2023learning}
+T.~Z. Zhao, V.~Kumar, S.~Levine, and C.~Finn, ``Learning fine-grained bimanual manipulation with low-cost hardware,'' in \emph{Robotics: Science and Systems (RSS)}, 2023.
+
+\bibitem{brohan2022rt}
+A.~Brohan, \emph{et~al.}, ``{RT-1}: Robotics transformer for real-world control at scale,'' \emph{arXiv preprint arXiv:2212.06817}, 2022.
+
+\bibitem{padalkar2023open}
+A.~Padalkar, \emph{et~al.}, ``Open {X}-embodiment: Robotic learning datasets and {RT-X} models,'' in \emph{IEEE International Conference on Robotics and Automation (ICRA)}, 2024.
+
+\bibitem{yang2023foundation}
+S.~Yang, O.~Nachum, Y.~Du, J.~Wei, P.~Abbeel, and D.~Schuurmans, ``Foundation models for decision making: Problems, methods, and opportunities,'' \emph{arXiv preprint arXiv:2303.04129}, 2023.
+
+\bibitem{wang2023voyager}
+G.~Wang, Y.~Xie, Y.~Jiang, A.~Mandlekar, C.~Xiao, Y.~Zhu, L.~Fan, and A.~Anandkumar, ``Voyager: An open-ended embodied agent with large language models,'' in \emph{NeurIPS}, 2023.
+
+\bibitem{deitke2023procthor}
+M.~Deitke, E.~VanderBilt, A.~Herrasti, L.~Weihs, K.~Ehsani, J.~Salvador, W.~Han, E.~Kolve, A.~Kembhavi, and A.~Farhadi, ``{ProcTHOR}: Large-scale embodied {AI} using procedural generation,'' in \emph{NeurIPS}, 2022.
+
+\bibitem{ahn2022can}
+M.~Ahn, \emph{et~al.}, ``Do as {I} can, not as {I} say: Grounding language in robotic affordances,'' in \emph{Conference on Robot Learning (CoRL)}, 2022.
+
+\bibitem{wu2023tune}
+J.~Z. Wu, Y.~Ge, X.~Wang, S.~W. Lei, Y.~Gu, Y.~Shi, W.~Hsu, Y.~Shan, X.~Qie, and M.~Z. Shou, ``Tune-{A}-video: One-shot tuning of image diffusion models for text-to-video generation,'' in \emph{ICCV}, 2023.
+
+\bibitem{karaev2023cotracker}
+N.~Karaev, I.~Rocco, B.~Graham, N.~Neverova, A.~Vedaldi, and C.~Rupprecht, ``{CoTracker}: It is better to track together,'' \emph{arXiv preprint arXiv:2307.07635}, 2023.
+
+\bibitem{wang2025vggt}
+J.~Wang, M.~Chen, N.~Karaev, A.~Vedaldi, C.~Rupprecht, and D.~Novotny, ``{VGGT}: Visual geometry grounded deep structured tokens,'' in \emph{CVPR}, 2025.
+
+\bibitem{todorov2012mujoco}
+E.~Todorov, T.~Erez, and Y.~Tassa, ``{MuJoCo}: A physics engine for model-based control,'' in \emph{IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}.\hskip 1em plus 0.5em minus 0.4em\relax IEEE, 2012, pp. 5026--5033.
+
+\bibitem{makoviychuk2021isaac}
+V.~Makoviychuk, \emph{et~al.}, ``Isaac {Gym}: High performance {GPU}-based physics simulation for robot learning,'' in \emph{NeurIPS Datasets and Benchmarks Track}, 2021.
+
+\bibitem{szot2021habitat}
+A.~Szot, \emph{et~al.}, ``Habitat 2.0: Training home assistants to rearrange their habitat,'' in \emph{NeurIPS}, 2021.
+
+\bibitem{wang2024gensim}
+L.~Wang, Y.~Ling, Z.~Yuan, M.~Shridhar, C.~Bao, Y.~Qin, W.~Wang, H.~Xu, and X.~Wang, ``{GenSim}: Generating robotic simulation tasks via large language models,'' in \emph{ICLR}, 2024.
+
+\bibitem{wang2023robogen}
+Y.~Wang, Z.~Xian, F.~Chen, T.-H. Wang, Y.~Wang, K.~Fragkiadaki, Z.~Erickson, D.~Held, and C.~Gan, ``{RoboGen}: Towards unleashing infinite data for automated robot learning via generative simulation,'' in \emph{ICML}, 2024.
+
+\bibitem{yang2024holodeck}
+Y.~Yang, \emph{et~al.}, ``Holodeck: Language guided generation of {3D} embodied {AI} environments,'' in \emph{CVPR}, 2024.
+
+\bibitem{mandlekar2023mimicgen}
+A.~Mandlekar, S.~Nasiriany, B.~Wen, I.~Akinola, Y.~Narang, L.~Fan, Y.~Zhu, and D.~Fox, ``{MimicGen}: A data generation system for scalable robot learning using human demonstrations,'' in \emph{Conference on Robot Learning (CoRL)}, 2023.
+
+\bibitem{blattmann2023stable}
+A.~Blattmann, \emph{et~al.}, ``Stable video diffusion: Scaling latent video diffusion models to large datasets,'' \emph{arXiv preprint arXiv:2311.15127}, 2023.
+
+\bibitem{yang2023unisim}
+M.~Yang, Y.~Du, K.~Ghasemipour, J.~Tompson, L.~Kaelbling, D.~Schuurmans, and P.~Abbeel, ``Learning interactive real-world simulators,'' in \emph{ICLR}, 2024.
+
+\bibitem{cohen2024avdc}
+Y.~Ding, J.~Liu, Z.~Hu, and C.~Gan, ``Video language planning,'' in \emph{ICLR}, 2024.
+
+\bibitem{du2023learning}
+Y.~Du, M.~Yang, B.~Dai, H.~Dai, O.~Nachum, J.~B. Tenenbaum, P.~Abbeel, and D.~Schuurmans, ``Learning universal policies via text-guided video generation,'' in \emph{NeurIPS}, 2023.
+
+\bibitem{gu2024gr2}
+S.~Gu, C.~Yuan, Z.~Xue, Y.~Wang, S.~Huang, Y.~Ma, and P.~Luo, ``{GR-2}: Generalizing robot policies via video prediction,'' \emph{arXiv preprint arXiv:2412.09726}, 2024.
+
+\bibitem{bruce2024genie}
+J.~Bruce, \emph{et~al.}, ``Genie: Generative interactive environments,'' in \emph{ICML}, 2024.
+
+\bibitem{tobin2017domain}
+J.~Tobin, R.~Fong, A.~Ray, J.~Schneider, W.~Zaremba, and P.~Abbeel, ``Domain randomization for transferring deep neural networks from simulation to the real world,'' in \emph{IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 2017.
+
+\bibitem{peng2018sim}
+X.~B. Peng, M.~Andrychowicz, W.~Zaremba, and P.~Abbeel, ``Sim-to-real transfer of robotic control with dynamics randomization,'' in \emph{IEEE International Conference on Robotics and Automation (ICRA)}, 2018.
+
+\bibitem{zhang2023real2sim}
+H.~Zhang, J.~Li, Y.~Liu, G.~Chen, X.~Zhu, and F.~Xia, ``Real-to-sim: Learning real-world robot policies by dreaming in simulation,'' in \emph{IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 2023.
+
+\bibitem{torne2024rialto}
+M.~Torne, A.~Simeonov, Z.~Li, A.~Chan, T.~Chen, A.~Gupta, and P.~Agrawal, ``Reconciling reality through simulation: A real-to-sim-to-real approach for robust manipulation,'' in \emph{Conference on Robot Learning (CoRL)}, 2024.
+
+\bibitem{jiang2023transic}
+Y.~Jiang, C.~Wang, R.~Zhang, J.~Wu, and L.~Fei-Fei, ``{TRANSIC}: Sim-to-real policy transfer by learning from online correction,'' in \emph{Conference on Robot Learning (CoRL)}, 2023.
+
+\bibitem{ma2024dreureka}
+Y.~J. Ma, W.~Liang, H.-J. Wang, S.~Wang, Y.~Zhu, L.~Fan, O.~Bastani, and D.~Jayaraman, ``{DrEureka}: Language model guided sim-to-real transfer,'' in \emph{Robotics: Science and Systems (RSS)}, 2024.
+
+\bibitem{qwen2025qwen25}
+A.~Yang, \emph{et~al.}, ``Qwen2.5 technical report,'' \emph{arXiv preprint arXiv:2412.15115}, 2024.
+
+\bibitem{flux2024}
+{Black Forest Labs}, ``{FLUX},'' \url{https://github.com/black-forest-labs/flux}, 2024.
+
+\bibitem{carion2025sam3}
+\BIBentryALTinterwordspacing
+N.~Carion, \emph{et~al.}, ``{SAM} 3: Segment anything with concepts,'' 2025. [Online]. Available: \url{https://arxiv.org/abs/2511.16719}
+\BIBentrySTDinterwordspacing
+
+\bibitem{gatis2023rembg}
+D.~Gatis, ``rembg: Rembg is a tool to remove images background,'' \url{https://github.com/danielgatis/rembg}, 2023, accessed: 2025.
+
+\bibitem{Genesis}
+{Genesis Authors}, ``Genesis: A generative and universal physics engine for robotics and beyond,'' \url{https://github.com/Genesis-Embodied-AI/Genesis}, December 2024.
+
+\bibitem{wu2025qwenimagetechnicalreport}
+\BIBentryALTinterwordspacing
+C.~Wu, \emph{et~al.}, ``Qwen-image technical report,'' 2025. [Online]. Available: \url{https://arxiv.org/abs/2508.02324}
+\BIBentrySTDinterwordspacing
+
+\bibitem{wan2025}
+{Team Wan}, \emph{et~al.}, ``Wan: Open and advanced large-scale video generative models,'' \emph{arXiv preprint arXiv:2503.20314}, 2025.
+
+\bibitem{lee2026tracegen}
+S.~Lee, \emph{et~al.}, ``Tracegen: World modeling in 3d trace space enables learning from cross-embodiment videos,'' in \emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition}, 2026.
+
+\bibitem{tapip3d}
+B.~Zhang, L.~Ke, A.~W. Harley, and K.~Fragkiadaki, ``Tapip3d: Tracking any point in persistent 3d geometry,'' \emph{arXiv preprint arXiv:2504.14717}, 2025.
+
+\bibitem{murali2025graspgen}
+A.~Murali, B.~Sundaralingam, Y.-W. Chao, W.~Yuan, J.~Yamada, M.~Carlson, F.~Ramos, S.~Birchfield, D.~Fox, and C.~Eppner, ``Graspgen: A diffusion-based framework for 6-dof grasping with on-generator training,'' \emph{arXiv preprint arXiv:2507.13097}, 2025.
+
+\bibitem{chen2025robohiman}
+Y.~Chen, Z.~Chen, N.~T. Chan, J.~Chen, J.~Yin, J.~Shi, Y.~Gao, Y.-L. Li, and J.~Huo, ``Robohiman: A hierarchical evaluation paradigm for compositional generalization in long-horizon manipulation,'' \emph{arXiv preprint arXiv:2510.13149}, 2025.
+
+\end{thebibliography}

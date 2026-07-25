@@ -17,3 +17,9 @@ temp/
 *.log
 .env
 .env.*
+!.env.example
+
+# Agent server runtime
+agent/.venv/
+agent/logs/
+agent/__pycache__/

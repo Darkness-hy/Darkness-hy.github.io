@@ -28,7 +28,17 @@ Single-page static site:
 | `assets/js/site.js` | Language (en/zh) and theme toggles; bilingual strings live in a `TRANSLATIONS` map keyed by `data-i18n` attributes |
 | `assets/fonts/` | Self-hosted Newsreader + IBM Plex Sans (woff2) and licenses |
 | `assets/images/` | Portrait (`profile-hongyu-ding.webp`), site icon, institution logos, paper teasers (webp; some animated, with `prefers-reduced-motion` posters) |
+| `assets/tutor/` + `assets/css/tutor.css` + `assets/js/tutor.js` | Homepage AI assistant UI (茜茜): chat FAB/panel, status light, avatar modes |
+| `agent/` | Optional server: Claude Code harness + local RAG (`knowledge/`) for the assistant — not served by GitHub Pages |
 | `.nojekyll` | Disables Jekyll so `assets/` is served as-is on GitHub Pages |
+
+### Homepage AI agent
+
+- Frontend is static and talks to a remote `/chat` (SSE) + `/health` service configured via `window.HOMEPAGE_AGENT_*` in `index.html`.
+- Server lives in `agent/`: headless `claude -p` with a minimal `--system-prompt` (no Claude Code default boilerplate), model **DeepSeek v4 Flash** via `ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic`.
+- Local RAG sources: `agent/knowledge/profile.md`, `taste.md`, and arXiv TeX under `agent/knowledge/papers/<id>/` (see `INDEX.md` per paper).
+- Run locally: `cd agent && cp .env.example .env && ./run.sh` (port 8788 by default).
+- Persona name is 茜茜 / Cici; do not volunteer the name unless the visitor asks.
 
 ### Content model
 

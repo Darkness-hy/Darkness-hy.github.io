@@ -1,0 +1,303 @@
+\begin{thebibliography}{59}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bishop(2006)]{bishop2006pattern}
+Christopher~M Bishop.
+\newblock \emph{Pattern Recognition and Machine Learning}, volume~4.
+\newblock Springer, 2006.
+
+\bibitem[Brown et~al.(2020)Brown, Mann, Ryder, Subbiah, Kaplan, Dhariwal, Neelakantan, Shyam, Sastry, Askell, et~al.]{brown2020language}
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared~D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et~al.
+\newblock Language models are few-shot learners.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  1877--1901, 2020.
+
+\bibitem[Cao et~al.(2023)Cao, Yuan, Wang, Zhang, Zhang, Yu, and Zhan]{cao2023linda}
+Jiahan Cao, Lei Yuan, Jianhao Wang, Shaowei Zhang, Chongjie Zhang, Yang Yu, and De-Chuan Zhan.
+\newblock {LINDA}: Multi-agent local information decomposition for awareness of teammates.
+\newblock \emph{Science China Information Sciences}, 66\penalty0 (182101), 2023.
+
+\bibitem[Chen et~al.(2021{\natexlab{a}})Chen, Chen, Li, Chu, Yao, Qiu, and Lin]{chen2021powernet}
+Dong Chen, Kaian Chen, Zhaojian Li, Tianshu Chu, Rui Yao, Feng Qiu, and Kaixiang Lin.
+\newblock Powernet: Multi-agent deep reinforcement learning for scalable powergrid control.
+\newblock \emph{IEEE Transactions on Power Systems}, 37\penalty0 (2):\penalty0 1007--1017, 2021{\natexlab{a}}.
+
+\bibitem[Chen et~al.(2021{\natexlab{b}})Chen, Lu, Rajeswaran, Lee, Grover, Laskin, Abbeel, Srinivas, and Mordatch]{chen2021decision}
+Lili Chen, Kevin Lu, Aravind Rajeswaran, Kimin Lee, Aditya Grover, Misha Laskin, Pieter Abbeel, Aravind Srinivas, and Igor Mordatch.
+\newblock Decision transformer: Reinforcement learning via sequence modeling.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  15084--15097, 2021{\natexlab{b}}.
+
+\bibitem[Christianos et~al.(2021)Christianos, Papoudakis, Rahman, and Albrecht]{christianos2021scaling}
+Filippos Christianos, Georgios Papoudakis, Muhammad~A Rahman, and Stefano~V Albrecht.
+\newblock Scaling multi-agent reinforcement learning with selective parameter sharing.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  1989--1998, 2021.
+
+\bibitem[Dastani et~al.(2003)Dastani, Dignum, and Dignum]{dastani2003role}
+Mehdi Dastani, Virginia Dignum, and Frank Dignum.
+\newblock Role-assignment in open agent societies.
+\newblock In \emph{Proceedings of International Conference on Autonomous Agents and Multi-Agent Systems}, pp.\  489--496, 2003.
+
+\bibitem[Dosovitskiy et~al.(2021)Dosovitskiy, Beyer, Kolesnikov, Weissenborn, Zhai, Unterthiner, Dehghani, Minderer, Heigold, Gelly, et~al.]{dosovitskiy2021image}
+Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, et~al.
+\newblock An image is worth 16x16 words: Transformers for image recognition at scale.
+\newblock In \emph{Proceedings of International Conference on Learning Representations}, 2021.
+
+\bibitem[Foerster et~al.(2016)Foerster, Assael, De~Freitas, and Whiteson]{foerster2016learning}
+Jakob Foerster, Ioannis~Alexandros Assael, Nando De~Freitas, and Shimon Whiteson.
+\newblock Learning to communicate with deep multi-agent reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  2137--2145, 2016.
+
+\bibitem[Foerster et~al.(2017)Foerster, Nardelli, Farquhar, Afouras, Torr, Kohli, and Whiteson]{foerster2017stabilising}
+Jakob Foerster, Nantas Nardelli, Gregory Farquhar, Triantafyllos Afouras, Philip~HS Torr, Pushmeet Kohli, and Shimon Whiteson.
+\newblock Stabilising experience replay for deep multi-agent reinforcement learning.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  1146--1155, 2017.
+
+\bibitem[Fu et~al.(2022)Fu, Yu, Xu, Yang, and Wu]{fu2022revisiting}
+Wei Fu, Chao Yu, Zelai Xu, Jiaqi Yang, and Yi~Wu.
+\newblock Revisiting some common practices in cooperative multi-agent reinforcement learning.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  6863--6877, 2022.
+
+\bibitem[Hartigan \& Wong(1979)Hartigan and Wong]{hartigan1979algorithm}
+John~A Hartigan and Manchek~A Wong.
+\newblock Algorithm as 136: A k-means clustering algorithm.
+\newblock \emph{Journal of the Royal Statistical Society. Series C (Applied Statistics)}, 28\penalty0 (1):\penalty0 100--108, 1979.
+
+\bibitem[He et~al.(2020)He, Fan, Wu, Xie, and Girshick]{he2020momentum}
+Kaiming He, Haoqi Fan, Yuxin Wu, Saining Xie, and Ross Girshick.
+\newblock Momentum contrast for unsupervised visual representation learning.
+\newblock In \emph{Proceedings of IEEE/CVF Conference on Computer Vision and Pattern Recognition}, pp.\  9729--9738, 2020.
+
+\bibitem[Hu et~al.(2022)Hu, Xie, Liang, and Chang]{hu2022policy}
+Siyi Hu, Chuanlong Xie, Xiaodan Liang, and Xiaojun Chang.
+\newblock Policy diagnosis via measuring role diversity in cooperative multi-agent {RL}.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  9041--9071, 2022.
+
+\bibitem[Iqbal \& Sha(2019)Iqbal and Sha]{iqbal2019actor}
+Shariq Iqbal and Fei Sha.
+\newblock Actor-attention-critic for multi-agent reinforcement learning.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  2961--2970, 2019.
+
+\bibitem[Iqbal et~al.(2022)Iqbal, Costales, and Sha]{iqbal2022alma}
+Shariq Iqbal, Robby Costales, and Fei Sha.
+\newblock {ALMA}: Hierarchical learning for composite multi-agent tasks.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  7155--7166, 2022.
+
+\bibitem[Jiang \& Lu(2021)Jiang and Lu]{jiang2021emergence}
+Jiechuan Jiang and Zongqing Lu.
+\newblock The emergence of individuality.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  4992--5001, 2021.
+
+\bibitem[Kurach et~al.(2020)Kurach, Raichuk, Sta{\'n}czyk, Zaj{\k{a}}c, Bachem, Espeholt, Riquelme, Vincent, Michalski, Bousquet, et~al.]{kurach2020google}
+Karol Kurach, Anton Raichuk, Piotr Sta{\'n}czyk, Micha{\l} Zaj{\k{a}}c, Olivier Bachem, Lasse Espeholt, Carlos Riquelme, Damien Vincent, Marcin Michalski, Olivier Bousquet, et~al.
+\newblock Google research football: A novel reinforcement learning environment.
+\newblock In \emph{Proceedings of AAAI Conference on Artificial Intelligence}, pp.\  4501--4510, 2020.
+
+\bibitem[Laskin et~al.(2020)Laskin, Srinivas, and Abbeel]{laskin2020curl}
+Michael Laskin, Aravind Srinivas, and Pieter Abbeel.
+\newblock {CURL}: Contrastive unsupervised representations for reinforcement learning.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  5639--5650, 2020.
+
+\bibitem[Leibo et~al.(2017)Leibo, Zambaldi, Lanctot, Marecki, and Graepel]{leibo2017multi}
+Joel~Z Leibo, Vinicius Zambaldi, Marc Lanctot, Janusz Marecki, and Thore Graepel.
+\newblock Multi-agent reinforcement learning in sequential social dilemmas.
+\newblock In \emph{Proceedings of International Conference on Autonomous Agents and Multi-Agent Systems}, pp.\  464--473, 2017.
+
+\bibitem[Lhaksmana et~al.(2018)Lhaksmana, Murakami, and Ishida]{lhaksmana2018role}
+Kemas~M Lhaksmana, Yohei Murakami, and Toru Ishida.
+\newblock Role-based modeling for designing agent behavior in self-organizing multi-agent systems.
+\newblock \emph{International Journal of Software Engineering and Knowledge Engineering}, 28\penalty0 (01):\penalty0 79--96, 2018.
+
+\bibitem[Li et~al.(2021)Li, Wang, Wu, Zhao, Yang, and Zhang]{li2021celebrating}
+Chenghao Li, Tonghan Wang, Chengjie Wu, Qianchuan Zhao, Jun Yang, and Chongjie Zhang.
+\newblock Celebrating diversity in shared multi-agent reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  3991--4002, 2021.
+
+\bibitem[Liu et~al.(2021)Liu, Liu, Stone, Garg, Zhu, and Anandkumar]{liu2021coach}
+Bo~Liu, Qiang Liu, Peter Stone, Animesh Garg, Yuke Zhu, and Anima Anandkumar.
+\newblock Coach-player multi-agent reinforcement learning for dynamic team composition.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  6860--6870, 2021.
+
+\bibitem[Liu et~al.(2023)Liu, Zhou, Song, Zheng, Chen, Zhu, Feng, and Song]{liu2023contrastive}
+Shunyu Liu, Yihe Zhou, Jie Song, Tongya Zheng, Kaixuan Chen, Tongtian Zhu, Zunlei Feng, and Mingli Song.
+\newblock Contrastive identity-aware learning for multi-agent value decomposition.
+\newblock In \emph{Proceedings of AAAI Conference on Artificial Intelligence}, pp.\  11595--11603, 2023.
+
+\bibitem[Liu et~al.(2022)Liu, Li, Xu, Dou, and Liu]{liu2022heterogeneous}
+Yuntao Liu, Yuan Li, Xinhai Xu, Yong Dou, and Donghong Liu.
+\newblock Heterogeneous skill learning for multi-agent tasks.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  37011--37023, 2022.
+
+\bibitem[Lo \& Sengupta(2022)Lo and Sengupta]{lo2022learning}
+Yat~Long Lo and Biswa Sengupta.
+\newblock Learning to ground decentralized multi-agent communication with contrastive learning.
+\newblock \emph{arXiv preprint arXiv:2203.03344}, 2022.
+
+\bibitem[Lowe et~al.(2017)Lowe, Wu, Tamar, Harb, Pieter~Abbeel, and Mordatch]{lowe2017multi}
+Ryan Lowe, Yi~I Wu, Aviv Tamar, Jean Harb, OpenAI Pieter~Abbeel, and Igor Mordatch.
+\newblock Multi-agent actor-critic for mixed cooperative-competitive environments.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  6379--6390, 2017.
+
+\bibitem[Mahajan et~al.(2019)Mahajan, Rashid, Samvelyan, and Whiteson]{mahajan2019maven}
+Anuj Mahajan, Tabish Rashid, Mikayel Samvelyan, and Shimon Whiteson.
+\newblock {MAVEN}: Multi-agent variational exploration.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  7611--7622, 2019.
+
+\bibitem[Oliehoek \& Amato(2016)Oliehoek and Amato]{oliehoek2016concise}
+Frans~A Oliehoek and Christopher Amato.
+\newblock \emph{A Concise Introduction to Decentralized {POMDPs}}, volume~1.
+\newblock Springer, 2016.
+
+\bibitem[Oord et~al.(2018)Oord, Li, and Vinyals]{oord2018representation}
+Aaron van~den Oord, Yazhe Li, and Oriol Vinyals.
+\newblock Representation learning with contrastive predictive coding.
+\newblock \emph{arXiv preprint arXiv:1807.03748}, 2018.
+
+\bibitem[Phan et~al.(2023)Phan, Ritz, Altmann, Zorn, N{\"u}{\ss}lein, K{\"o}lle, Gabor, and Linnhoff-Popien]{phan2023attention}
+Thomy Phan, Fabian Ritz, Philipp Altmann, Maximilian Zorn, Jonas N{\"u}{\ss}lein, Michael K{\"o}lle, Thomas Gabor, and Claudia Linnhoff-Popien.
+\newblock Attention-based recurrence for multi-agent reinforcement learning under stochastic partial observability.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  27840--27853, 2023.
+
+\bibitem[Rashid et~al.(2020)Rashid, Samvelyan, De~Witt, Farquhar, Foerster, and Whiteson]{rashid2020monotonic}
+Tabish Rashid, Mikayel Samvelyan, Christian~Schroeder De~Witt, Gregory Farquhar, Jakob Foerster, and Shimon Whiteson.
+\newblock Monotonic value function factorisation for deep multi-agent reinforcement learning.
+\newblock \emph{Journal of Machine Learning Research}, 21\penalty0 (1):\penalty0 7234--7284, 2020.
+
+\bibitem[Samvelyan et~al.(2019)Samvelyan, Rashid, De~Witt, Farquhar, Nardelli, Rudner, Hung, Torr, Foerster, and Whiteson]{samvelyan2019starcraft}
+Mikayel Samvelyan, Tabish Rashid, Christian~Schroeder De~Witt, Gregory Farquhar, Nantas Nardelli, Tim~GJ Rudner, Chia-Man Hung, Philip~HS Torr, Jakob Foerster, and Shimon Whiteson.
+\newblock The {StarCraft} multi-agent challenge.
+\newblock \emph{arXiv preprint arXiv:1902.04043}, 2019.
+
+\bibitem[Shao et~al.(2022)Shao, Lou, Zhang, Jiang, He, and Ji]{shao2022self}
+Jianzhun Shao, Zhiqiang Lou, Hongchang Zhang, Yuhang Jiang, Shuncheng He, and Xiangyang Ji.
+\newblock Self-organized group for cooperative multi-agent reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  5711--5723, 2022.
+
+\bibitem[Shao et~al.(2023)Shao, Zhang, Qu, Liu, He, Jiang, and Ji]{shao2023complementary}
+Jianzhun Shao, Hongchang Zhang, Yun Qu, Chang Liu, Shuncheng He, Yuhang Jiang, and Xiangyang Ji.
+\newblock Complementary attention for multi-agent reinforcement learning.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  30776--30793, 2023.
+
+\bibitem[Sims et~al.(2008)Sims, Corkill, and Lesser]{sims2008automated}
+Mark Sims, Daniel Corkill, and Victor Lesser.
+\newblock Automated organization design for multi-agent systems.
+\newblock \emph{Autonomous Agents and Multi-Agent Systems}, 16:\penalty0 151--185, 2008.
+
+\bibitem[Son et~al.(2019)Son, Kim, Kang, Hostallero, and Yi]{son2019qtran}
+Kyunghwan Son, Daewoo Kim, Wan~Ju Kang, David~Earl Hostallero, and Yung Yi.
+\newblock {QTRAN}: Learning to factorize with transformation for cooperative multi-agent reinforcement learning.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  5887--5896, 2019.
+
+\bibitem[Song et~al.(2023)Song, Feng, Zhou, and Li]{song2023ma2clmasked}
+Haolin Song, Mingxiao Feng, Wengang Zhou, and Houqiang Li.
+\newblock {MA2CL}: Masked attentive contrastive learning for multi-agent reinforcement learning.
+\newblock In \emph{Proceedings of International Joint Conference on Artificial Intelligence}, pp.\  4226--4234, 2023.
+
+\bibitem[Su et~al.(2022)Su, Lan, Wang, Yogatama, Kong, and Collier]{su2022contrastive}
+Yixuan Su, Tian Lan, Yan Wang, Dani Yogatama, Lingpeng Kong, and Nigel Collier.
+\newblock A contrastive framework for neural text generation.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  21548--21561, 2022.
+
+\bibitem[Sukhbaatar et~al.(2016)Sukhbaatar, Szlam, and Fergus]{sukhbaatar2016learning}
+Sainbayar Sukhbaatar, Arthur Szlam, and Rob Fergus.
+\newblock Learning multiagent communication with backpropagation.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  2244--2252, 2016.
+
+\bibitem[Sunehag et~al.(2018)Sunehag, Lever, Gruslys, Czarnecki, Zambaldi, Jaderberg, Lanctot, Sonnerat, Leibo, Tuyls, et~al.]{sunehag2018value}
+Peter Sunehag, Guy Lever, Audrunas Gruslys, Wojciech~Marian Czarnecki, Vinicius Zambaldi, Max Jaderberg, Marc Lanctot, Nicolas Sonnerat, Joel~Z Leibo, Karl Tuyls, et~al.
+\newblock Value-decomposition networks for cooperative multi-agent learning based on team reward.
+\newblock In \emph{Proceedings of International Conference on Autonomous Agents and Multi-Agent Systems}, pp.\  2085--2087, 2018.
+
+\bibitem[Vaswani et~al.(2017)Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser, and Polosukhin]{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan~N Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
+\newblock Attention is all you need.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  5998--6008, 2017.
+
+\bibitem[Vinyals et~al.(2019)Vinyals, Babuschkin, Czarnecki, Mathieu, Dudzik, Chung, Choi, Powell, Ewalds, Georgiev, et~al.]{vinyals2019grandmaster}
+Oriol Vinyals, Igor Babuschkin, Wojciech~M Czarnecki, Micha{\"e}l Mathieu, Andrew Dudzik, Junyoung Chung, David~H Choi, Richard Powell, Timo Ewalds, Petko Georgiev, et~al.
+\newblock Grandmaster level in {StarCraft II} using multi-agent reinforcement learning.
+\newblock \emph{Nature}, 575\penalty0 (7782):\penalty0 350--354, 2019.
+
+\bibitem[Wang et~al.(2023)Wang, Ye, and Lu]{wang2023more}
+Jiangxing Wang, Deheng Ye, and Zongqing Lu.
+\newblock More centralized training, still decentralized execution: Multi-agent conditional policy factorization.
+\newblock In \emph{Proceedings of International Conference on Learning Representations}, 2023.
+
+\bibitem[Wang et~al.(2020)Wang, Dong, Lesser, and Zhang]{wang2020roma}
+Tonghan Wang, Heng Dong, Victor Lesser, and Chongjie Zhang.
+\newblock {ROMA}: Multi-agent reinforcement learning with emergent roles.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  9876--9886, 2020.
+
+\bibitem[Wang et~al.(2021)Wang, Gupta, Mahajan, Peng, Whiteson, and Zhang]{wang2021rode}
+Tonghan Wang, Tarun Gupta, Anuj Mahajan, Bei Peng, Shimon Whiteson, and Chongjie Zhang.
+\newblock {RODE}: Learning roles to decompose multi-agent tasks.
+\newblock In \emph{Proceedings of International Conference on Learning Representations}, 2021.
+
+\bibitem[Wen et~al.(2022)Wen, Kuba, Lin, Zhang, Wen, Wang, and Yang]{wen2022multi}
+Muning Wen, Jakub Kuba, Runji Lin, Weinan Zhang, Ying Wen, Jun Wang, and Yaodong Yang.
+\newblock Multi-agent reinforcement learning is a sequence modeling problem.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  16509--16521, 2022.
+
+\bibitem[Xia et~al.(2023)Xia, Zhu, and Zhu]{xia2023dynamic}
+Yu~Xia, Junwu Zhu, and Liucun Zhu.
+\newblock Dynamic role discovery and assignment in multi-agent task decomposition.
+\newblock \emph{Complex \& Intelligent Systems}, pp.\  1--12, 2023.
+
+\bibitem[Yang et~al.(2020{\natexlab{a}})Yang, Borovikov, and Zha]{yang2020hierarchical}
+Jiachen Yang, Igor Borovikov, and Hongyuan Zha.
+\newblock Hierarchical cooperative multi-agent reinforcement learning with skill discovery.
+\newblock In \emph{Proceedings of International Conference on Autonomous Agents and Multi-Agent Systems}, pp.\  1566--1574, 2020{\natexlab{a}}.
+
+\bibitem[Yang et~al.(2022)Yang, Zhao, Hu, Zhou, Zhu, and Li]{yang2022ldsa}
+Mingyu Yang, Jian Zhao, Xunhan Hu, Wengang Zhou, Jiangcheng Zhu, and Houqiang Li.
+\newblock {LDSA}: Learning dynamic subtask assignment in cooperative multi-agent reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  1698--1710, 2022.
+
+\bibitem[Yang et~al.(2020{\natexlab{b}})Yang, Hao, Liao, Shao, Chen, Liu, and Tang]{yang2020qatten}
+Yaodong Yang, Jianye Hao, Ben Liao, Kun Shao, Guangyong Chen, Wulong Liu, and Hongyao Tang.
+\newblock Qatten: A general framework for cooperative multiagent reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2002.03939}, 2020{\natexlab{b}}.
+
+\bibitem[Yu et~al.(2022)Yu, Velu, Vinitsky, Gao, Wang, Bayen, and Wu]{yu2022surprising}
+Chao Yu, Akash Velu, Eugene Vinitsky, Jiaxuan Gao, Yu~Wang, Alexandre Bayen, and Yi~Wu.
+\newblock The surprising effectiveness of {PPO} in cooperative multi-agent games.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pp.\  24611--24624, 2022.
+
+\bibitem[Yu et~al.(2023)Yu, Yang, Gao, Chen, Li, Liu, Xiang, Huang, Yang, Wu, and Wang]{yu2023asynchronous}
+Chao Yu, Xinyi Yang, Jiaxuan Gao, Jiayu Chen, Yunfei Li, Jijia Liu, Yunfei Xiang, Ruixin Huang, Huazhong Yang, Yi~Wu, and Yu~Wang.
+\newblock Asynchronous multi-agent reinforcement learning for efficient real-time multi-robot cooperative exploration.
+\newblock In \emph{Proceedings of International Conference on Autonomous Agents and Multi-Agent Systems}, pp.\  1107--1115, 2023.
+
+\bibitem[Yuan \& Lu(2022)Yuan and Lu]{yuan2022robust}
+Haoqi Yuan and Zongqing Lu.
+\newblock Robust task representations for offline meta-reinforcement learning via contrastive learning.
+\newblock In \emph{Proceedings of International Conference on Machine Learning}, pp.\  25747--25759, 2022.
+
+\bibitem[Yuan et~al.(2022)Yuan, Wang, Wang, Zhang, Chen, Guan, Zhang, Zhang, and Yu]{yuan2022multi}
+Lei Yuan, Chenghe Wang, Jianhao Wang, Fuxiang Zhang, Feng Chen, Cong Guan, Zongzhang Zhang, Chongjie Zhang, and Yang Yu.
+\newblock Multi-agent concentrative coordination with decentralized task representation.
+\newblock In \emph{Proceedings of International Joint Conference on Artificial Intelligence}, pp.\  599--605, 2022.
+
+\bibitem[Zang et~al.(2023)Zang, He, Li, Fu, Fu, Xing, and Cheng]{zang2023automatic}
+Yifan Zang, Jinmin He, Kai Li, Haobo Fu, Qiang Fu, Junliang Xing, and Jian Cheng.
+\newblock Automatic grouping for efficient cooperative multi-agent reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, volume~36, 2023.
+
+\bibitem[Zeng et~al.(2023)Zeng, Peng, and Li]{zeng2023effective}
+Xianghua Zeng, Hao Peng, and Angsheng Li.
+\newblock Effective and stable role-based multi-agent collaboration by structural information principles.
+\newblock In \emph{Proceedings of AAAI Conference on Artificial Intelligence}, pp.\  11772--11780, 2023.
+
+\bibitem[Zhai et~al.(2023)Zhai, Peng, Su, and Tian]{zhai2023dynamic}
+Yunpeng Zhai, Peixi Peng, Chen Su, and Yonghong Tian.
+\newblock Dynamic belief for decentralized multi-agent cooperative learning.
+\newblock In \emph{Proceedings of International Joint Conference on Artificial Intelligence}, pp.\  344--352, 2023.
+
+\bibitem[Zhou et~al.(2020)Zhou, Luo, Villella, Yang, Rusu, Miao, Zhang, Alban, Fadakar, Chen, et~al.]{zhou2020smarts}
+Ming Zhou, Jun Luo, Julian Villella, Yaodong Yang, David Rusu, Jiayu Miao, Weinan Zhang, Montgomery Alban, Iman Fadakar, Zheng Chen, et~al.
+\newblock {SMARTS}: Scalable multi-agent reinforcement learning training school for autonomous driving.
+\newblock In \emph{Proceedings of Conference on Robot Learning}, 2020.
+
+\end{thebibliography}

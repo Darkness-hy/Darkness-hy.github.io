@@ -22,3 +22,4 @@ Open `http://127.0.0.1:4173`.
 1. Update English structure/copy in `index.html`.
 2. Keep bilingual strings in sync in `assets/js/site.js` (`TRANSLATIONS`, keys via `data-i18n`).
 3. Place new media under `assets/images/` (or `assets/images/papers/`, `assets/images/logos/`) and reference relative paths only. Served portrait: `assets/images/profile-hongyu-ding.webp`.
+4. Homepage AI assistant (茜茜): UI in `assets/{css,js}/tutor.*` + `assets/tutor/`; server + RAG in `agent/` (see `agent/README.md`). Set `window.HOMEPAGE_AGENT_ENDPOINT` / `_HEALTH` to your deployed agent HTTPS URL.

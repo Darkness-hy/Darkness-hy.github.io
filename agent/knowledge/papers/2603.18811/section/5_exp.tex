@@ -1,0 +1,163 @@
+\section{Experiments}
+\label{sec:experiments}
+
+Experiments are designed to assess \textbf{V-Dreamer} as a robust data-generation engine by answering three core questions.
+
+\textbf{Q1. Scalability and Data Quality.} Can V-Dreamer synthesize large-scale, high-quality demonstrations for downstream policy learning?
+
+\textbf{Q2. Semantic and Geometric Diversity.} Can V-Dreamer generate sufficiently diverse object instances and spatial layouts to support zero-shot generalization to novel geometries?
+
+\textbf{Q3. Physical Grounding and Executability.} Are V-Dreamer’s trajectories physically plausible and kinematically feasible, enabling zero-shot transfer on real hardware?
+
+To the best of our knowledge, V-Dreamer is the first automated system-level framework that unifies open-vocabulary scene synthesis, video-prior-based trajectory generation, and real-world deployment. As prior works usually address only a single stage of this pipeline, there is no directly comparable end-to-end baseline. We therefore evaluate V-Dreamer from a system perspective, focusing on scene diversity, trajectory executability, policy learning utility, and sim-to-real transfer.
+
+
+\begin{figure}[t!] % h代表放在这里，t代表放在页顶，b代表页底
+    \centering % 图片居中
+    \includegraphics[width=0.9\linewidth]{figs/image/dataset_scene.png} % 这里的文件名要和上传的一致，不加后缀名也行
+    \caption{Qualitative examples of V-Dreamer synthesized scenes with varying object instances, textures, and layouts. } % 图片下方的文字
+    \label{fig:v_dreamer_scene} % 给图片起个代号，方便正文引用
+    \vspace{-2em}
+\end{figure}
+
+\begin{figure*}[t]
+    \centering % 图片居中
+    \includegraphics[width=0.95\linewidth]{figs/sim-res.pdf} % 这里的文件名要和上传的一致，不加后缀名也行
+    \caption{
+   \textbf{ Simulation Evaluation.} 
+   \textit{(Left top)} Representative synthesized training scenes with object augmentation, illustrating diverse spatial layouts used to generate demonstrations. \textit{(Left bottom)} Zero-shot inference trajectory of the learned policy on an unseen mug, showing the manipulation sequence (Init $\to$ Pick $\to$ Grasp $\to$ Place). 
+  \textit{ (Right)} Success rate of the learned policy on 10 unseen mug instances under different training dataset sizes (500 trials each). Performance improves with increasing data scale and peaks at 2.5k synthesized demonstrations.}
+    \label{fig:sim_results} % 给图片起个代号，方便正文引用
+    \vspace{-1em}
+\end{figure*}
+
+
+\subsection{Experimental Setup}
+
+\paragraph{Tasks and Dataset}
+We systematically evaluate \textbf{V-Dreamer} on a fundamental yet challenging \textit{tabletop manipulation} task, where the robot grasps a target object from a planar surface and places it onto a receptacle. To support Q2, our pipeline procedurally synthesizes a diverse training corpus spanning (i) \textbf{Objects}: 40 target objects and 40 receptacle objects with substantial variation in geometry, texture, and metric scale; (ii) \textbf{Environments}: 20 distinct table settings with randomized surface materials, such as wood, marble, and glass. To evaluate zero-shot generalization, we additionally curate a held-out test set of 10 novel mugs with entirely unseen shapes, handles, and textures, which are strictly excluded from the generative pipeline.
+
+\paragraph{Base Policy Model}
+To evaluate whether data synthesized by V-Dreamer can effectively support robot policy learning, we adopt the classical imitation learning framework Action Chunking with Transformers (ACT)~\cite{zhao2023learning} as the downstream policy model. ACT is a widely used behavior cloning framework for robotic manipulation, providing a stable and reproducible training pipeline. Moreover, its sensitivity to demonstration quality and data distribution coverage makes it well suited for assessing the diversity and utility of synthesized data. Finally, since ACT does not involve exploration or reinforcement learning, performance differences can be more directly attributed to the training data itself.
+
+\paragraph{Evaluation Metrics}
+We use \textbf{Success Rate (SR)} as the evaluation metric, defined as the percentage of trials in which the robot successfully grasps and places the object within the episode horizon. Results are averaged over randomized trials across object instances and initial conditions, using the same metric for both simulation and real-world experiments.
+
+\paragraph{Hardware Configuration}
+In simulation, we use the 7-DoF Franka robotic arm. For real-world deployment, we evaluate the trained policies on the left arm of a Cobot-Magic platform, equipped with a 6-DoF Piper lightweight manipulator and a standard parallel-jaw gripper. For RGB perception, the system uses two Orbbec DaBai cameras: one mounted on the wrist and the other providing a top-down view. All synthetic training data are generated on a workstation equipped with 8$\times$RTX 4090 GPUs.
+
+% \paragraph{Hardware Configuration}
+% For physical deployment, we evaluate the trained policies on the left arm of a Cobot-Magic platform, equipped with a 6-DoF Piper lightweight manipulator and a standard parallel-jaw gripper. For RGB perception, the system uses two Orbbec DaBai cameras, one mounted on the wrist and another providing a top-down view. All synthetic training data are generated on an 8$\times$RTX 4090 workstation.
+
+
+\subsection{Simulation Results}
+\label{sec:sim_results}
+
+\paragraph{Qualitative Visualization.}
+
+
+To address \textbf{Q1}, we first visualize V-Dreamer’s synthesis capability. Figure~\ref{fig:v_dreamer_demo} further shows that V-Dreamer can generate coherent demonstrations across increasing levels of interaction difficulty, from \textit{simple} motions to \textit{hard} and \textit{complex} cooperative sequential mobile manipulation task by three devices by presenting both the synthesized videos and the recovered end-effector trajectories. These examples indicate that V-Dreamer produces structured, executable scene-action pairs rather than merely randomizing assets. As a supplement, we show more generated scenes with substantial variation in texture, metric scale, and spatial layout in Figure~\ref{fig:v_dreamer_scene}. 
+
+
+\paragraph{Data Scaling and Zero-Shot Generalization}
+We further answer \textbf{Q2} and evaluate \textbf{V-Dreamer} as a data-generation engine along two axes, including (i) whether adding more synthesized demonstrations improves downstream learning, and (ii) whether the learned policy transfers to geometrically unseen objects. Concretely, we train the same diffusion-based imitation policy on subsets of the synthesized dataset ranging from 500 to 2,500 trajectories, and evaluate each variant on a held-out set of 10 novel mugs, conducting 50 trials per object with randomized initial configurations.
+
+The left side of Figure~\ref{fig:sim_results} presents qualitative results of execution trajectories in simulation, where the policy is trained with synthesized data and evaluated on unseen mug instances. The quantitative results, summarized in the right side of Figure~\ref{fig:sim_results}, reveal a non-linear correlation between generative data scale and policy success rate. The policy exhibits catastrophic failure when trained on only 500 trajectories (3.46\%), indicating an insufficient coverage of the visual-spatial state distribution. Performance leaps significantly at 1,000 trajectories (25.90\%) and peaks optimally at \textbf{2,500 trajectories} with a success rate of \textbf{36.96\%}. 
+Notably, this peak is achieved using purely synthesized demonstrations on entirely unseen mug geometries, highlighting V-Dreamer’s ability to generate diverse, actionable training data. These results empirically confirm that V-Dreamer provides high-quality data for robust manipulation primitives, and given that current imitation learning methods rarely exceed 30\% success on unseen tasks~\cite{chen2025robohiman}, this further demonstrates its effectiveness for imitation learning.
+
+% Notably, this peak is achieved using purely synthesized demonstrations and evaluation on entirely unseen mug geometries, highlighting V-Dreamer’s ability to generate actionable long-tail diversity for training. This results empirically validate that V-Dreamer successfully synthesizes diverse, high-quality data capable of instilling robust manipulation primitives.
+
+
+\subsection{Real-World Experiments}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\linewidth]{figs/real_vis.pdf}
+    \caption{\textbf{V-Dreamer enables a Real2Sim–Sim2Gen–Sim2Real pipeline for real-world robot manipulation.} Real-world observations are first converted into simulation environments (Real2Sim). V-Dreamer then synthesizes executable manipulation trajectories in simulation (Sim2Gen) for policy training. Finally, the learned policy is deployed on a physical robot arm (Sim2Real), successfully executing a pick-and-place task that transfers a novel yellow cube to the red target without any real-world fine-tuning.}
+    \label{fig:real_vis}
+    \vspace{-1em}
+\end{figure}
+% \begin{figure}[htbp] % h代表放在这里，t代表放在页顶，b代表页底
+%     \centering % 图片居中
+%     \includegraphics[width=1.0\linewidth]{figs/image/shiji1.png} % 这里的文件名要和上传的一致，不加后缀名也行
+%     \caption{real object} % 图片下方的文字
+%     \label{} % 给图片起个代号，方便正文引用
+% \end{figure}
+
+% \begin{figure}[htbp] % h代表放在这里，t代表放在页顶，b代表页底
+%     \centering % 图片居中
+%     \includegraphics[width=1.0\linewidth]{figs/image/shiji2.png} % 这里的文件名要和上传的一致，不加后缀名也行
+%     \caption{mesh} % 图片下方的文字
+%     \label{} % 给图片起个代号，方便正文引用
+% \end{figure}
+
+% \begin{figure}[htbp] % h代表放在这里，t代表放在页顶，b代表页底
+%     \centering % 图片居中
+%     \includegraphics[width=1.0\linewidth]{figs/image/shiji3.png} % 这里的文件名要和上传的一致，不加后缀名也行
+%     \caption{video} % 图片下方的文字
+%     \label{} % 给图片起个代号，方便正文引用
+% \end{figure}
+
+% \begin{figure}[htbp] % h代表放在这里，t代表放在页顶，b代表页底
+%     \centering % 图片居中
+%     \includegraphics[width=1.0\linewidth]{figs/image/shiji4.png} % 这里的文件名要和上传的一致，不加后缀名也行
+%     \caption{data} % 图片下方的文字
+%     \label{} % 给图片起个代号，方便正文引用
+% \end{figure}
+
+% \begin{figure}[h] % h代表放在这里，t代表放在页顶，b代表页底
+%     \centering % 图片居中
+%     \includegraphics[width=1.0\linewidth]{figs/real-world-demo.pdf} % 这里的文件名要和上传的一致，不加后缀名也行
+%     \caption{
+%     \textbf{Real-World Deployment.} 
+%     The learned policy executing a pick-and-place task on a physical robot arm, 
+%     transferring a novel yellow cube to the red target without any real-world fine-tuning.}
+%     \label{} % 给图片起个代号，方便正文引用
+% \end{figure}
+% \label{sec:real_world}
+
+
+
+
+
+To evaluate the extreme data efficiency and practical utility of \textbf{V-Dreamer}, we deploy the learned policy on a physical 6-DoF Piper robotic arm (left arm of an ALOHA setup). Unlike conventional methods requiring large-scale real demonstrations, we follow a strict sim-to-real protocol. The policy is trained on a single \textbf{one-shot} V-Dreamer trajectory in simulation, generated for a simple scene with a block, a bowl, and a table, and then transferred to the real world in a \textbf{zero-shot} manner.
+
+
+We adopt a minimalist zero-shot sim-to-real setup for physical deployment. For low-cost domain alignment, we use the Piper URDF from Robot-Twin, refine joint limits, render the simulated arm links (except the base) in black, and apply black tape to the corresponding real links within the camera view to reduce robot-body appearance mismatch. The policy runs closed-loop using observations from an Orbbec DaBai RGB-D camera, while we intentionally feed only the raw RGB image as $O_t$ and discard depth and extra calibration to test robustness. The full pipeline is illustrated in Figure~\ref{fig:real_vis}. 
+
+\begin{table}[htbp]
+\begin{threeparttable}
+% \setlength{\tabcolsep}{5pt}
+\centering
+\caption{One-Shot Sim-to-Real Robustness Evaluation}
+\label{tab:real_world_robustness}
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\centering
+\textbf{Perturbation Type} & \textbf{Real-World Setup} & \textbf{SR} \\ \midrule
+% Baseline & Clean setup with original block and bowl & 100\% \\ % 如果你有基准成功率，可以把这行开头的 % 删掉
+Visual Distractors & Unmodeled background clutter in FOV & 50\% \\
+Object Generalization & Apple, tape, mango, pear, bottle & 20\% \\
+Spatial Perturbation & Shifted initial object and goal positions & 15\% \\
+Sensor Occlusion & Blocked Orbbec DaBai camera view & 0\% \\ \bottomrule
+\end{tabular}
+
+\begin{tablenotes}
+\item All tests used a policy trained on a single synthetic trajectory. The 0\% success rate under occlusion confirms reliance on closed-loop visual feedback rather than open-loop playback.
+\end{tablenotes}
+
+\end{threeparttable}
+    \vspace{-1em}
+\end{table}
+
+We evaluate four perturbation conditions on a one-shot policy trained using a single V-Dreamer-synthesized trajectory, focusing on Success Rate (SR). As shown in Table~\ref{tab:real_world_robustness}, the conditions include: visual distractors on the table (50\% success), out-of-distribution target objects such as apple, tape roll, mango, pear, and bottle (20\% success), spatial perturbations of both target and receptacle poses (15\% success), and camera occlusion during execution (0\% success). The occlusion result confirms true closed-loop visual servoing rather than open-loop trajectory replay, while the other conditions highlight non-trivial robustness and limited generalization under extreme one-shot supervision.
+
+These real-world results primarily validate \textbf{V-Dreamer} as a data synthesis engine, rather than an algorithmic tweak aimed at maximizing task accuracy. Under a strict zero-shot sim-to-real protocol, a policy trained on a \emph{single} V-Dreamer-synthesized demonstration can execute meaningful behaviors on physical hardware. This indicates that the generated trajectories are physically grounded, kinematically feasible, and directly usable for control, providing direct evidence for \textbf{Q3}. V-Dreamer distills generative video priors into executable demonstrations, bridging the reality gap even in an extreme low-data regime.
+
+
+
+
+
+% \subsection{Ablation: Impact of Visual Domain Randomization}
+% To isolate the contribution of our \textit{Instruction-Based Texture Stylization} (Module III), we conducted a targeted qualitative ablation study. Preliminary deployments indicate that structurally augmenting the initial frames with randomized generative textures (e.g., instructing the VLM to add ``stripes'' or alter material specularity) acts as a powerful form of visual domain randomization. Policies trained with these stylized video priors are significantly less prone to overfitting to specific color distributions, thereby exhibiting enhanced perceptual robustness against real-world background clutter and lighting noise.

@@ -1,0 +1,129 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%2345678901234567890123456789012345678901234567890123456789012345678901234567890
+%        1         2         3         4         5         6         7         8
+
+\documentclass[letterpaper, 10 pt, conference]{ieeeconf}  % Comment this line out if you need a4paper
+
+%\documentclass[a4paper, 10pt, conference]{ieeeconf}      % Use this line for a4 paper
+
+\IEEEoverridecommandlockouts                              % This command is only needed if 
+                                                          % you want to use the \thanks command
+
+\overrideIEEEmargins                                      % Needed to meet printer requirements.
+
+%In case you encounter the following error:
+%Error 1010 The PDF file may be corrupt (unable to open PDF file) OR
+%Error 1000 An error occurred while parsing a contents stream. Unable to analyze the PDF file.
+%This is a known problem with pdfLaTeX conversion filter. The file cannot be opened with acrobat reader
+%Please use one of the alternatives below to circumvent this error by uncommenting one or the other
+%\pdfobjcompresslevel=0
+%\pdfminorversion=4
+
+% See the \addtolength command later in the file to balance the column lengths
+% on the last page of the document
+
+% The following packages can be found on http:\\www.ctan.org
+\usepackage{graphicx} % for pdf, bitmapped graphics files
+\usepackage{epsfig} % for postscript graphics files
+\usepackage{mathptmx} % assumes new font selection scheme installed
+\usepackage{times} % assumes new font selection scheme installed
+\usepackage{amsmath} % assumes amsmath package installed
+\usepackage{amssymb}  % assumes amsmath package installed
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{threeparttable}
+
+\usepackage{pifont}  
+\usepackage{capt-of}
+
+
+\title{\LARGE \bf
+V-Dreamer: Automating Robotic Simulation and Trajectory Synthesis via Video Generation Priors
+}
+
+\author{Songjia He$^{1*}$, Zixuan Chen$^{1*}$, Hongyu Ding$^{1}$, Dian Shao$^{2}$, Jieqi Shi$^{1}$, Chenxu Li$^{1}$, Jing Huo$^{1}$, Yang Gao$^{1}$% <-this % stops a space
+\thanks{$^{*}$These authors contributed equally to this work.}%
+\thanks{$^{1}$Nanjing University.}%
+\thanks{$^{2}$Northwestern Polytechnical University.}%
+}
+\makeatletter
+\let\@oldmaketitle\@maketitle
+\renewcommand{\@maketitle}{%
+    \@oldmaketitle
+    \centering
+    \setcounter{figure}{0}
+    \includegraphics[width=\linewidth]{figs/teaserv2.pdf}
+    \captionof{figure}{We propose \textbf{V-Dreamer}, a fully automated full-cycle pipeline for instruction-driven, open-vocabulary robotic manipulation data synthesis. Given a natural language instruction (optionally with a real-scene photo), V-Dreamer generates a simulation-ready scene and an executable expert trajectory, which are then used to train a policy that can zero-shot generalize to unseen objects in simulation and transfer zero-shot to real robotic hardware.}
+    \label{fig:teaser}
+}
+\makeatother
+
+
+% \author{Albert Author$^{1}$ and Bernard D. Researcher$^{2}$% <-this % stops a space
+% \thanks{*This work was not supported by any organization}% <-this % stops a space
+% \thanks{$^{1}$Albert Author is with Faculty of Electrical Engineering, Mathematics and Computer Science,
+%         University of Twente, 7500 AE Enschede, The Netherlands
+%         {\tt\small albert.author@papercept.net}}%
+% \thanks{$^{2}$Bernard D. Researcheris with the Department of Electrical Engineering, Wright State University,
+%         Dayton, OH 45435, USA
+%         {\tt\small b.d.researcher@ieee.org}}%
+% }
+
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{section/1_abs}
+\input{section/2_intro}
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=\linewidth]{figs/v-dreamer-pipeline2.pdf}
+    \caption{\textbf{Overview of the V-Dreamer Pipeline.}
+ The framework consists of three integrated stages: (1) Semantic-to-Physics Scene Synthesis. An LLM-based semantic planner decomposes prompts into asset manifests, which are then transformed into 3D meshes via generative visual synthesis and memory-efficient reconstruction before being assembled into a physics-validated layout. (2) Video-Prior-Based Trajectory Generation. Using the stabilized scene as a prior, we employ video foundation models with targeted negative prompting to dream up physically plausible manipulation motions. (3) Sim-to-Gen Alignment. Actionable 3D trajectories are extracted from the 2D pixel domain through mask-restricted tracking, metric depth estimation, and 3D motion lifting, ultimately mapping visual dreams into executable robot end-effector poses.}
+    \label{fig:pipeline}
+    \vspace{-1em}
+\end{figure*}
+\input{section/3_related}
+
+\input{section/4_method}
+
+
+\input{section/5_exp}
+\input{section/6_conclusion}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section*{APPENDIX}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \section*{APPENDIX}
+
+% Appendixes should appear before the acknowledgment.
+
+% \section*{ACKNOWLEDGMENT}
+
+% The preferred spelling of the word ÒacknowledgmentÓ in America is without an ÒeÓ after the ÒgÓ. Avoid the stilted expression, ÒOne of us (R. B. G.) thanks . . .Ó  Instead, try ÒR. B. G. thanksÓ. Put sponsor acknowledgments in the unnumbered footnote on the first page.
+
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% References are important to the reader; therefore, each citation must be complete and correct. If at all possible, references should be commonly available publications.
+
+
+
+{\small
+\bibliographystyle{IEEEtran}
+\bibliography{reference}
+}
+
+
+\end{document}
