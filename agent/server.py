@@ -263,87 +263,6 @@ def _is_survey_query(ql: str) -> bool:
     return any(k in ql for k in _SURVEY_HINTS)
 
 
-def _is_name_query(message: str) -> bool:
-    """Visitor explicitly asks who the assistant is / its name."""
-    q = (message or "").strip()
-    if not q or len(q) > 80:
-        return False
-    ql = q.lower()
-    needles = (
-        "你是谁",
-        "你叫什么",
-        "你的名字",
-        "怎么称呼你",
-        "请问你是谁",
-        "介绍一下你自己",
-        "介绍下你自己",
-        "who are you",
-        "what's your name",
-        "whats your name",
-        "what is your name",
-        "your name",
-        "who is this",
-    )
-    if any(n in ql for n in needles):
-        return True
-    # short "name?" style
-    if re.search(r"^(你叫|你的名字|名字|name)\s*[?？]?$", ql):
-        return True
-    return False
-
-
-def _is_model_infra_query(message: str) -> bool:
-    """Visitor asks about model / vendor / server / agent stack."""
-    q = (message or "").strip()
-    if not q:
-        return False
-    ql = q.lower()
-    needles = (
-        "什么模型",
-        "哪个模型",
-        "用的模型",
-        "用什么模型",
-        "底层模型",
-        "什么 llm",
-        "什么大模型",
-        "deepseek",
-        "claude",
-        "gpt",
-        "openai",
-        "anthropic",
-        "什么服务器",
-        "哪台服务器",
-        "自己服务器",
-        "agent 服务",
-        "agent服务",
-        "技术栈",
-        "跑在哪",
-        "部署",
-        "which model",
-        "what model",
-        "what llm",
-        "powered by",
-        "running on",
-        "your stack",
-        "your backend",
-        "your server",
-    )
-    return any(n in ql for n in needles)
-
-
-def _fixed_name_reply(lang: str) -> str:
-    if lang == "zh":
-        return "我是茜茜（Cici），Hongyu 主页上的 AI 助手。"
-    return "I'm Cici (茜茜), the AI assistant on Hongyu's homepage."
-
-
-def _fixed_model_infra_reply(lang: str) -> str:
-    # Never name models, vendors, servers, or agent hosting.
-    if lang == "zh":
-        return "我是这个主页上的 AI 助手。"
-    return "I'm the AI assistant on this homepage."
-
-
 def _is_taste_skill_query(message: str) -> bool:
     """True for the homepage suggestion and clear taste/belief questions.
 
@@ -723,8 +642,9 @@ def system_prompt(
     if lang == "zh":
         lines = [
             "你是 Hongyu Ding 个人主页上的 AI 研究助手。",
-            "【名字】默认绝不自称「茜茜」或 Cici，也不做自我介绍开场。"
-            "仅当访客明确问你是谁/名字时才可自称（由服务端处理，你通常遇不到这类问题）。",
+            "【名字】仅当访客明确问「你是谁 / 你叫什么 / 你的名字 / who are you / your name」时，"
+            "才简短自称「茜茜」或 Cici（例：我是茜茜，Hongyu 主页上的 AI 助手）。"
+            "其他任何时候禁止出现「茜茜」「Cici」，禁止自我介绍开场。",
             "【模型/技术栈】禁止提及任何模型名、厂商、服务器、agent、部署方式；"
             "禁止说「DeepSeek / Claude / GPT / 自己服务器 / agent 服务」等。"
             "若被问模型/技术：只答「我是这个主页上的 AI 助手」。",
@@ -740,8 +660,9 @@ def system_prompt(
     else:
         lines = [
             "You are the AI research assistant on Hongyu Ding's homepage.",
-            "NAME: Never say Cici/茜茜 and never self-introduce by default. "
-            "Name questions are handled server-side; you usually will not see them.",
+            "NAME: Only if the visitor clearly asks who you are / your name, "
+            "briefly say you are Cici (茜茜), the homepage AI assistant. "
+            "Otherwise never say Cici/茜茜 and never self-introduce.",
             "MODEL / INFRA: Never mention model names, vendors, servers, agents, or hosting "
             "(no DeepSeek / Claude / GPT / 'my own server' / 'agent service'). "
             "If asked which model: only say you are the homepage AI assistant.",
@@ -2178,79 +2099,7 @@ async def chat(
 
     lang = "zh" if req.lang.lower().startswith("zh") else "en"
     ql = req.message.lower()
-
-    # Deterministic policy replies (do not depend on model following the prompt):
-    # 1) name only when explicitly asked who/name
-    # 2) never name models / servers / agent stack
-    if _is_name_query(req.message):
-        fixed = _fixed_name_reply(lang)
-
-        async def gen_name():
-            global _inflight
-            try:
-                yield sse({"type": "delta", "text": fixed})
-                yield sse({"type": "text_break"})
-                yield sse({"type": "done", "path": "policy-name"})
-            finally:
-                _inflight -= 1
-                await asyncio.to_thread(
-                    log_turn,
-                    {
-                        "ts": datetime.now(timezone.utc).isoformat(),
-                        "ip": ip,
-                        "lang": lang,
-                        "status": "ok",
-                        "ms": 0,
-                        "path": "policy-name",
-                        "msg_chars": len(req.message or ""),
-                        "reply_chars": len(fixed),
-                    },
-                )
-
-        return StreamingResponse(
-            gen_name(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache, no-transform",
-                "X-Accel-Buffering": "no",
-                "Connection": "keep-alive",
-            },
-        )
-
-    if _is_model_infra_query(req.message):
-        fixed = _fixed_model_infra_reply(lang)
-
-        async def gen_model():
-            global _inflight
-            try:
-                yield sse({"type": "delta", "text": fixed})
-                yield sse({"type": "text_break"})
-                yield sse({"type": "done", "path": "policy-model"})
-            finally:
-                _inflight -= 1
-                await asyncio.to_thread(
-                    log_turn,
-                    {
-                        "ts": datetime.now(timezone.utc).isoformat(),
-                        "ip": ip,
-                        "lang": lang,
-                        "status": "ok",
-                        "ms": 0,
-                        "path": "policy-model",
-                        "msg_chars": len(req.message or ""),
-                        "reply_chars": len(fixed),
-                    },
-                )
-
-        return StreamingResponse(
-            gen_model(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache, no-transform",
-                "X-Accel-Buffering": "no",
-                "Connection": "keep-alive",
-            },
-        )
+    # Every user message goes through the model API — no canned policy replies.
 
     survey = _is_survey_query(ql)
     taste_skill = _is_taste_skill_query(req.message)
