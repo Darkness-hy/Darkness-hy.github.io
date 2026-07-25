@@ -542,9 +542,13 @@
 
   function startDrain() {
     stopDrain();
+    // Keep up with real token SSE: catch up quickly when behind, still smooth.
     drainTimer = setInterval(() => {
       if (shownLen < fullText.length) {
-        const step = Math.min(3, fullText.length - shownLen);
+        const lag = fullText.length - shownLen;
+        // If far behind (network burst), jump closer so it feels live
+        const step =
+          lag > 80 ? Math.min(lag, 48) : lag > 24 ? 8 : Math.min(4, lag);
         shownLen += step;
         state.streamShown = fullText.slice(0, shownLen);
         render();
@@ -552,7 +556,7 @@
         stopDrain();
         finishStream();
       }
-    }, 30);
+    }, 16);
   }
 
   /** Commit current streamed assistant text as its own bubble (between tools / at end). */
@@ -697,11 +701,11 @@
     }
 
     const urlMatch = arg.match(/https?:\/\/[^\s)'"]+/i);
-    if (urlMatch) arg = urlMatch[0];
-    if (arg && !/^https?:\/\//i.test(arg) && arg.length > 72) {
-      // keep readable tail for paths
-      const base = arg.split("/").filter(Boolean).pop() || arg;
-      arg = "…/" + base;
+    if (urlMatch) {
+      arg = urlMatch[0];
+    } else if (arg && arg.length > 64) {
+      // Search queries / long titles — not file paths (avoid "…/last word" bug)
+      arg = arg.slice(0, 48).trim() + "…";
     }
 
     return arg ? `${emoji} ${label} ${arg}` : `${emoji} ${label}`;

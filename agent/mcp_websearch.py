@@ -185,41 +185,64 @@ def arxiv_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     if not q:
         return []
     max_results = max(1, min(int(max_results or 5), 8))
-    terms = "+".join(q.split()[:10])
-    url = "http://export.arxiv.org/api/query?" + urllib.parse.urlencode(
-        {
-            "search_query": f"all:{terms}",
-            "start": 0,
-            "max_results": max_results,
-            "sortBy": "relevance",
-            "sortOrder": "descending",
-        }
-    )
-    try:
-        xml = _http_get(url, timeout=HTTP_TIMEOUT_S)
-    except Exception:
-        return []
-    entries = re.findall(r"<entry>(.*?)</entry>", xml, flags=re.S)
+    words = re.findall(r"[A-Za-z0-9\-]+", q)
+    # Paper-title style: try ti: first (more precise), then all:
+    queries: List[str] = []
+    if len(words) >= 4:
+        # quoted phrase of first ~8 tokens for title search
+        phrase = " ".join(words[:10])
+        queries.append(f'ti:"{phrase}"')
+        queries.append("ti:" + "+AND+ti:".join(words[:6]))
+    terms = "+".join(words[:10]) if words else q.replace(" ", "+")
+    queries.append(f"all:{terms}")
+    # unique preserve order
+    seen_q: set = set()
     out: List[Dict[str, str]] = []
-    for ent in entries[:max_results]:
-        title_m = re.search(r"<title>([^<]+)</title>", ent)
-        id_m = re.search(r"<id>(https?://arxiv\.org/abs/[^<]+)</id>", ent)
-        sum_m = re.search(r"<summary>([^<]+)</summary>", ent)
-        year_m = re.search(r"<published>(\d{4})", ent)
-        if not title_m:
+    seen_ids: set = set()
+    for sq in queries:
+        if sq in seen_q:
             continue
-        title = unescape(re.sub(r"\s+", " ", title_m.group(1))).strip()
-        year = year_m.group(1) if year_m else ""
-        if year:
-            title = f"[{year}] {title}"
-        out.append(
+        seen_q.add(sq)
+        url = "http://export.arxiv.org/api/query?" + urllib.parse.urlencode(
             {
-                "title": title,
-                "url": id_m.group(1) if id_m else "",
-                "snippet": _clean_snippet(sum_m.group(1) if sum_m else "", 420),
-                "source": "arxiv",
+                "search_query": sq,
+                "start": 0,
+                "max_results": max_results,
+                "sortBy": "relevance",
+                "sortOrder": "descending",
             }
         )
+        try:
+            xml = _http_get(url, timeout=HTTP_TIMEOUT_S)
+        except Exception:
+            continue
+        entries = re.findall(r"<entry>(.*?)</entry>", xml, flags=re.S)
+        for ent in entries:
+            title_m = re.search(r"<title>([^<]+)</title>", ent)
+            id_m = re.search(r"<id>(https?://arxiv\.org/abs/[^<]+)</id>", ent)
+            sum_m = re.search(r"<summary>([^<]+)</summary>", ent)
+            year_m = re.search(r"<published>(\d{4})", ent)
+            if not title_m:
+                continue
+            abs_id = id_m.group(1) if id_m else ""
+            if abs_id and abs_id in seen_ids:
+                continue
+            if abs_id:
+                seen_ids.add(abs_id)
+            title = unescape(re.sub(r"\s+", " ", title_m.group(1))).strip()
+            year = year_m.group(1) if year_m else ""
+            if year:
+                title = f"[{year}] {title}"
+            out.append(
+                {
+                    "title": title,
+                    "url": abs_id,
+                    "snippet": _clean_snippet(sum_m.group(1) if sum_m else "", 420),
+                    "source": "arxiv",
+                }
+            )
+            if len(out) >= max_results:
+                return out
     return out
 
 

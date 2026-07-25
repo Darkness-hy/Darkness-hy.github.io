@@ -1571,11 +1571,43 @@ _HTTP_TOOLS: List[dict] = [
         },
     },
 ]
-HTTP_TOOL_ROUNDS = int(os.environ.get("AGENT_HTTP_TOOL_ROUNDS", "4"))
+HTTP_TOOL_ROUNDS = int(os.environ.get("AGENT_HTTP_TOOL_ROUNDS", "3"))
 
 
-def _exec_http_tool(name: str, arguments: str) -> Tuple[str, str, str]:
-    """Run web_search / web_fetch. Returns (ui_call_line, ui_result_line, tool_content)."""
+def _search_relevance(query: str, title: str) -> int:
+    """Rough overlap score between query and a result title (higher = better)."""
+    q_toks = set(re.findall(r"[A-Za-z0-9]{3,}", (query or "").lower()))
+    # Drop ultra-common stop-ish tokens
+    stop = {
+        "the",
+        "and",
+        "for",
+        "via",
+        "with",
+        "from",
+        "into",
+        "using",
+        "learning",
+        "robust",
+        "paper",
+        "arxiv",
+        "robot",
+        "robotic",
+        "robots",
+    }
+    q_toks = {t for t in q_toks if t not in stop}
+    if not q_toks:
+        return 0
+    t = (title or "").lower()
+    return sum(1 for tok in q_toks if tok in t)
+
+
+def _exec_http_tool(name: str, arguments: str) -> Tuple[str, str, str, int]:
+    """Run web_search / web_fetch.
+
+    Returns (ui_call_line, ui_result_line, tool_content, hit_count).
+    hit_count is *relevant* search hits (0 for fetch/error/unrelated noise).
+    """
     try:
         args = json.loads(arguments or "{}")
         if not isinstance(args, dict):
@@ -1593,19 +1625,51 @@ def _exec_http_tool(name: str, arguments: str) -> Tuple[str, str, str]:
 
             hits = multi_search(q, max_results=n) if q else []
         except Exception as e:
-            hits = []
             content = json.dumps({"error": str(e)[:200]}, ensure_ascii=False)
-            return call, "⎿  search error", content
+            return call, "⎿  search error", content, 0
         ok = [h for h in hits if h.get("title") != "search_empty"]
+        # Keep only titles that share distinctive tokens with the query
+        # (avoids "6 unrelated papers" looking like a successful find)
+        scored = []
+        for h in ok:
+            sc = _search_relevance(q, str(h.get("title") or ""))
+            scored.append((sc, h))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        # Threshold: need at least 2 distinctive token hits for long queries
+        q_len = len(re.findall(r"[A-Za-z0-9]{3,}", q))
+        min_score = 3 if q_len >= 6 else 2 if q_len >= 3 else 1
+        relevant = [h for sc, h in scored if sc >= min_score]
         lines = []
-        for h in ok[:8]:
+        for h in (relevant or ok)[:8]:
             lines.append(
                 f"- [{h.get('source')}] {h.get('title')}\n  {h.get('url')}\n  {h.get('snippet') or ''}"
             )
-        content = "\n".join(lines) if lines else "No results."
-        titles = " · ".join((h.get("title") or "")[:40] for h in ok[:3])
-        result = f"⎿  {len(ok)} results" + (f" · {titles}" if titles else "")
-        return call, result[:400], content
+        if not ok:
+            content = (
+                "No results found in Wikipedia/arXiv/OpenAlex/Crossref. "
+                "The paper may be unpublished, mis-titled, or not yet indexed. "
+                "Do NOT invent details. Ask for arXiv ID or URL."
+            )
+            return call, "⎿  0 results (not indexed)", content, 0
+        if not relevant:
+            content = (
+                "Search returned items, but NONE match the query title closely "
+                f"(query={q!r}). Treat as NOT FOUND. Do not attribute unrelated papers "
+                "to this name. Stop searching after one more focused try at most; "
+                "then ask for arXiv id/URL.\n\nTop unrelated hits:\n"
+                + "\n".join(lines[:4])
+            )
+            titles = " · ".join((h.get("title") or "")[:36] for h in ok[:2])
+            return (
+                call,
+                f"⎿  0 relevant (noise: {titles})"[:400],
+                content,
+                0,
+            )
+        content = "\n".join(lines)
+        titles = " · ".join((h.get("title") or "")[:40] for h in relevant[:3])
+        result = f"⎿  {len(relevant)} results" + (f" · {titles}" if titles else "")
+        return call, result[:400], content, len(relevant)
 
     if short in ("web_fetch", "WebFetch"):
         url = str(args.get("url") or "").strip()
@@ -1620,20 +1684,114 @@ def _exec_http_tool(name: str, arguments: str) -> Tuple[str, str, str]:
         if payload.get("ok"):
             text = str(payload.get("text") or "")
             result = f"⎿  {payload.get('status', '')} · {len(text)} chars"
-            content = text[:12000]
-        else:
-            result = f"⎿  error · {payload.get('error', '')}"[:200]
-            content = json.dumps(payload, ensure_ascii=False)
-        return call, result, content
+            return call, result, text[:12000], 1
+        result = f"⎿  error · {payload.get('error', '')}"[:200]
+        return call, result, json.dumps(payload, ensure_ascii=False), 0
 
-    return f"{short}()", "⎿  unknown tool", json.dumps({"error": f"unknown tool {name}"})
+    return (
+        f"{short}()",
+        "⎿  unknown tool",
+        json.dumps({"error": f"unknown tool {name}"}),
+        0,
+    )
+
+
+async def _stream_openai_round(
+    client: httpx.AsyncClient,
+    url: str,
+    headers: dict,
+    payload: dict,
+    *,
+    thinking_on: bool,
+) -> AsyncIterator[Tuple[str, Any]]:
+    """Stream one chat.completions round. Yields ('delta'|'thinking'|'tool_calls'|'error', value)."""
+    payload = {**payload, "stream": True}
+    content_parts: List[str] = []
+    # tool_calls assembled by index from streaming deltas
+    tc_acc: Dict[int, dict] = {}
+    finish_reason: Optional[str] = None
+
+    async with client.stream("POST", url, headers=headers, json=payload) as resp:
+        if resp.status_code >= 400:
+            detail = (await resp.aread()).decode("utf-8", "replace")[:1000]
+            logger.error("http stream error %s: %s", resp.status_code, detail)
+            yield "error", "助理暂时不可用,请稍后再试"
+            return
+        async for line in resp.aiter_lines():
+            line = (line or "").strip()
+            if not line or line.startswith(":") or not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                continue
+            choices = msg.get("choices") or []
+            if not choices:
+                continue
+            ch0 = choices[0]
+            fr = ch0.get("finish_reason")
+            if fr:
+                finish_reason = fr
+            delta = ch0.get("delta") or {}
+            if thinking_on:
+                for key in ("reasoning_content", "reasoning", "thinking"):
+                    r = delta.get(key)
+                    if isinstance(r, str) and r:
+                        yield "thinking", r
+            text = delta.get("content")
+            if isinstance(text, str) and text:
+                content_parts.append(text)
+                yield "delta", text
+            # Streaming tool_calls (OpenAI style)
+            for tc in delta.get("tool_calls") or []:
+                if not isinstance(tc, dict):
+                    continue
+                idx = int(tc.get("index") or 0)
+                slot = tc_acc.setdefault(
+                    idx,
+                    {
+                        "id": "",
+                        "type": "function",
+                        "function": {"name": "", "arguments": ""},
+                    },
+                )
+                if tc.get("id"):
+                    slot["id"] = tc["id"]
+                if tc.get("type"):
+                    slot["type"] = tc["type"]
+                fn = tc.get("function") or {}
+                if fn.get("name"):
+                    slot["function"]["name"] = (
+                        slot["function"].get("name") or ""
+                    ) + str(fn.get("name") or "")
+                if fn.get("arguments"):
+                    slot["function"]["arguments"] = (
+                        slot["function"].get("arguments") or ""
+                    ) + str(fn.get("arguments") or "")
+
+    tool_calls = [tc_acc[i] for i in sorted(tc_acc.keys())] if tc_acc else []
+    # Drop empty tool shells
+    tool_calls = [
+        t
+        for t in tool_calls
+        if (t.get("function") or {}).get("name")
+        or (t.get("function") or {}).get("arguments")
+    ]
+    yield "round_done", {
+        "content": "".join(content_parts),
+        "tool_calls": tool_calls,
+        "finish_reason": finish_reason,
+    }
 
 
 async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, str]]:
-    """Direct DeepSeek OpenAI-compatible path with tool loop (no Claude Code spawn).
+    """DeepSeek HTTP path with true token streaming + tool loop (no CC cold start).
 
-    Emits intermediate assistant text (delta + text_break) and every tool_call /
-    tool_result so the UI can show the full CC-like timeline.
+    Every intermediate text token is yielded as delta; tool_call / tool_result are
+    emitted between segments with text_break so the UI builds a CC-like timeline.
     """
     if not DEEPSEEK_KEY:
         yield sse({"type": "error", "message": "助理服务缺少模型 API Key"}), ""
@@ -1644,8 +1802,13 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
         yield frame, ""
 
     thinking_on = THINKING not in ("0", "false", "no", "off", "disabled", "")
+    # Nudge: stop thrashing empty searches; stream answers; open literature OK
+    sys_extra = (
+        "\nWhen web_search returns 0 relevant hits twice, stop searching and say so briefly "
+        "(ask for arXiv id/URL). Do not invent paper claims. Prefer 1–2 focused searches."
+    )
     messages: List[dict] = [
-        {"role": "system", "content": sys_prompt},
+        {"role": "system", "content": sys_prompt + sys_extra},
         {"role": "user", "content": prompt},
     ]
     url = f"{OPENAI_BASE_URL}/chat/completions"
@@ -1656,6 +1819,7 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
     }
     got_text = False
     open_text_segment = False
+    empty_search_streak = 0
 
     def _close_text_segment() -> Optional[str]:
         nonlocal open_text_segment
@@ -1667,96 +1831,92 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             for round_i in range(max(1, HTTP_TOOL_ROUNDS)):
+                force_final = empty_search_streak >= 2 or round_i == HTTP_TOOL_ROUNDS - 1
                 payload: dict = {
                     "model": MODEL,
                     "messages": messages,
-                    "stream": False,
                     "temperature": TEMPERATURE,
-                    "tools": _HTTP_TOOLS,
-                    "tool_choice": "auto",
                 }
+                if not force_final:
+                    payload["tools"] = _HTTP_TOOLS
+                    payload["tool_choice"] = "auto"
                 if thinking_on:
                     payload["thinking"] = {"type": "enabled"}
                 else:
                     payload["thinking"] = {"type": "disabled"}
+                if force_final:
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                "Give a short final answer NOW as plain text only. "
+                                "Do not emit tool XML/tags. If the paper was not found in indexes, "
+                                "say so and ask for an arXiv id or URL."
+                            ),
+                        }
+                    )
 
-                resp = await client.post(url, headers=headers, json=payload)
-                if resp.status_code >= 400:
-                    detail = resp.text[:1000]
-                    logger.error("http chat error %s: %s", resp.status_code, detail)
-                    yield sse({"type": "error", "message": "助理暂时不可用,请稍后再试"}), ""
-                    return
-
-                data = resp.json()
-                choices = data.get("choices") or []
-                if not choices:
-                    yield sse({"type": "error", "message": "助理暂时没有返回内容,请重试"}), ""
-                    return
-                msg = choices[0].get("message") or {}
-                # Reasoning / intermediate thinking (if any)
-                for key in ("reasoning_content", "reasoning", "thinking"):
-                    r = msg.get(key)
-                    if isinstance(r, str) and r.strip() and thinking_on:
-                        frame, _ = _proc("thinking", r)
+                content = ""
+                tool_calls: List[dict] = []
+                async for kind, val in _stream_openai_round(
+                    client, url, headers, payload, thinking_on=thinking_on
+                ):
+                    if kind == "error":
+                        yield sse({"type": "error", "message": str(val)}), ""
+                        return
+                    if kind == "thinking":
+                        frame, _ = _proc("thinking", str(val))
                         if frame:
                             yield frame, ""
+                    elif kind == "delta":
+                        text = str(val)
+                        if text:
+                            got_text = True
+                            open_text_segment = True
+                            yield sse({"type": "delta", "text": text}), text
+                    elif kind == "round_done":
+                        content = str((val or {}).get("content") or "")
+                        tool_calls = list((val or {}).get("tool_calls") or [])
 
-                content = msg.get("content")
-                if isinstance(content, str) and content.strip():
-                    # Intermediate or final assistant text — always surface
-                    br = _close_text_segment()
-                    if br:
-                        yield br, ""
-                    # chunk for smoother UI drain
-                    text = content
-                    chunk = 48
-                    for i in range(0, len(text), chunk):
-                        part = text[i : i + chunk]
-                        got_text = True
-                        open_text_segment = True
-                        yield sse({"type": "delta", "text": part}), part
-
-                tool_calls = msg.get("tool_calls") or []
-                if not tool_calls:
+                if not tool_calls or force_final:
                     br = _close_text_segment()
                     if br:
                         yield br, ""
                     break
 
-                # Close text bubble before tool bubbles
+                # Tool phase: close text bubble first
                 br = _close_text_segment()
                 if br:
                     yield br, ""
 
-                # Assistant message with tool_calls must be appended as-is
                 messages.append(
                     {
                         "role": "assistant",
-                        "content": content if isinstance(content, str) else None,
+                        "content": content if content else None,
                         "tool_calls": tool_calls,
                     }
                 )
 
+                round_hits = 0
                 for tc in tool_calls:
                     if not isinstance(tc, dict):
                         continue
                     fn = tc.get("function") or {}
-                    name = str(fn.get("name") or tc.get("name") or "tool")
+                    name = str(fn.get("name") or "tool")
                     raw_args = fn.get("arguments") or "{}"
                     if not isinstance(raw_args, str):
                         raw_args = json.dumps(raw_args, ensure_ascii=False)
                     tid = str(tc.get("id") or "")
-                    call_line, result_line, tool_body = await asyncio.to_thread(
+                    call_line, result_line, tool_body, hits = await asyncio.to_thread(
                         _exec_http_tool, name, raw_args
                     )
-                    # UI: full call line + result summary (and body in tool_result text tail)
+                    round_hits += hits
                     frame, _ = _tool_msg("tool_call", name, call_line)
                     if frame:
                         yield frame, ""
-                    # Include a short preview of tool body so UI can show "内容"
-                    preview = re.sub(r"\s+", " ", tool_body)[:180]
+                    preview = re.sub(r"\s+", " ", tool_body)[:160]
                     result_ui = result_line
-                    if preview and "error" not in result_line.lower():
+                    if preview and "0 results" not in result_line:
                         result_ui = f"{result_line}\n{preview}"
                     frame, _ = _tool_msg(
                         "tool_result",
@@ -1766,7 +1926,6 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
                     )
                     if frame:
                         yield frame, ""
-
                     messages.append(
                         {
                             "role": "tool",
@@ -1774,31 +1933,11 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
                             "content": tool_body[:12000],
                         }
                     )
-            else:
-                # exhausted rounds — ask once more without tools for a final answer
-                payload = {
-                    "model": MODEL,
-                    "messages": messages
-                    + [
-                        {
-                            "role": "user",
-                            "content": "Please give a short final answer now without more tools.",
-                        }
-                    ],
-                    "stream": False,
-                    "temperature": TEMPERATURE,
-                }
-                resp = await client.post(url, headers=headers, json=payload)
-                if resp.status_code < 400:
-                    msg = ((resp.json().get("choices") or [{}])[0].get("message") or {})
-                    content = msg.get("content") or ""
-                    if content:
-                        br = _close_text_segment()
-                        if br:
-                            yield br, ""
-                        got_text = True
-                        open_text_segment = True
-                        yield sse({"type": "delta", "text": content}), content
+
+                if round_hits == 0:
+                    empty_search_streak += 1
+                else:
+                    empty_search_streak = 0
 
         br = _close_text_segment()
         if br:
