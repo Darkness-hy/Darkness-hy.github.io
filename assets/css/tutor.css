@@ -160,67 +160,18 @@
   justify-content: flex-start;
 }
 
-/* Standalone tool bubbles (emoji card), not CC terminal chrome */
-.agent-bubble--tool {
-  max-width: 92%;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--color-line, #d9d2c5);
-  border-radius: 0.75rem;
-  background: var(--color-paper, #fffdf8);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-ink, #1c1915) 6%, transparent);
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
+/* Tool call: one short bubble — e.g. "🌐 WebSearch https://…" */
+.agent-bubble--tool,
 .agent-bubble--tool_call {
-  border-color: color-mix(in srgb, #5b8def 40%, var(--color-line, #d9d2c5));
-  background: color-mix(in srgb, var(--color-paper, #fffdf8) 82%, #dfeaff);
-}
-
-.agent-bubble--tool_result {
-  border-color: color-mix(in srgb, #3d9b6a 35%, var(--color-line, #d9d2c5));
-  background: color-mix(in srgb, var(--color-paper, #fffdf8) 85%, #dcf0e5);
-}
-
-.agent-bubble--tool-search.agent-bubble--tool_call {
-  border-color: color-mix(in srgb, #6b7cff 45%, var(--color-line, #d9d2c5));
-  background: color-mix(in srgb, var(--color-paper, #fffdf8) 80%, #e4e7ff);
-}
-
-.agent-bubble--tool-fetch.agent-bubble--tool_call {
-  border-color: color-mix(in srgb, #2a9d8f 40%, var(--color-line, #d9d2c5));
-  background: color-mix(in srgb, var(--color-paper, #fffdf8) 82%, #d8f3ef);
-}
-
-.agent-bubble--tool-read.agent-bubble--tool_call {
-  border-color: color-mix(in srgb, #c9a227 40%, var(--color-line, #d9d2c5));
-  background: color-mix(in srgb, var(--color-paper, #fffdf8) 82%, #f5ecd0);
-}
-
-.agent-tool__title {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
-  font-size: 0.84rem;
+  max-width: 92%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid color-mix(in srgb, #5b8def 35%, var(--color-line, #d9d2c5));
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-paper, #fffdf8) 85%, #e8f0ff);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--color-ink, #1c1915) 6%, transparent);
   color: var(--color-ink, #1c1915);
-}
-
-.agent-tool__emoji {
-  flex-shrink: 0;
-  font-size: 1.05rem;
-  line-height: 1;
-}
-
-.agent-tool__title-text {
-  min-width: 0;
-}
-
-.agent-tool__detail {
-  margin-top: 0.28rem;
-  padding-left: 1.45rem;
-  color: var(--color-muted, #6f675c);
-  font-size: 0.76rem;
+  font-size: 0.82rem;
+  font-weight: 500;
   line-height: 1.4;
   word-break: break-word;
 }

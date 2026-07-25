@@ -432,27 +432,16 @@
       }
 
       if (role === "tool_call" || role === "tool_result") {
-        // Independent tool bubble with emoji (not CC one-liner chrome)
-        const meta = toolBubbleMeta(turn.name || "", role, turn.content || "");
-        const bubble = document.createElement("div");
-        bubble.className = `agent-bubble agent-bubble--tool agent-bubble--${role} agent-bubble--tool-${meta.kind}`;
-        const title = document.createElement("div");
-        title.className = "agent-tool__title";
-        const emoji = document.createElement("span");
-        emoji.className = "agent-tool__emoji";
-        emoji.textContent = meta.emoji;
-        emoji.setAttribute("aria-hidden", "true");
-        const titleText = document.createElement("span");
-        titleText.className = "agent-tool__title-text";
-        titleText.textContent = meta.title;
-        title.append(emoji, titleText);
-        bubble.appendChild(title);
-        if (meta.detail) {
-          const detail = document.createElement("div");
-          detail.className = "agent-tool__detail";
-          detail.textContent = meta.detail;
-          bubble.appendChild(detail);
+        // Only show compact call bubbles: "🌐 WebFetch https://…"
+        // Skip result bubbles (content is for the model, not the visitor).
+        if (role === "tool_result") {
+          return;
         }
+        const line = formatToolCallLine(turn.name || "", turn.content || "");
+        if (!line) return;
+        const bubble = document.createElement("div");
+        bubble.className = "agent-bubble agent-bubble--tool agent-bubble--tool_call";
+        bubble.textContent = line;
         col.appendChild(bubble);
       } else {
         const bubble = document.createElement("div");
