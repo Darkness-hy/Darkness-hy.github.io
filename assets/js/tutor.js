@@ -257,17 +257,30 @@
 
   function pushProcess(kind, text) {
     if (!text) return;
+    // Drop noisy statuses — tool bubbles already show the useful bits
+    if (kind === "status") {
+      const t0 = String(text).trim();
+      if (
+        !t0 ||
+        /^requesting$/i.test(t0) ||
+        /^Claude Code/i.test(t0) ||
+        /^DeepSeek/i.test(t0) ||
+        /^tools=/i.test(t0)
+      ) {
+        return;
+      }
+    }
     const log = state.processLog;
     const last = log[log.length - 1];
-    // Merge consecutive same-kind deltas (thinking/tool streams)
-    if (last && last.kind === kind && (kind === "thinking" || kind === "tool")) {
+    // Merge consecutive same-kind deltas (thinking only; tools are separate bubbles)
+    if (last && last.kind === kind && kind === "thinking") {
       last.text = (last.text || "") + text;
-      // Cap runaway thinking dumps
-      if (last.text.length > 6000) last.text = last.text.slice(0, 6000) + "…";
-    } else {
-      log.push({ kind, text: String(text).slice(0, 4000) });
-      if (log.length > 40) log.splice(0, log.length - 40);
+      if (last.text.length > 2000) last.text = last.text.slice(0, 2000) + "…";
+    } else if (kind === "thinking") {
+      log.push({ kind, text: String(text).slice(0, 2000) });
+      if (log.length > 20) log.splice(0, log.length - 20);
     }
+    // tool/status intermediate process lines are suppressed (shown as tool bubbles)
   }
   // ── Widget state ────────────────────────────────────────────────────────
   const state = {
@@ -419,22 +432,32 @@
       }
 
       if (role === "tool_call" || role === "tool_result") {
+        // Compact Claude-Code style: one line, no full dump
+        // e.g.  ● WebFetch(https://…)
+        //       ⎿  200 · Title · 3k chars
         const bubble = document.createElement("div");
         bubble.className = `agent-bubble agent-bubble--tool agent-bubble--${role}`;
-        const head = document.createElement("div");
-        head.className = "agent-tool__head";
-        const tag = document.createElement("span");
-        tag.className = "agent-tool__tag";
-        tag.textContent =
-          role === "tool_call" ? t().toolCall : t().toolResult;
-        const name = document.createElement("span");
-        name.className = "agent-tool__name";
-        name.textContent = turn.name || "tool";
-        head.append(tag, name);
-        const body = document.createElement("pre");
-        body.className = "agent-tool__body";
-        body.textContent = turn.content || "";
-        bubble.append(head, body);
+        const line = document.createElement("div");
+        line.className = "agent-tool__line";
+        if (role === "tool_call") {
+          const mark = document.createElement("span");
+          mark.className = "agent-tool__mark";
+          mark.textContent = "●";
+          const label = document.createElement("span");
+          label.className = "agent-tool__label";
+          // content already formatted as Tool(arg) by server
+          label.textContent = turn.content || turn.name || "tool";
+          line.append(mark, label);
+        } else {
+          const mark = document.createElement("span");
+          mark.className = "agent-tool__mark agent-tool__mark--result";
+          mark.textContent = " ";
+          const label = document.createElement("span");
+          label.className = "agent-tool__label agent-tool__label--result";
+          label.textContent = turn.content || "⎿  done";
+          line.append(mark, label);
+        }
+        bubble.appendChild(line);
         col.appendChild(bubble);
       } else {
         const bubble = document.createElement("div");
@@ -457,17 +480,26 @@
       row.className = "agent-row agent-row--assistant";
       const col = document.createElement("div");
       col.className = "agent-col";
-      if (state.processLog.length) {
-        const proc = renderProcessBlock(state.processLog, { open: true, live: true });
+      // Process panel only for non-status noise (thinking); skip "requesting" spam
+      const usefulProc = state.processLog.filter(
+        (e) =>
+          e.kind === "thinking" ||
+          (e.kind === "tool" && e.text) ||
+          (e.kind === "status" &&
+            e.text &&
+            !/^requesting$/i.test(e.text) &&
+            !/^Claude Code/i.test(e.text) &&
+            !/^DeepSeek/i.test(e.text))
+      );
+      if (usefulProc.length) {
+        const proc = renderProcessBlock(usefulProc, { open: false, live: true });
         if (proc) col.appendChild(proc);
       }
       const bubble = document.createElement("div");
       bubble.className = "agent-bubble agent-bubble--assistant";
       bubble.innerHTML = state.streamShown
         ? simpleMarkdown(state.streamShown)
-        : state.liveToolTurns.length
-          ? '<span class="agent-typing" style="color:var(--color-muted)">…</span>'
-          : '<span class="agent-typing" style="color:var(--color-muted)">…</span>';
+        : '<span class="agent-typing" style="color:var(--color-muted)">…</span>';
       col.appendChild(bubble);
       row.appendChild(col);
       bodyEl.appendChild(row);

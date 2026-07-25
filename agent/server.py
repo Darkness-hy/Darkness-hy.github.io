@@ -71,7 +71,13 @@ CC_ADD_DIRS = [
     p.strip()
     for p in os.environ.get("AGENT_CC_ADD_DIRS", "").split(",")
     if p.strip()
-]# Claude Code talks to DeepSeek through Anthropic-compatible endpoint.
+]
+# Pre-fetch http(s) URLs from the user message into context (reliable vs model skipping tools).
+URL_PREFETCH = os.environ.get("AGENT_URL_PREFETCH", "1").lower() not in ("0", "false", "no", "")
+URL_PREFETCH_MAX = int(os.environ.get("AGENT_URL_PREFETCH_MAX", "3"))
+URL_PREFETCH_CHARS = int(os.environ.get("AGENT_URL_PREFETCH_CHARS", "8000"))
+
+# Claude Code talks to DeepSeek through Anthropic-compatible endpoint.
 DEEPSEEK_KEY = (
     os.environ.get("DEEPSEEK_API_KEY")
     or os.environ.get("TUTOR_API_KEY")
@@ -336,8 +342,9 @@ def _knowledge_map() -> str:
         lines.append(f"- {root_taste} — full insight/taste skill source (same family as taste.md)")
     lines.extend(paper_lines[:12])
     lines.append(
-        "Tools: Read/Glob/Grep for local files; web_search (MCP DuckDuckGo, free) and/or "
-        "WebSearch/WebFetch for public web facts. Do not use Bash/Edit. Do not invent paper results."
+        "Tools: Read/Glob/Grep for local files; web_search + web_fetch (MCP, free) and/or "
+        "WebSearch/WebFetch for public web. If a URL is in the question or in Fetched pages, use it. "
+        "Do not use Bash/Edit. Do not invent paper results."
     )
     return "\n".join(lines)
 
@@ -349,26 +356,125 @@ def system_prompt(lang: str, rag: str, extra_context: Optional[str]) -> str:
             "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到才说。",
             "专业、简洁、友好；每条最多 1 个 emoji。不编造论文结果/职位/联系方式；不确定就说不确定。",
             "先结论后展开；本轮用简体中文。",
-            "需要 taste/信念细节时 Read taste.md（或 HONGYU_INSIGHT_TASTE_SKILL.md）；"
-            "需要论文细节时 Read papers/<id>/INDEX.md 或对应 .tex；"
-            "需要公开网页/最新信息时优先用 MCP 工具 web_search（免费 DuckDuckGo），或 WebSearch/WebFetch。",
+            "【工具强制】用户给出 http(s) 链接时：必须用 WebFetch 或 MCP web_fetch 打开，禁止说自己没有浏览器；"
+            "若上下文已有 Fetched pages 段落，直接基于该内容回答。"
+            "需要 taste/信念细节时 Read taste.md；论文细节 Read papers/<id>/；"
+            "需要搜索时用 MCP web_search 或 WebSearch。不要只用本地文件拒绝联网请求。",
         ]
     else:
         lines = [
             "You are Cici (茜茜), the AI assistant on Hongyu Ding's homepage. Name yourself only if asked.",
             "Be clear, concise, friendly; at most one emoji. Never invent paper results, affiliations, awards, or contact info.",
             "Lead with the answer. Use English this turn.",
-            "For taste/beliefs: Read taste.md (or HONGYU_INSIGHT_TASTE_SKILL.md). "
-            "For paper details: Read papers/<arxiv-id>/INDEX.md or the TeX sources. "
-            "For public/web facts: prefer MCP tool web_search (DuckDuckGo, free) or WebSearch/WebFetch if available.",
+            "TOOL RULES: If the visitor gives an http(s) URL, you MUST use WebFetch or MCP web_fetch — never claim you lack a browser. "
+            "If context already contains a 'Fetched pages' section, answer from that content. "
+            "For taste/beliefs: Read taste.md. For papers: Read papers/<arxiv-id>/. "
+            "For open-web search: use MCP web_search (or WebSearch). Do not refuse web questions by saying you only read local files.",
         ]
     lines.append(_knowledge_map())
     if rag:
         # Short extracts as hints; tools should load full sources when needed.
         lines.append("Hint excerpts (may be truncated; prefer Read for full text):\n" + rag)
     if extra_context:
-        lines.append("Page context:\n" + extra_context[:2000])
+        lines.append(extra_context[: (URL_PREFETCH_CHARS * URL_PREFETCH_MAX + 2000)])
     return "\n".join(lines)
+
+
+_URL_RE = re.compile(r"https?://[^\s<>\"')\]]+", re.I)
+
+
+def extract_urls(text: str, limit: int = 3) -> List[str]:
+    found: List[str] = []
+    for m in _URL_RE.finditer(text or ""):
+        u = m.group(0).rstrip(".,;:!?")
+        if u not in found:
+            found.append(u)
+        if len(found) >= limit:
+            break
+    return found
+
+
+def _html_to_text(html: str) -> str:
+    # drop scripts/styles
+    html = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", html)
+    html = re.sub(r"(?is)<!--.*?-->", " ", html)
+    # titles/headings keep some structure
+    html = re.sub(r"(?is)<title[^>]*>(.*?)</title>", r"\n# \1\n", html)
+    html = re.sub(r"(?is)<h[1-3][^>]*>(.*?)</h[1-3]>", r"\n## \1\n", html)
+    html = re.sub(r"(?is)<(br|p|div|li|tr)[^>]*>", "\n", html)
+    text = re.sub(r"(?is)<[^>]+>", " ", html)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+async def prefetch_urls(message: str) -> Tuple[str, List[dict]]:
+    """Server-side fetch of URLs in the user message.
+
+    Returns (full_text_for_model, ui_items) where ui_items are compact
+    Claude-Code-style tool call/result summaries for the chat UI.
+    """
+    if not URL_PREFETCH:
+        return "", []
+    urls = extract_urls(message, URL_PREFETCH_MAX)
+    if not urls:
+        return "", []
+    blocks: List[str] = ["# Fetched pages (server pre-fetch — use this content)"]
+    ui_items: List[dict] = []
+    timeout = httpx.Timeout(connect=8.0, read=12.0, write=8.0, pool=8.0)
+    headers = {
+        "User-Agent": "HomepageAgent/1.0 (+https://hongyuding.site; research assistant)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, headers=headers) as client:
+        for url in urls:
+            # CC-style call line (compact)
+            ui_items.append(
+                {
+                    "type": "tool_call",
+                    "name": "WebFetch",
+                    "text": f"WebFetch({url})",
+                }
+            )
+            try:
+                resp = await client.get(url)
+                ctype = (resp.headers.get("content-type") or "").lower()
+                raw = resp.text if resp.status_code < 400 else ""
+                if "html" in ctype or raw.lstrip().startswith("<"):
+                    body = _html_to_text(raw)[:URL_PREFETCH_CHARS]
+                else:
+                    body = raw[:URL_PREFETCH_CHARS]
+                if not body:
+                    body = f"(empty or HTTP {resp.status_code})"
+                blocks.append(f"## {url}\nstatus={resp.status_code}\n{body}\n")
+                # title from first markdown heading if any
+                title = ""
+                for line in body.splitlines():
+                    s = line.strip()
+                    if s.startswith("#"):
+                        title = s.lstrip("#").strip()[:80]
+                        break
+                summary = f"⎿  {resp.status_code}"
+                if title:
+                    summary += f" · {title}"
+                summary += f" · {len(body)} chars"
+                ui_items.append(
+                    {
+                        "type": "tool_result",
+                        "name": "WebFetch",
+                        "text": summary,
+                    }
+                )
+            except Exception as e:
+                blocks.append(f"## {url}\n(fetch failed: {e})\n")
+                ui_items.append(
+                    {
+                        "type": "tool_result",
+                        "name": "WebFetch",
+                        "text": f"⎿  error · {str(e)[:80]}",
+                    }
+                )
+    return "\n".join(blocks), ui_items
 def user_prompt(message: str, history: List[Turn]) -> str:
     parts: List[str] = []
     for t in history[-8:]:
@@ -407,37 +513,86 @@ def _tool_msg(kind: str, name: str, body: str, **extra) -> Tuple[str, str]:
     """Chat-facing tool call / tool result (frontend shows as its own bubble).
 
     Always emitted (not gated by STREAM_PROCESS) so the UI can render separate turns.
+    Keep `text` compact (CC-style); put long dumps only in model context.
     """
     obj = {
         "type": kind,  # tool_call | tool_result
         "name": name or "tool",
-        "text": (body or "")[:12000],
+        "text": (body or "")[:500],  # UI one-liner / short result
     }
     obj.update(extra)
     return sse(obj), ""
 
 
 def _summarize_tool_input(name: str, raw_in: str) -> str:
+    """Claude Code style: ToolName(arg)."""
     raw_in = (raw_in or "").strip()
+    short = name or "tool"
+    # strip MCP prefix for display
+    if short.startswith("mcp__"):
+        parts = short.split("__")
+        short = parts[-1] if parts else short
     if not raw_in:
-        return name
+        return f"{short}()"
     try:
         data = json.loads(raw_in)
         if isinstance(data, dict):
-            if name in ("Read", "read"):
+            if short in ("Read", "read"):
                 path = data.get("file_path") or data.get("path") or ""
-                return f"Read `{path}`" if path else raw_in[:400]
-            if name in ("WebSearch", "web_search", "WebSearchTool"):
+                # basename for compactness, full path if short
+                disp = path
+                if len(disp) > 72:
+                    disp = "…/" + Path(path).name
+                return f"Read({disp})" if path else f"Read()"
+            if short in ("WebSearch", "web_search", "WebSearchTool"):
                 q = data.get("query") or data.get("q") or ""
-                return f"WebSearch: {q}" if q else raw_in[:400]
-            if name in ("WebFetch", "web_fetch"):
+                q = (q[:60] + "…") if len(q) > 60 else q
+                return f"WebSearch({q!r})" if q else "WebSearch()"
+            if short in ("WebFetch", "web_fetch", "url_prefetch"):
                 u = data.get("url") or ""
-                return f"WebFetch: {u}" if u else raw_in[:400]
-            if name in ("Glob", "Grep"):
-                return f"{name} {json.dumps(data, ensure_ascii=False)[:300]}"
+                return f"WebFetch({u})" if u else "WebFetch()"
+            if short in ("Glob",):
+                pat = data.get("pattern") or data.get("glob_pattern") or ""
+                return f"Glob({pat!r})" if pat else "Glob()"
+            if short in ("Grep",):
+                pat = data.get("pattern") or ""
+                return f"Grep({pat!r})" if pat else "Grep()"
+            # generic: first stringy arg
+            for k, v in data.items():
+                if isinstance(v, str) and v:
+                    vv = v if len(v) <= 64 else v[:61] + "…"
+                    return f"{short}({vv!r})"
     except json.JSONDecodeError:
         pass
-    return f"{name} {raw_in[:400]}"
+    arg = raw_in if len(raw_in) <= 64 else raw_in[:61] + "…"
+    return f"{short}({arg})"
+
+
+def _summarize_tool_result(name: str, body: str) -> str:
+    """Compact result line like CC: ⎿  n lines / short preview."""
+    body = (body or "").strip()
+    short = name or "tool"
+    if short.startswith("mcp__"):
+        short = short.split("__")[-1]
+    if not body:
+        return "⎿  (empty)"
+    # JSON list of search hits
+    try:
+        data = json.loads(body)
+        if isinstance(data, dict) and "results" in data:
+            n = len(data.get("results") or [])
+            return f"⎿  {n} results"
+        if isinstance(data, dict) and data.get("ok") and data.get("url"):
+            return f"⎿  {data.get('status', '')} · {len(str(data.get('text') or ''))} chars"
+    except json.JSONDecodeError:
+        pass
+    lines = [ln for ln in body.splitlines() if ln.strip()]
+    n = len(lines)
+    # file-number prefix from Read tool: "1\t---"
+    if n and re.match(r"^\d+\t", lines[0]):
+        return f"⎿  Read {n} lines"
+    preview = re.sub(r"\s+", " ", lines[0])[:72] if lines else body[:72]
+    return f"⎿  {n} lines · {preview}"
 
 
 def _truncate_tool_result(text: str, limit: int = 6000) -> str:
@@ -490,6 +645,7 @@ def _claude_isolated_settings() -> Tuple[str, str, Optional[str]]:
                 "WebSearch",
                 "WebFetch(*)",
                 "mcp__websearch__web_search",
+                "mcp__websearch__web_fetch",
                 "mcp__websearch__*",
             ],
             "deny": [
@@ -616,7 +772,8 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
     tool_id_names: Dict[str, str] = {}
     thinking_on = THINKING not in ("0", "false", "no", "off", "disabled", "")
 
-    frame, _ = _proc("status", f"Claude Code · {MODEL} · tools={','.join(tools)}")
+    # Quiet status (CC doesn't dump tool lists every turn)
+    frame, _ = _proc("status", f"Claude Code · {MODEL}")
     if frame:
         yield frame, ""
 
@@ -664,9 +821,12 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                         err_msg = "claude_api_retry"
                         break
                 elif subtype == "status" and msg.get("status"):
-                    frame, _ = _proc("status", str(msg.get("status")))
-                    if frame:
-                        yield frame, ""
+                    # Skip noisy intermediate statuses like "requesting"
+                    st = str(msg.get("status"))
+                    if st not in ("requesting", "thinking"):
+                        frame, _ = _proc("status", st)
+                        if frame:
+                            yield frame, ""
                 continue
 
             if mtype == "stream_event":
@@ -731,13 +891,8 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                         frame, _ = _proc("tool", summary, name=name, phase="use")
                         if frame:
                             yield frame, ""
-                        # Separate chat bubble for the tool call
-                        frame, _ = _tool_msg(
-                            "tool_call",
-                            name,
-                            summary,
-                            input=raw_in[:2000],
-                        )
+                        # Separate chat bubble — CC one-liner only
+                        frame, _ = _tool_msg("tool_call", name, summary)
                         if frame:
                             yield frame, ""
                     else:
@@ -771,17 +926,17 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                             or tool_id_names.get(str(tid))
                             or "tool"
                         )
-                        body = _truncate_tool_result(str(body))
-                        frame, _ = _proc(
-                            "tool",
-                            f"← {name} result ({len(body)} chars)",
-                            name=name,
-                            phase="result",
-                        )
+                        body_full = _truncate_tool_result(str(body))
+                        summary = _summarize_tool_result(name, body_full)
+                        # process log stays short too
+                        frame, _ = _proc("tool", summary, name=name, phase="result")
                         if frame:
                             yield frame, ""
                         frame, _ = _tool_msg(
-                            "tool_result", name, body, tool_use_id=tid or None
+                            "tool_result",
+                            name,
+                            summary,
+                            tool_use_id=tid or None,
                         )
                         if frame:
                             yield frame, ""
@@ -817,9 +972,7 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                             frame, _ = _proc("tool", summary, name=name, phase="use")
                             if frame:
                                 yield frame, ""
-                            frame, _ = _tool_msg(
-                                "tool_call", name, summary, input=raw_in[:2000]
-                            )
+                            frame, _ = _tool_msg("tool_call", name, summary)
                             if frame:
                                 yield frame, ""
                 continue
@@ -1039,7 +1192,11 @@ async def chat(
 
     lang = "zh" if req.lang.lower().startswith("zh") else "en"
     rag = select_rag(req.message)
-    sys_p = system_prompt(lang, rag, req.context)
+    # Reliable URL access: server pre-fetches links in the question
+    fetched, prefetch_ui = await prefetch_urls(req.message)
+    extra_bits = [x for x in (req.context, fetched) if x]
+    extra = "\n\n".join(extra_bits) if extra_bits else None
+    sys_p = system_prompt(lang, rag, extra)
     prompt = user_prompt(req.message, req.history)
 
     async def gen():
@@ -1048,6 +1205,15 @@ async def chat(
         reply_parts: List[str] = []
         status = "ok"
         try:
+            # Compact CC-style tool lines only (full HTML stays in system context)
+            for item in prefetch_ui:
+                frame, _ = _tool_msg(
+                    item["type"],
+                    item.get("name") or "WebFetch",
+                    item.get("text") or "",
+                )
+                if frame:
+                    yield frame
             async with _sem:
                 async for frame, text in stream_model(sys_p, prompt):
                     if not frame:
