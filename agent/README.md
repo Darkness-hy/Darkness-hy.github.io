@@ -2,7 +2,9 @@
 
 Claude Code headless harness (`claude -p --system-prompt …`, no default Claude Code system boilerplate) targeting **DeepSeek v4 Flash**, plus local RAG over paper TeX + profile + taste notes.
 
-`AGENT_HARNESS=auto` (default): try Claude Code first; if it times out/errors (DeepSeek Anthropic-compat can 502), fall back to direct DeepSeek OpenAI-compatible HTTP streaming with the **same model and prompt**.
+`AGENT_HARNESS=http` (default): direct DeepSeek OpenAI-compatible HTTP streaming — low latency.
+
+`auto` / `claude-code`: Claude Code headless first (fail-fast after a few API retries; DeepSeek Anthropic-compat often 502s), then HTTP. Intermediate `status` / `thinking` / `tool` SSE events are streamed to the frontend when present.
 
 ## Run
 

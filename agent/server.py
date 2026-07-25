@@ -35,13 +35,16 @@ from pydantic import BaseModel, Field
 ROOT = Path(__file__).resolve().parent
 KNOWLEDGE_DIR = Path(os.environ.get("AGENT_KNOWLEDGE_DIR", ROOT / "knowledge"))
 
-# auto: try Claude Code first, then HTTP; claude-code / http force one path
-HARNESS = os.environ.get("AGENT_HARNESS", "auto").strip().lower()
+# auto: HTTP first (fast); Claude Code only if AGENT_HARNESS=claude-code|claude
+# (DeepSeek Anthropic-compat often 502s under Claude Code, burning ~20s on retries.)
+HARNESS = os.environ.get("AGENT_HARNESS", "http").strip().lower()
 CLAUDE_BIN = os.environ.get("AGENT_CLAUDE_BIN", os.environ.get("TUTOR_CLAUDE_BIN", "claude"))
 MODEL = os.environ.get("AGENT_MODEL", os.environ.get("TUTOR_MODEL", "deepseek-v4-flash"))
 EFFORT = os.environ.get("AGENT_EFFORT", "low")
 TIMEOUT = int(os.environ.get("AGENT_TIMEOUT", os.environ.get("TUTOR_TIMEOUT", "120")))
-CLAUDE_TIMEOUT = int(os.environ.get("AGENT_CLAUDE_TIMEOUT", "75"))
+CLAUDE_TIMEOUT = int(os.environ.get("AGENT_CLAUDE_TIMEOUT", "12"))
+# Abort Claude Code after this many api_retry events (DeepSeek 502 storms).
+CLAUDE_MAX_RETRIES = int(os.environ.get("AGENT_CLAUDE_MAX_RETRIES", "2"))
 MAX_CONCURRENCY = int(os.environ.get("AGENT_MAX_CONCURRENCY", "3"))
 MAX_QUEUE = int(os.environ.get("AGENT_MAX_QUEUE", "15"))
 RATE_PER_MIN = int(os.environ.get("AGENT_RATE_PER_MIN", "20"))
@@ -50,10 +53,11 @@ TRUST_PROXY = os.environ.get("AGENT_TRUST_PROXY", "1").lower() not in ("0", "fal
 BEARER = os.environ.get("AGENT_BEARER", os.environ.get("TUTOR_BEARER", ""))
 LOG_DIR = os.environ.get("AGENT_LOG_DIR", str(ROOT / "logs"))
 LOG_FULL = os.environ.get("AGENT_LOG_FULL", "0").lower() not in ("0", "false", "no", "")
-RAG_BUDGET = int(os.environ.get("AGENT_RAG_BUDGET", "12000"))
+RAG_BUDGET = int(os.environ.get("AGENT_RAG_BUDGET", "5500"))
 TEMPERATURE = float(os.environ.get("AGENT_TEMPERATURE", "0.3"))
 THINKING = os.environ.get("AGENT_THINKING", "disabled").strip().lower()
-
+# Stream intermediate process events (status/thinking/tool) to the browser.
+STREAM_PROCESS = os.environ.get("AGENT_STREAM_PROCESS", "1").lower() not in ("0", "false", "no", "")
 # Claude Code talks to DeepSeek through Anthropic-compatible endpoint.
 DEEPSEEK_KEY = (
     os.environ.get("DEEPSEEK_API_KEY")
@@ -190,26 +194,71 @@ def _tokens(text: str) -> set:
     return {t for t in re.findall(r"[a-zA-Z一-鿿]{2,}", text.lower()) if len(t) > 1}
 
 
+_PAPER_HINTS = (
+    "uni-lavira",
+    "lavira",
+    "v-dreamer",
+    "vdreamer",
+    "acorm",
+    "mfrs",
+    "paper",
+    "arxiv",
+    "navigation",
+    "reward",
+    "marl",
+    "robot",
+    "embodied",
+    "论文",
+    "导航",
+)
+
+
 def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
+    """Compact RAG: pin short profile/taste; papers only when query needs them."""
     docs = _load_docs()
     if not docs:
         return ""
 
     q = _tokens(query)
-    # Always pin profile + taste first
+    ql = query.lower()
+    want_papers = any(kw in ql for kw in _PAPER_HINTS) or any(
+        t in q for t in ("paper", "arxiv", "lavira", "mfrs", "acorm", "dreamer")
+    )
+    want_taste = any(
+        k in ql
+        for k in (
+            "taste",
+            "belief",
+            "beliefs",
+            "philosophy",
+            "value",
+            "insight",
+            "信念",
+            "品味",
+            "观点",
+            "原则",
+        )
+    )
+
     ordered: List[Tuple[str, str, float]] = []
     for doc_id, text in docs:
-        if doc_id in ("profile.md", "taste.md"):
-            score = 1e6 if doc_id == "profile.md" else 1e5
+        if doc_id == "profile.md":
+            score = 1e6
+        elif doc_id == "taste.md":
+            score = 1e5 if want_taste or not want_papers else 50.0
         else:
-            dt = _tokens(text[:8000])
+            if not want_papers:
+                continue
+            dt = _tokens(text[:6000])
             overlap = len(q & dt) if q else 0
-            # soft boost for paper name keywords present in query
             boost = 0.0
-            for kw in ("uni-lavira", "lavira", "v-dreamer", "vdreamer", "acorm", "mfrs", "navigation", "reward", "marl"):
-                if kw in query.lower() and kw.replace("-", "") in doc_id.lower().replace("-", "") + text[:2000].lower():
-                    boost += 5
+            for kw in _PAPER_HINTS:
+                hay = doc_id.lower().replace("-", "") + text[:1500].lower()
+                if kw in ql and kw.replace("-", "") in hay.replace("-", ""):
+                    boost += 8
             score = overlap + boost
+            if score <= 0:
+                continue
         ordered.append((doc_id, text, score))
 
     ordered.sort(key=lambda x: x[2], reverse=True)
@@ -217,59 +266,53 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
     parts: List[str] = []
     used = 0
     for doc_id, text, score in ordered:
-        if score <= 0 and doc_id not in ("profile.md", "taste.md"):
-            continue
         chunk = text.strip()
-        # per-doc soft cap so one paper does not monopolize budget
-        per_cap = 5000 if doc_id.endswith("INDEX.md") else 3500
         if doc_id == "profile.md":
-            per_cap = 2500
-        if doc_id == "taste.md":
-            per_cap = 3000
+            per_cap = 1600
+        elif doc_id == "taste.md":
+            per_cap = 2200 if want_taste else 1200
+        elif doc_id.endswith("INDEX.md"):
+            per_cap = 2800
+        else:
+            per_cap = 1800
         if len(chunk) > per_cap:
             chunk = chunk[:per_cap] + "\n[...truncated...]\n"
         block = f"### {doc_id}\n{chunk}\n"
         if used + len(block) > budget:
             remain = budget - used
-            if remain < 400:
+            if remain < 300:
                 break
             block = block[:remain] + "\n[...truncated...]\n"
             parts.append(block)
             break
         parts.append(block)
         used += len(block)
-        # keep top few papers only
-        if len(parts) >= 5 and used > budget * 0.7:
+        # at most profile + taste + 2 papers
+        if len(parts) >= (4 if want_papers else 2):
             break
     return "\n".join(parts)
 
 
 def system_prompt(lang: str, rag: str, extra_context: Optional[str]) -> str:
-    """Minimal persona prompt — intentionally short; no Claude Code boilerplate."""
+    """Minimal persona — short system; knowledge appended tightly (no Claude boilerplate)."""
     if lang == "zh":
         lines = [
-            "你是 Hongyu Ding（丁泓宇）个人主页上的 AI 助理。",
-            "你的名字是「茜茜」。不要主动报名字；只有访客明确问起你的名字或让你自我介绍时，才可以说你叫茜茜。",
-            "语气专业、清晰、友好；可偶尔用一个贴切的小语气词，但不要卖萌过头，也不要堆 emoji（每条最多一个）。",
-            "依据下方资料回答：Hongyu 的研究、教育、论文、合作与联系方式。不要编造未给出的论文结果、职位、奖项或联系方式；不确定就直说不确定。",
-            "回答简洁，先结论后展开；用访客使用的语言（本轮用简体中文）。",
-            "若问题与主页/研究无关，可简短回应后温和引回可帮助的话题。",
+            "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到才说。",
+            "专业、简洁、友好；每条最多 1 个 emoji。只依据资料回答，不编造。不确定就说不确定。",
+            "先结论后展开；本轮用简体中文。",
         ]
     else:
         lines = [
-            "You are the AI assistant on Hongyu Ding's personal homepage.",
-            "Your name is \"Cici\" (茜茜). Do not volunteer your name; only say it when the visitor asks your name or asks you to introduce yourself.",
-            "Be clear, professional, and friendly. At most one emoji per reply. Never invent paper results, affiliations, awards, or contact info not in the materials.",
-            "Answer from the materials below about Hongyu's research, education, papers, and collaboration. If unsure, say so.",
-            "Be concise: lead with the answer. Use English for this turn.",
-            "If asked something unrelated, answer briefly and steer back to how you can help with the homepage topics.",
+            "You are Cici (茜茜), the AI assistant on Hongyu Ding's homepage. Name yourself only if asked.",
+            "Be clear, concise, friendly; at most one emoji. Answer only from materials; never invent facts. If unsure, say so.",
+            "Lead with the answer. Use English this turn.",
         ]
     if rag:
-        lines.append("\n# Local knowledge (RAG)\n" + rag)
+        # Keep knowledge tight to cut prefill latency.
+        lines.append("Materials:\n" + rag)
     if extra_context:
-        lines.append("\n# Extra page context\n" + extra_context[:8000])
+        lines.append("Page context:\n" + extra_context[:2000])
     return "\n".join(lines)
-
 
 def user_prompt(message: str, history: List[Turn]) -> str:
     parts: List[str] = []
@@ -294,6 +337,15 @@ def log_turn(rec: dict) -> None:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     except OSError:
         pass
+
+
+def _proc(kind: str, text: str, **extra) -> Tuple[str, str]:
+    """SSE process/status event (not counted as answer text)."""
+    if not STREAM_PROCESS or not text:
+        return "", ""
+    obj = {"type": kind, "text": text}
+    obj.update(extra)
+    return sse(obj), ""
 
 
 async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, str]]:
@@ -346,10 +398,18 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
     deadline = time.time() + CLAUDE_TIMEOUT
     got_text = False
     err_msg: Optional[str] = None
+    api_retries = 0
+    # Track open content blocks for tool/thinking labels
+    open_blocks: Dict[int, str] = {}
+
+    frame, _ = _proc("status", f"Claude Code · {MODEL}")
+    if frame:
+        yield frame, ""
+
     try:
         try:
             proc.stdin.write(prompt.encode("utf-8"))
-            await asyncio.wait_for(proc.stdin.drain(), timeout=min(30, CLAUDE_TIMEOUT))
+            await asyncio.wait_for(proc.stdin.drain(), timeout=min(10, CLAUDE_TIMEOUT))
             proc.stdin.close()
         except (asyncio.TimeoutError, BrokenPipeError, ConnectionResetError):
             err_msg = "claude_timeout"
@@ -373,33 +433,105 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                 msg = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if msg.get("type") == "system" and msg.get("subtype") == "api_retry":
-                # DeepSeek Anthropic-compat sometimes 502s; let retries continue until timeout
-                logger.warning("claude api_retry: %s", msg.get("error_status"))
-            if msg.get("type") == "stream_event":
-                ev = msg.get("event", {})
-                if ev.get("type") == "content_block_delta":
-                    delta = ev.get("delta", {})
-                    if delta.get("type") == "text_delta":
-                        text = delta.get("text", "")
+
+            mtype = msg.get("type")
+            if mtype == "system":
+                subtype = msg.get("subtype")
+                if subtype == "api_retry":
+                    api_retries += 1
+                    status = msg.get("error_status")
+                    logger.warning("claude api_retry %s: %s", api_retries, status)
+                    frame, _ = _proc(
+                        "status",
+                        f"API retry {api_retries}/{CLAUDE_MAX_RETRIES} (HTTP {status})",
+                    )
+                    if frame:
+                        yield frame, ""
+                    if api_retries >= CLAUDE_MAX_RETRIES:
+                        err_msg = "claude_api_retry"
+                        break
+                elif subtype == "status" and msg.get("status"):
+                    frame, _ = _proc("status", str(msg.get("status")))
+                    if frame:
+                        yield frame, ""
+                continue
+
+            if mtype == "stream_event":
+                ev = msg.get("event") or {}
+                et = ev.get("type")
+                if et == "content_block_start":
+                    idx = int(ev.get("index") or 0)
+                    block = ev.get("content_block") or {}
+                    btype = block.get("type") or "text"
+                    open_blocks[idx] = btype
+                    if btype == "tool_use":
+                        name = block.get("name") or "tool"
+                        frame, _ = _proc("tool", f"→ {name}", name=name, phase="start")
+                        if frame:
+                            yield frame, ""
+                    elif btype in ("thinking", "reasoning"):
+                        frame, _ = _proc("status", "thinking…")
+                        if frame:
+                            yield frame, ""
+                elif et == "content_block_delta":
+                    idx = int(ev.get("index") or 0)
+                    delta = ev.get("delta") or {}
+                    dtype = delta.get("type")
+                    btype = open_blocks.get(idx, "")
+                    if dtype == "text_delta":
+                        text = delta.get("text") or ""
                         if text:
                             got_text = True
                             yield sse({"type": "delta", "text": text}), text
-            elif msg.get("type") == "result" and not got_text:
+                    elif dtype in ("thinking_delta", "reasoning_delta"):
+                        text = delta.get("thinking") or delta.get("text") or delta.get("reasoning") or ""
+                        if text:
+                            frame, _ = _proc("thinking", text)
+                            if frame:
+                                yield frame, ""
+                    elif dtype == "input_json_delta":
+                        partial = delta.get("partial_json") or ""
+                        if partial:
+                            frame, _ = _proc("tool", partial, phase="input")
+                            if frame:
+                                yield frame, ""
+                elif et == "content_block_stop":
+                    idx = int(ev.get("index") or 0)
+                    open_blocks.pop(idx, None)
+                continue
+
+            if mtype == "assistant":
+                content = msg.get("message", {}).get("content") or msg.get("content") or []
+                if isinstance(content, list):
+                    for block in content:
+                        if not isinstance(block, dict):
+                            continue
+                        btype = block.get("type")
+                        if btype == "text":
+                            text = block.get("text") or ""
+                            if text and not got_text:
+                                got_text = True
+                                yield sse({"type": "delta", "text": text}), text
+                        elif btype in ("thinking", "reasoning"):
+                            text = block.get("thinking") or block.get("text") or ""
+                            if text:
+                                frame, _ = _proc("thinking", text)
+                                if frame:
+                                    yield frame, ""
+                        elif btype == "tool_use":
+                            name = block.get("name") or "tool"
+                            inp = block.get("input")
+                            detail = f"{name} {json.dumps(inp, ensure_ascii=False)[:400]}" if inp else name
+                            frame, _ = _proc("tool", detail, name=name, phase="use")
+                            if frame:
+                                yield frame, ""
+                continue
+
+            if mtype == "result" and not got_text:
                 result_text = msg.get("result") or ""
                 if isinstance(result_text, str) and result_text:
                     got_text = True
                     yield sse({"type": "delta", "text": result_text}), result_text
-            elif msg.get("type") == "assistant" and not got_text:
-                # some stream-json shapes
-                content = msg.get("message", {}).get("content") or msg.get("content") or []
-                if isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get("type") == "text":
-                            text = block.get("text") or ""
-                            if text:
-                                got_text = True
-                                yield sse({"type": "delta", "text": text}), text
 
         if err_msg is None:
             try:
@@ -439,10 +571,14 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
 
 
 async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, str]]:
-    """Direct DeepSeek OpenAI-compatible streaming (reliable fallback)."""
+    """Direct DeepSeek OpenAI-compatible streaming (default fast path)."""
     if not DEEPSEEK_KEY:
         yield sse({"type": "error", "message": "助理服务缺少模型 API Key"}), ""
         return
+
+    frame, _ = _proc("status", f"DeepSeek · {MODEL}")
+    if frame:
+        yield frame, ""
 
     payload: dict = {
         "model": MODEL,
@@ -453,10 +589,11 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
         "stream": True,
         "temperature": TEMPERATURE,
     }
-    if THINKING in ("0", "false", "no", "off", "disabled", ""):
-        payload["thinking"] = {"type": "disabled"}
-    else:
+    thinking_on = THINKING not in ("0", "false", "no", "off", "disabled", "")
+    if thinking_on:
         payload["thinking"] = {"type": "enabled"}
+    else:
+        payload["thinking"] = {"type": "disabled"}
 
     url = f"{OPENAI_BASE_URL}/chat/completions"
     timeout = httpx.Timeout(connect=15.0, read=float(TIMEOUT), write=15.0, pool=15.0)
@@ -492,6 +629,13 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
                     if not choices:
                         continue
                     delta = choices[0].get("delta") or {}
+                    # DeepSeek reasoning / thinking channels when enabled
+                    for key in ("reasoning_content", "reasoning", "thinking"):
+                        r = delta.get(key)
+                        if isinstance(r, str) and r:
+                            frame, _ = _proc("thinking", r)
+                            if frame:
+                                yield frame, ""
                     text = delta.get("content") or ""
                     if text:
                         got_text = True
@@ -509,11 +653,14 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
 
 async def stream_model(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, str]]:
     mode = HARNESS
+    # Default / http: direct DeepSeek (low latency).
     if mode in ("http", "openai", "deepseek"):
         async for item in stream_http(sys_prompt, prompt):
             yield item
         return
 
+    # auto: Claude Code first (fail-fast), then HTTP.
+    # claude-code / claude: Claude only (optional no-fallback).
     if mode in ("claude-code", "claude", "auto"):
         try:
             async for item in stream_claude(sys_prompt, prompt):
@@ -521,6 +668,9 @@ async def stream_model(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str,
             return
         except RuntimeError as e:
             logger.warning("claude harness failed (%s); falling back to HTTP", e)
+            frame, _ = _proc("status", f"fallback → HTTP ({e})")
+            if frame:
+                yield frame, ""
             if mode in ("claude-code", "claude") and os.environ.get("AGENT_NO_HTTP_FALLBACK", "").lower() in (
                 "1",
                 "true",
@@ -535,7 +685,6 @@ async def stream_model(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str,
     # unknown harness → HTTP
     async for item in stream_http(sys_prompt, prompt):
         yield item
-
 @app.on_event("startup")
 async def _startup() -> None:
     _load_docs()
@@ -600,6 +749,8 @@ async def chat(
         try:
             async with _sem:
                 async for frame, text in stream_model(sys_p, prompt):
+                    if not frame:
+                        continue
                     if text:
                         reply_parts.append(text)
                     elif '"type": "error"' in frame or '"type":"error"' in frame:
@@ -614,6 +765,8 @@ async def chat(
                 "status": status,
                 "ms": int((time.time() - started) * 1000),
                 "rag_chars": len(rag),
+                "sys_chars": len(sys_p),
+                "harness": HARNESS,
             }
             if LOG_FULL:
                 rec["message"] = req.message

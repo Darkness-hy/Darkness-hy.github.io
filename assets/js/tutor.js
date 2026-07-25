@@ -45,6 +45,10 @@
       ],
       busy: "The assistant is busy — try again in a moment.",
       network: "Could not reach the assistant.",
+      process: "Process",
+      thinking: "Thinking",
+      tool: "Tool",
+      status: "Status",
     },
     zh: {
       title: "AI 助理",
@@ -67,9 +71,12 @@
       ],
       busy: "助理正忙，请稍后再试。",
       network: "无法连接助理服务。",
+      process: "过程",
+      thinking: "思考",
+      tool: "工具",
+      status: "状态",
     },
   };
-
   function deriveHealth(chatUrl) {
     try {
       const url = new URL(chatUrl, window.location.href);
@@ -209,11 +216,62 @@
     return html;
   }
 
+  function processLabel(kind) {
+    const c = t();
+    if (kind === "thinking") return c.thinking;
+    if (kind === "tool") return c.tool;
+    if (kind === "status") return c.status;
+    return kind;
+  }
+
+  function renderProcessBlock(entries, { open = false, live = false } = {}) {
+    if (!entries || !entries.length) return null;
+    const c = t();
+    const details = document.createElement("details");
+    details.className = "agent-process" + (live ? " agent-process--live" : "");
+    details.open = open || live;
+    const summary = document.createElement("summary");
+    summary.textContent = `${c.process} · ${entries.length}`;
+    details.appendChild(summary);
+    const list = document.createElement("div");
+    list.className = "agent-process__list";
+    entries.forEach((e) => {
+      const row = document.createElement("div");
+      row.className = `agent-process__item agent-process__item--${e.kind || "status"}`;
+      const tag = document.createElement("span");
+      tag.className = "agent-process__tag";
+      tag.textContent = processLabel(e.kind || "status");
+      const body = document.createElement("pre");
+      body.className = "agent-process__text";
+      body.textContent = e.text || "";
+      row.append(tag, body);
+      list.appendChild(row);
+    });
+    details.appendChild(list);
+    return details;
+  }
+
+  function pushProcess(kind, text) {
+    if (!text) return;
+    const log = state.processLog;
+    const last = log[log.length - 1];
+    // Merge consecutive same-kind deltas (thinking/tool streams)
+    if (last && last.kind === kind && (kind === "thinking" || kind === "tool")) {
+      last.text = (last.text || "") + text;
+      // Cap runaway thinking dumps
+      if (last.text.length > 6000) last.text = last.text.slice(0, 6000) + "…";
+    } else {
+      log.push({ kind, text: String(text).slice(0, 4000) });
+      if (log.length > 40) log.splice(0, log.length - 40);
+    }
+  }
   // ── Widget state ────────────────────────────────────────────────────────
   const state = {
     open: false,
     turns: [],
     streamShown: "",
+    // Intermediate harness process: status / thinking / tool (streamed live)
+    processLog: [],
     input: "",
     busy: false,
     error: null,
@@ -221,7 +279,6 @@
     justAnswered: false,
     availability: "checking",
   };
-
   const fabAvatar = createAvatar(52);
   const headerAvatar = createAvatar(38);
 
@@ -346,26 +403,39 @@
     state.turns.forEach((turn) => {
       const row = document.createElement("div");
       row.className = `agent-row agent-row--${turn.role}`;
+      const col = document.createElement("div");
+      col.className = "agent-col";
+      if (turn.role === "assistant" && turn.process && turn.process.length) {
+        const proc = renderProcessBlock(turn.process, { open: false, live: false });
+        if (proc) col.appendChild(proc);
+      }
       const bubble = document.createElement("div");
       bubble.className = `agent-bubble agent-bubble--${turn.role}`;
       if (turn.role === "user") bubble.textContent = turn.content;
       else bubble.innerHTML = simpleMarkdown(turn.content);
-      row.appendChild(bubble);
+      col.appendChild(bubble);
+      row.appendChild(col);
       bodyEl.appendChild(row);
     });
 
     if (state.busy) {
       const row = document.createElement("div");
       row.className = "agent-row agent-row--assistant";
+      const col = document.createElement("div");
+      col.className = "agent-col";
+      if (state.processLog.length) {
+        const proc = renderProcessBlock(state.processLog, { open: true, live: true });
+        if (proc) col.appendChild(proc);
+      }
       const bubble = document.createElement("div");
       bubble.className = "agent-bubble agent-bubble--assistant";
       bubble.innerHTML = state.streamShown
         ? simpleMarkdown(state.streamShown)
-        : '<span style="color:var(--color-muted)">…</span>';
-      row.appendChild(bubble);
+        : '<span class="agent-typing" style="color:var(--color-muted)">…</span>';
+      col.appendChild(bubble);
+      row.appendChild(col);
       bodyEl.appendChild(row);
     }
-
     if (state.error) {
       const err = document.createElement("div");
       err.className = "agent-error";
@@ -431,8 +501,10 @@
 
   function finishStream() {
     const content = fullText;
-    state.turns = [...state.turns, { role: "assistant", content }];
+    const process = state.processLog.slice();
+    state.turns = [...state.turns, { role: "assistant", content, process }];
     state.streamShown = "";
+    state.processLog = [];
     state.busy = false;
     state.justAnswered = true;
     render();
@@ -442,7 +514,6 @@
       render();
     }, 1500);
   }
-
   async function ask(message, history) {
     const headers = { "Content-Type": "application/json", Accept: "text/event-stream" };
     if (TOKEN) headers.Authorization = `Bearer ${TOKEN}`;
@@ -484,6 +555,10 @@
         if (ev.type === "delta" && typeof ev.text === "string") {
           fullText += ev.text;
           if (!drainTimer) startDrain();
+        } else if (ev.type === "thinking" || ev.type === "tool" || ev.type === "status") {
+          const text = typeof ev.text === "string" ? ev.text : ev.message || "";
+          pushProcess(ev.type, text);
+          render();
         } else if (ev.type === "error") {
           throw new Error(ev.message || t().network);
         } else if (ev.type === "done") {
@@ -493,8 +568,7 @@
             stopDrain();
             finishStream();
           }
-        }
-      }
+        }      }
     }
     streamDone = true;
     if (!state.busy) return;
@@ -519,6 +593,7 @@
     state.turns = [...state.turns, { role: "user", content: message }];
     state.busy = true;
     state.streamShown = "";
+    state.processLog = [];
     fullText = "";
     shownLen = 0;
     streamDone = false;
@@ -550,12 +625,15 @@
     stopDrain();
     state.busy = false;
     if (fullText) {
-      state.turns = [...state.turns, { role: "assistant", content: fullText }];
+      state.turns = [
+        ...state.turns,
+        { role: "assistant", content: fullText, process: state.processLog.slice() },
+      ];
     }
     state.streamShown = "";
+    state.processLog = [];
     render();
   }
-
   fab.addEventListener("click", () => {
     state.open = true;
     render();
