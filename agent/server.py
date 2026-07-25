@@ -1937,18 +1937,8 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
                     frame, _ = _tool_msg("tool_call", name, call_line)
                     if frame:
                         yield frame, ""
-                    preview = re.sub(r"\s+", " ", tool_body)[:160]
-                    result_ui = result_line
-                    if preview and "0 results" not in result_line:
-                        result_ui = f"{result_line}\n{preview}"
-                    frame, _ = _tool_msg(
-                        "tool_result",
-                        name,
-                        result_ui[:500],
-                        tool_use_id=tid or None,
-                    )
-                    if frame:
-                        yield frame, ""
+                    # Do not stream verbose tool_result previews to the UI
+                    # (model still receives full tool_body in messages).
                     messages.append(
                         {
                             "role": "tool",

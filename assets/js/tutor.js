@@ -208,7 +208,16 @@
   function simpleMarkdown(text) {
     const esc = (s) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    let html = esc(text);
+    const raw = String(text || "");
+    // Short plain one-liners: no <p> wrapper (avoids inflated 2-line bubble height)
+    const isPlainOneLine =
+      raw.length < 80 &&
+      !/\n/.test(raw) &&
+      !/\*\*|`|\[.+\]\(https?:/.test(raw);
+    if (isPlainOneLine) {
+      return esc(raw);
+    }
+    let html = esc(raw);
     html = html.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code}</code></pre>`);
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
@@ -432,30 +441,26 @@
       }
 
       if (role === "tool_call" || role === "tool_result") {
-        // Show both call and result bubbles (CC-style timeline)
+        // Only show tool *calls* (WebSearch / Read / WebFetch). Hide result dumps.
+        if (role === "tool_result") return;
         const raw = turn.content || "";
-        let line = raw;
-        if (role === "tool_result") {
-          // keep result preview text (⎿ … / multi-line)
-          line = String(raw).trim();
-          if (!line) return;
-        } else {
-          line = /^(🌐|📄|📁|🔎|🛠️)\s/.test(raw)
-            ? raw
-            : formatToolCallLine(turn.name || "", raw);
-          if (!line) return;
-        }
+        const line = /^(🌐|📄|📁|🔎|🛠️)\s/.test(raw)
+          ? raw
+          : formatToolCallLine(turn.name || "", raw);
+        if (!line) return;
         const bubble = document.createElement("div");
-        bubble.className =
-          "agent-bubble agent-bubble--tool agent-bubble--" +
-          (role === "tool_result" ? "tool_result" : "tool_call");
+        bubble.className = "agent-bubble agent-bubble--tool agent-bubble--tool_call";
         bubble.textContent = line;
         col.appendChild(bubble);
       } else {
         const bubble = document.createElement("div");
         bubble.className = `agent-bubble agent-bubble--${role}`;
-        if (role === "user") bubble.textContent = turn.content;
-        else bubble.innerHTML = simpleMarkdown(turn.content || "");
+        if (role === "user") {
+          // plain text — keep single-line height for short messages
+          bubble.textContent = turn.content;
+        } else {
+          bubble.innerHTML = simpleMarkdown(turn.content || "");
+        }
         col.appendChild(bubble);
       }
       row.appendChild(col);
@@ -535,9 +540,11 @@
     }
   }
 
-  // Steady typewriter via rAF: constant chars/sec, never jump/dump.
-  // SSE only fills fullText; UI reveals at TYPE_CPS regardless of network bursts.
-  const TYPE_CPS = 48; // characters per second — stable visual pace
+  // Adaptive typewriter: speed up when buffer lags, but NEVER dump all remaining text.
+  // Base ~40 cps; ramps toward ~90 cps when lag is large; max 4 chars/frame.
+  const TYPE_CPS_MIN = 36;
+  const TYPE_CPS_MAX = 90;
+  const TYPE_STEP_MAX = 4; // hard cap per animation frame — forbids "instant dump"
   let drainRaf = 0;
   let typeCarry = 0;
   let typeLastTs = 0;
@@ -555,22 +562,31 @@
     typeLastTs = 0;
   }
 
+  function adaptiveCps(lag) {
+    // lag 0→MIN, lag 80+ → MAX (smooth, no dump)
+    if (lag <= 8) return TYPE_CPS_MIN;
+    if (lag >= 120) return TYPE_CPS_MAX;
+    const t = (lag - 8) / (120 - 8);
+    return TYPE_CPS_MIN + t * (TYPE_CPS_MAX - TYPE_CPS_MIN);
+  }
+
   function startDrain() {
     if (drainRaf) return;
     typeLastTs = 0;
     const tick = (ts) => {
       if (!typeLastTs) typeLastTs = ts;
-      const dt = Math.min(0.05, (ts - typeLastTs) / 1000); // clamp lag spikes
+      // Clamp dt so a backgrounded tab doesn't dump a huge step later
+      const dt = Math.min(0.032, Math.max(0, (ts - typeLastTs) / 1000));
       typeLastTs = ts;
       if (shownLen < fullText.length) {
-        typeCarry += TYPE_CPS * dt;
-        const n = Math.floor(typeCarry);
+        const lag = fullText.length - shownLen;
+        typeCarry += adaptiveCps(lag) * dt;
+        let n = Math.floor(typeCarry);
         if (n > 0) {
           typeCarry -= n;
-          // hard cap step so a long frame never dumps a paragraph
-          const step = Math.min(n, 3);
-          typeCarry += n - step; // keep remainder for next frames
-          shownLen = Math.min(fullText.length, shownLen + step);
+          const step = Math.min(n, TYPE_STEP_MAX, lag);
+          typeCarry += Math.max(0, n - step);
+          shownLen += step;
           state.streamShown = fullText.slice(0, shownLen);
           render();
         }
@@ -579,22 +595,21 @@
         drainRaf = 0;
         finishStream();
       } else {
-        // caught up to buffer; keep ticking for more SSE
         drainRaf = requestAnimationFrame(tick);
       }
     };
     drainRaf = requestAnimationFrame(tick);
   }
 
-  /** Resolve when typewriter has revealed all buffered text (cap ~15s). */
+  /** Resolve when typewriter has revealed all buffered text (no snap-dump). */
   function waitTypewriterCaughtUp() {
     if (shownLen >= fullText.length) return Promise.resolve();
     if (!drainRaf) startDrain();
     return new Promise((resolve) => {
       const t0 = performance.now();
       const poll = (ts) => {
-        if (shownLen >= fullText.length || ts - t0 > 15000) {
-          // soft: do not snap entire buffer (that causes the dump effect)
+        // Cap wait so tools aren't blocked forever, but still type out (no jump)
+        if (shownLen >= fullText.length || ts - t0 > 20000) {
           resolve();
           return;
         }
@@ -663,25 +678,18 @@
   }
 
   function pushToolTurn(role, name, text) {
+    // Hide tool results entirely (no "⎿ 3 results · …" / PDF dumps)
+    if (role === "tool_result") return;
     // Flush any intermediate model text BEFORE the tool bubble
     flushAssistantText();
     const content = String(text || "").slice(0, 500);
-    const isResult = role === "tool_result";
-    let line;
-    if (isResult) {
-      // Server already sends compact "⎿ …" (+ optional preview)
-      line = content.trim();
-      if (!line) return;
-      if (!line.startsWith("⎿")) line = "⎿  " + line;
-    } else {
-      line = formatToolCallLine(name || "tool", content);
-      if (!line) return;
-    }
+    const line = formatToolCallLine(name || "tool", content);
+    if (!line) return;
     const last = state.turns[state.turns.length - 1];
-    if (last && last.role === role && last.content === line) return;
+    if (last && last.role === "tool_call" && last.content === line) return;
     state.turns = [
       ...state.turns,
-      { role: isResult ? "tool_result" : "tool_call", name: name || "tool", content: line },
+      { role: "tool_call", name: name || "tool", content: line },
     ];
   }
 
