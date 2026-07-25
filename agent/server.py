@@ -331,10 +331,11 @@ def _want_full_taste(ql: str) -> bool:
 
 
 def taste_skill_context(message: str) -> Tuple[str, List[dict]]:
-    """Inject full hongyu-insight-taste skill into system context (no Read bubble).
+    """Server Read of full taste.md with a visible Read UI bubble.
 
-    Files already in the system prompt must not show a Read UI line.
-    Returns (context_for_model, ui_tool_bubbles) — ui is always empty.
+    System prompt only ever silent-injects taste.summary.md. Research taste /
+    beliefs questions must show Read(knowledge/taste.md) then answer from it.
+    Returns (context_for_model, ui_tool_bubbles).
     """
     if not _is_taste_skill_query(message):
         return "", []
@@ -348,13 +349,20 @@ def taste_skill_context(message: str) -> Tuple[str, List[dict]]:
     max_chars = 14000
     if len(body) > max_chars:
         body = body[:max_chars] + "\n…[truncated]…"
+    display = "knowledge/taste.md"
+    ui = [
+        {
+            "type": "tool_call",
+            "name": "Read",
+            "text": f"Read({display})",
+        }
+    ]
     ctx = (
-        "# Full taste skill (in system context — hongyu-insight-taste / taste.md; "
-        "answer ONLY from this; do not invent project names)\n"
-        f"## file: knowledge/taste.md\n{body}\n"
+        "# Full taste skill (server Read of hongyu-insight-taste / taste.md — "
+        "answer ONLY from this skill content; do not invent project names)\n"
+        f"## file: {display}\n{body}\n"
     )
-    # No Read bubble: already in system prompt
-    return ctx, []
+    return ctx, ui
 
 
 def _alias_hit(ql: str, ql_norm: str, alias: str) -> bool:
@@ -453,8 +461,8 @@ def _paper_excerpt(raw: str, max_chars: int = 5500) -> str:
 def paper_read_context(message: str) -> Tuple[str, List[dict]]:
     """Server-side Read of paper INDEX.md with a visible Read UI bubble.
 
-    Only local Read surfaces: knowledge/taste.md (silent if in system) and
-    knowledge/papers/** (shown). Returns (context, ui_tool_calls).
+    Local Read surfaces with UI: knowledge/taste.md and knowledge/papers/**.
+    Returns (context, ui_tool_calls).
     """
     if _is_taste_skill_query(message):
         return "", []
@@ -492,16 +500,15 @@ def paper_read_context(message: str) -> Tuple[str, List[dict]]:
 
 
 def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
-    """Silent system-prompt RAG only: profile + taste.summary.
+    """Silent system-prompt RAG only: profile + taste.summary (never full taste.md).
 
-    Papers are never silent-injected (they use paper_read_context + Read bubble).
-    Full taste.md uses taste_skill_context (also silent — already in system).
+    Papers / full taste.md use explicit Read bubbles (paper_read_context /
+    taste_skill_context).
     """
     docs = _load_docs()
     if not docs:
         return ""
 
-    q = _tokens(query)
     ql = query.lower()
     survey = _is_survey_query(ql)
     taste_skill = _is_taste_skill_query(query)
@@ -528,26 +535,20 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
             "原则",
         )
     )
-    full_taste = _want_full_taste(ql)
 
     # Open survey: no local RAG — web results are injected separately
     if survey and not paper_ids:
         return ""
-    # Full skill path: skill body injected separately; skip summary RAG noise
-    if taste_skill:
-        return ""
-    # Specific paper turn: paper body via Read bubble; optional thin profile only
-    # if visitor also asks bio — default: profile still helps for "who / what papers"
 
     ordered: List[Tuple[str, str, float]] = []
     for doc_id, text in docs:
         if doc_id == "profile.md":
             score = 1e6
         elif doc_id == "taste.summary.md":
-            # light taste mentions only; not full skill turn
-            score = 1e5 if want_taste and not full_taste else 40.0
+            # Always available as the only silent taste inject
+            score = 1e5 if want_taste else 50.0
         elif doc_id == "taste.md":
-            # Only via taste_skill_context (silent system inject)
+            # Full skill only via taste_skill_context + Read bubble
             continue
         elif doc_id.startswith("papers/") or doc_id.endswith("INDEX.md"):
             # Papers only via paper_read_context (shows Read bubble)
@@ -581,14 +582,13 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
             break
         parts.append(block)
         used += len(block)
-        # at most profile + taste.summary (papers are separate)
+        # at most profile + taste.summary (papers / full taste are separate)
         if len(parts) >= 2:
             break
-    # Hint when full taste may be needed later
-    if want_taste and not full_taste:
+    if want_taste and not taste_skill:
         parts.append(
-            "### note\nTaste detail: use taste.summary.md above. "
-            "Full skill (taste.md) is loaded into system for research taste / beliefs asks.\n"
+            "### note\nTaste summary is above. For research taste / beliefs, "
+            "Read knowledge/taste.md (full skill).\n"
         )
     if want_papers and not paper_ids:
         parts.append(
@@ -609,11 +609,13 @@ def _knowledge_map() -> str:
     )
     lines = [
         "Local Read allow-list (ONLY these; never Read profile.md / taste.summary.md):",
-        f"- knowledge/taste.md — full hongyu-insight-taste skill (only if not already in system)",
+        f"- knowledge/taste.md — full hongyu-insight-taste skill "
+        "(Read when visitor asks research taste / beliefs)",
         f"- knowledge/papers/<arxiv-id>/INDEX.md — one paper at a time; ids: {', '.join(paper_ids)}",
         f"  aliases: {catalog}",
-        "System already may include profile / taste.summary / full taste skill — do not re-Read those.",
+        "System may include profile + taste.summary only — do not re-Read those.",
         "Tools:",
+        "- Research taste / beliefs → context has Read(taste.md); answer from it.",
         "- Named Hongyu paper → context may already have Read(papers/.../INDEX.md); use it.",
         "- Field survey → Web search results only; do not Read papers.",
         "- URL → Fetched pages or MCP web_fetch.",
@@ -658,20 +660,21 @@ def system_prompt(
     if taste_skill:
         if lang == "zh":
             lines.append(
-                "【本轮=research taste / 信念】上下文已有完整 hongyu-insight-taste skill（taste.md）。"
-                "必须基于该 skill 回答：insight 标准、判断启发式、写作/叙事偏好；2–5 句，先结论。"
-                "禁止编造具体项目名/论文名/工具名（skill 本身也不写这些）。"
-                "本轮不要再 Read 任何本地文件。"
+                "【本轮=research taste / 信念】已 Read knowledge/taste.md（完整 hongyu-insight-taste skill）。"
+                "system 里只有 taste 摘要；必须以 Read 到的完整 skill 回答："
+                "insight 标准、判断启发式、写作/叙事偏好；2–5 句，先结论。"
+                "禁止编造具体项目名/论文名/工具名。本轮不要再 Read 其他本地文件。"
             )
         else:
             lines.append(
-                "TASTE SKILL TURN: Full hongyu-insight-taste skill (taste.md) is already in system context. "
-                "Answer from that skill only: insight standards, judgment heuristics, writing/narrative taste. "
+                "TASTE SKILL TURN: knowledge/taste.md was Read (full hongyu-insight-taste skill). "
+                "System only has the short taste summary; answer from the full skill content: "
+                "insight standards, judgment heuristics, writing/narrative taste. "
                 "2–5 sentences; lead with the point. Do not invent project/paper/tool names. "
-                "Do not Read any local files this turn."
+                "Do not Read other local files this turn."
             )
         lines.append(
-            "Tools this turn: none required (skill already in system). Do not call Read/Glob/Grep."
+            "Tools this turn: none required (taste.md already Read). Do not call Read/Glob/Grep."
         )
     elif paper_read:
         if lang == "zh":
@@ -704,11 +707,13 @@ def system_prompt(
         )
     else:
         lines.append(_knowledge_map())
-    if rag and not survey and not taste_skill:
+    if rag and not survey:
+        # Silent inject only: profile + taste.summary (never full taste.md / papers)
         lines.append(
-            "System excerpts (already loaded — do NOT show/claim Read for these):\n" + rag
+            "System excerpts (profile + taste.summary only — do NOT show/claim Read for these):\n"
+            + rag
         )
-    # taste skill ~10k; paper excerpts ~6k each
+    # taste.md full skill ~10k; paper excerpts ~6k each (via extra_context after Read)
     extra_cap = URL_PREFETCH_CHARS * URL_PREFETCH_MAX + 2000
     if taste_skill:
         extra_cap += 16000
@@ -1654,7 +1659,7 @@ async def chat(
     rag = select_rag(req.message)
     # Reliable URL access: server pre-fetches links in the question
     fetched, prefetch_ui = await prefetch_urls(req.message)
-    # Full taste skill in system (no Read bubble — already in system prompt)
+    # Full taste.md via Read bubble (system only has taste.summary)
     taste_ctx, taste_ui = taste_skill_context(req.message)
     # Multi-source survey search — avoids broken native WebSearch
     survey_ctx, survey_ui = (
@@ -1675,8 +1680,8 @@ async def chat(
         paper_read=paper_read,
     )
     prompt = user_prompt(req.message, req.history)
-    # UI bubbles: paper Read (visible) / URL fetch / survey search
-    # Never emit Read for system-injected files (profile, taste.summary, taste.md)
+    # UI bubbles: taste.md Read / paper Read / URL fetch / survey search
+    # Never emit Read for system-only files (profile, taste.summary)
     ui_tool_items: List[dict] = []
     seen_ui: set = set()
     for item in list(paper_ui) + list(taste_ui) + list(prefetch_ui) + list(survey_ui):
