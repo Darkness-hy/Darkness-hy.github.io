@@ -14,6 +14,8 @@ knowledge/papers/*/INDEX.md. Relevant chunks are selected per query.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -27,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, Dict, List, Optional, Tuple
 import httpx
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -61,11 +63,10 @@ HISTORY_TURNS = int(os.environ.get("AGENT_HISTORY_TURNS", "8"))
 MSG_MAX_CHARS = int(os.environ.get("AGENT_MSG_MAX_CHARS", "2000"))
 TRUST_PROXY = os.environ.get("AGENT_TRUST_PROXY", "1").lower() not in ("0", "false", "no", "")
 BEARER = os.environ.get("AGENT_BEARER", os.environ.get("TUTOR_BEARER", ""))
-# Admin dashboard token (required for /admin). Separate from public chat bearer.
-ADMIN_TOKEN = (
-    os.environ.get("AGENT_ADMIN_TOKEN", "").strip()
-    or os.environ.get("AGENT_ADMIN_BEARER", "").strip()
-)
+# Admin dashboard password (required for /admin). No token — cookie session after login.
+ADMIN_PASSWORD = os.environ.get("AGENT_ADMIN_PASSWORD", "").strip()
+ADMIN_SESSION_DAYS = max(1, int(os.environ.get("AGENT_ADMIN_SESSION_DAYS", "14")))
+ADMIN_COOKIE = "agent_admin_session"
 LOG_DIR = os.environ.get("AGENT_LOG_DIR", str(ROOT / "logs"))
 # Legacy flag; prefer AGENT_LOG_CHAT (default on) for full message/reply logs.
 LOG_FULL = os.environ.get("AGENT_LOG_FULL", "0").lower() not in ("0", "false", "no", "")
@@ -1272,30 +1273,60 @@ def log_turn(rec: dict) -> None:
         pass
 
 
-def _admin_authorized(
-    authorization: Optional[str],
-    token_q: Optional[str],
-) -> bool:
-    if not ADMIN_TOKEN:
+def _admin_session_secret() -> bytes:
+    # Derived from password — no separate token secret.
+    material = f"homepage-agent-admin-v1:{ADMIN_PASSWORD}".encode("utf-8")
+    return hashlib.sha256(material).digest()
+
+
+def _make_admin_session() -> str:
+    exp = int(time.time()) + ADMIN_SESSION_DAYS * 86400
+    payload = str(exp)
+    sig = hmac.new(
+        _admin_session_secret(), payload.encode("utf-8"), hashlib.sha256
+    ).hexdigest()[:40]
+    return f"{payload}.{sig}"
+
+
+def _valid_admin_session(cookie: Optional[str]) -> bool:
+    if not ADMIN_PASSWORD or not cookie:
         return False
-    if token_q and token_q.strip() == ADMIN_TOKEN:
-        return True
-    if authorization and authorization.strip() == f"Bearer {ADMIN_TOKEN}":
-        return True
-    return False
+    try:
+        exp_s, sig = cookie.strip().split(".", 1)
+        exp = int(exp_s)
+        if exp < int(time.time()):
+            return False
+        expect = hmac.new(
+            _admin_session_secret(), exp_s.encode("utf-8"), hashlib.sha256
+        ).hexdigest()[:40]
+        return hmac.compare_digest(sig, expect)
+    except (ValueError, TypeError):
+        return False
 
 
-def _require_admin(
-    authorization: Optional[str] = None,
-    token: Optional[str] = None,
-) -> None:
-    if not ADMIN_TOKEN:
+def _password_ok(password: Optional[str]) -> bool:
+    if not ADMIN_PASSWORD or password is None:
+        return False
+    return hmac.compare_digest(
+        str(password).encode("utf-8"),
+        ADMIN_PASSWORD.encode("utf-8"),
+    )
+
+
+def _require_admin(request: Request) -> None:
+    if not ADMIN_PASSWORD:
         raise HTTPException(
             status_code=503,
-            detail="admin disabled (set AGENT_ADMIN_TOKEN)",
+            detail="admin disabled (set AGENT_ADMIN_PASSWORD)",
         )
-    if not _admin_authorized(authorization, token):
-        raise HTTPException(status_code=401, detail="unauthorized")
+    cookie = request.cookies.get(ADMIN_COOKIE)
+    if _valid_admin_session(cookie):
+        return
+    # Optional one-shot password header for scripts (not a public token)
+    pw = request.headers.get("X-Admin-Password")
+    if _password_ok(pw):
+        return
+    raise HTTPException(status_code=401, detail="unauthorized")
 
 
 def _chat_log_paths(days: Optional[int] = None) -> List[Path]:
@@ -2495,6 +2526,10 @@ async def frontend_tutor_css():
 
 # ── Admin: per-IP chat history ──────────────────────────────────────────────
 
+class AdminLoginRequest(BaseModel):
+    password: str = Field(default="", max_length=200)
+
+
 _ADMIN_HTML = """<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -2503,7 +2538,7 @@ _ADMIN_HTML = """<!DOCTYPE html>
 <meta name="robots" content="noindex,nofollow"/>
 <title>Agent Admin · chats</title>
 <style>
-  :root { --bg:#f7f3ea; --paper:#fffdf8; --ink:#1c1915; --muted:#6f675c; --line:#d9d2c5; --accent:#8b6914; --user:#1c1915; --bot:#fffdf8; }
+  :root { --bg:#f7f3ea; --paper:#fffdf8; --ink:#1c1915; --muted:#6f675c; --line:#d9d2c5; --accent:#8b6914; }
   * { box-sizing: border-box; }
   body { margin:0; font:14px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--ink); }
   header { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; justify-content:space-between;
@@ -2540,8 +2575,10 @@ _ADMIN_HTML = """<!DOCTYPE html>
 <body>
 <div id="login" class="login" hidden>
   <h2>Admin · 对话记录</h2>
-  <input id="tok" type="password" placeholder="AGENT_ADMIN_TOKEN" autocomplete="current-password"/>
-  <button id="go" type="button">进入</button>
+  <form id="loginForm">
+    <input id="pw" type="password" placeholder="密码" autocomplete="current-password" required/>
+    <button id="go" type="submit">登录</button>
+  </form>
   <div class="errbox" id="loginErr"></div>
 </div>
 <div id="app" hidden>
@@ -2574,16 +2611,15 @@ _ADMIN_HTML = """<!DOCTYPE html>
   </main>
 </div>
 <script>
-const KEY = 'agent_admin_token';
-let token = localStorage.getItem(KEY) || new URLSearchParams(location.search).get('token') || '';
 let selectedIp = '';
 let offset = 0;
 const LIMIT = 50;
 
-async function api(path) {
-  const r = await fetch(path, { headers: { Authorization: 'Bearer ' + token } });
+async function api(path, opts) {
+  const r = await fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}));
   if (r.status === 401) throw new Error('unauthorized');
   if (!r.ok) throw new Error(await r.text());
+  if (r.status === 204) return null;
   return r.json();
 }
 
@@ -2661,16 +2697,33 @@ async function loadTurns() {
   document.getElementById('next').disabled = offset + LIMIT >= data.total;
 }
 
-document.getElementById('go').onclick = async () => {
-  token = document.getElementById('tok').value.trim();
+document.getElementById('loginForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const password = document.getElementById('pw').value;
   try {
-    await api('/admin/api/ips?days=1');
-    localStorage.setItem(KEY, token);
-    showApp(); loadIps();
-  } catch (e) { showLogin('Token 无效或未配置'); }
+    const r = await fetch('/admin/api/login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!r.ok) {
+      showLogin(r.status === 401 ? '密码错误' : '登录失败');
+      return;
+    }
+    document.getElementById('pw').value = '';
+    showApp();
+    loadIps();
+  } catch (err) {
+    showLogin('网络错误');
+  }
 };
-document.getElementById('logout').onclick = () => {
-  localStorage.removeItem(KEY); token=''; selectedIp=''; showLogin('');
+document.getElementById('logout').onclick = async () => {
+  try {
+    await fetch('/admin/api/logout', { method: 'POST', credentials: 'same-origin' });
+  } catch (_) {}
+  selectedIp = '';
+  showLogin('');
 };
 document.getElementById('refresh').onclick = () => { loadIps(); if (selectedIp) loadTurns(); };
 document.getElementById('days').onchange = () => { offset=0; loadIps(); if (selectedIp) loadTurns(); };
@@ -2679,9 +2732,13 @@ document.getElementById('prev').onclick = () => { offset = Math.max(0, offset-LI
 document.getElementById('next').onclick = () => { offset += LIMIT; loadTurns(); };
 
 (async () => {
-  if (!token) { showLogin(''); return; }
-  try { await api('/admin/api/ips?days=1'); showApp(); loadIps(); }
-  catch { showLogin('请重新登录'); }
+  try {
+    await api('/admin/api/me');
+    showApp();
+    loadIps();
+  } catch {
+    showLogin('');
+  }
 })();
 </script>
 </body>
@@ -2689,9 +2746,22 @@ document.getElementById('next').onclick = () => { offset += LIMIT; loadTurns(); 
 """
 
 
+def _set_admin_cookie(response: Response, value: str, clear: bool = False) -> None:
+    max_age = 0 if clear else ADMIN_SESSION_DAYS * 86400
+    response.set_cookie(
+        key=ADMIN_COOKIE,
+        value="" if clear else value,
+        max_age=max_age,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/admin",
+    )
+
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page():
-    """Password-gated chat audit UI (token entered in page or ?token=)."""
+    """Password-gated chat audit UI (session cookie after login)."""
     return HTMLResponse(
         content=_ADMIN_HTML,
         headers={
@@ -2701,13 +2771,34 @@ async def admin_page():
     )
 
 
+@app.post("/admin/api/login")
+async def admin_login(body: AdminLoginRequest, response: Response):
+    if not ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=503,
+            detail="admin disabled (set AGENT_ADMIN_PASSWORD)",
+        )
+    if not _password_ok(body.password):
+        raise HTTPException(status_code=401, detail="wrong password")
+    _set_admin_cookie(response, _make_admin_session())
+    return {"ok": True}
+
+
+@app.post("/admin/api/logout")
+async def admin_logout(response: Response):
+    _set_admin_cookie(response, "", clear=True)
+    return {"ok": True}
+
+
+@app.get("/admin/api/me")
+async def admin_me(request: Request):
+    _require_admin(request)
+    return {"ok": True}
+
+
 @app.get("/admin/api/ips")
-async def admin_ips(
-    days: int = 14,
-    authorization: Optional[str] = Header(default=None),
-    token: Optional[str] = None,
-):
-    _require_admin(authorization, token)
+async def admin_ips(request: Request, days: int = 14):
+    _require_admin(request)
     days = max(1, min(int(days or 14), LOG_RETENTION_DAYS or 90))
     ips = await asyncio.to_thread(_ip_summary, days)
     return {
@@ -2720,21 +2811,19 @@ async def admin_ips(
 
 @app.get("/admin/api/turns")
 async def admin_turns(
+    request: Request,
     ip: str,
     day: Optional[str] = None,
     days: int = 30,
     limit: int = 50,
     offset: int = 0,
-    authorization: Optional[str] = Header(default=None),
-    token: Optional[str] = None,
 ):
-    _require_admin(authorization, token)
+    _require_admin(request)
     ip = (ip or "").strip()
     if not ip:
         raise HTTPException(status_code=400, detail="ip required")
     limit = max(1, min(int(limit or 50), 200))
     offset = max(0, int(offset or 0))
-    # If day set, filter that file; else scan recent days then filter ip
     days_n = max(1, min(int(days or 30), LOG_RETENTION_DAYS or 90))
     rows, total = await asyncio.to_thread(
         _iter_chat_logs,
@@ -2755,11 +2844,8 @@ async def admin_turns(
 
 
 @app.get("/admin/api/days")
-async def admin_days(
-    authorization: Optional[str] = Header(default=None),
-    token: Optional[str] = None,
-):
-    _require_admin(authorization, token)
+async def admin_days(request: Request):
+    _require_admin(request)
     days = []
     for p in _chat_log_paths():
         name = p.name  # chat-YYYY-MM-DD.jsonl
