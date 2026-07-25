@@ -41,7 +41,7 @@
       suggestions: [
         "What does Hongyu work on?",
         "What is Hongyu's research taste / beliefs?",
-        "How can I contact Hongyu?",
+        "Summarize Uni-LaViRA in one paragraph",
       ],
       busy: "The assistant is busy — try again in a moment.",
       network: "Could not reach the assistant.",
@@ -63,7 +63,7 @@
       suggestions: [
         "Hongyu 目前研究什么？",
         "Hongyu 的 research taste / 信念是什么？",
-        "如何联系 Hongyu？",
+        "用一段话概括 Uni-LaViRA",
       ],
       busy: "助理正忙，请稍后再试。",
       network: "无法连接助理服务。",
