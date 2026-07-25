@@ -1,27 +1,55 @@
 # Homepage AI agent (茜茜)
 
-Claude Code headless harness (`claude -p --system-prompt …`, no default Claude Code system boilerplate) targeting **DeepSeek v4 Flash**, plus local RAG over paper TeX + profile + taste notes.
+Claude Code headless harness (`claude -p --system-prompt …`) targeting **DeepSeek v4 Flash**, with server-side RAG over profile / taste / paper indexes.
 
-`AGENT_HARNESS=claude-code` (current prod): headless Claude Code against DeepSeek Anthropic-compat, with tools:
+## Tools (aligned with free Claude Code multi-call use)
 
-- **Read / Glob / Grep** — local `knowledge/` (profile, taste, paper TeX) and optional `AGENT_CC_ADD_DIRS`
-- **web_search (MCP)** — multi-source free search via `mcp_websearch.py` (Wikipedia + arXiv + OpenAlex + DuckDuckGo; no API key)
-- **WebSearch / WebFetch** — Claude-native tools when the model backend supports them  
-- **No Bash/Edit** on the public homepage agent  
+| Tool | How | Notes |
+|------|-----|--------|
+| **web_search** (MCP) | Model may call **many times** | Wikipedia + arXiv + OpenAlex + Crossref; optional Brave / Serper / SearXNG via env |
+| **web_fetch** (MCP) | Model may call **many times** | Public URL → text |
+| Server survey prefetch | Automatic for field surveys | Same multi-source stack; UI shows `WebSearch(...)` |
+| Server paper / taste inject | Automatic | UI shows `Read(knowledge/…)` when relevant |
+| **No** Bash / Edit / Write | Denied | |
+| **No** Glob / Grep / model Read | Default | Local FS not exposed to the model |
 
-Frontend: each tool call / tool result is a **separate chat bubble**; final answer is another bubble.
+Native Claude `WebSearch` / `WebFetch` are **disabled** (unreliable on DeepSeek Anthropic gateway).
 
-Uses an **isolated settings file** so global `~/.claude/settings.json` (e.g. local cli-proxy on `:8317`) cannot hijack the request. Do **not** use `--bare` if you need WebSearch (it strips those tools).
+Tool descriptions in MCP match CC-style “use freely / multiple times” guidance; the system prompt does **not** impose a tool-call budget.
 
-`http`: direct DeepSeek OpenAI-compatible streaming (fallback if Claude Code fails).
+## Search backends
 
-`auto`: Claude Code first, then HTTP. Intermediate `status` / `thinking` / `tool` SSE events stream to the frontend when present (thinking only if `AGENT_THINKING` enabled).
+Default (no API key):
 
-## Run
+1. Wikipedia  
+2. arXiv  
+3. OpenAlex  
+4. Crossref  
+
+Optional env: `BRAVE_API_KEY`, `SERPER_API_KEY`, `SEARXNG_URL`.
+
+DuckDuckGo was removed (low quality for this use case).
+
+## Isolation user `xixi`
+
+Production should run as system user **xixi** with:
+
+- Readonly knowledge at `/var/lib/xixi/knowledge`
+- Secrets in `/etc/homepage-agent/env` (mode `0640` root:xixi) — **not** under knowledge or git
+- Logs at `/var/lib/xixi/logs` (metadata-only unless `AGENT_LOG_FULL=1`)
+- `AGENT_CC_TOOLS=` and `AGENT_CC_ADD_DIR=0`
+
+```bash
+sudo bash agent/deploy/setup_xixi.sh
+sudo systemctl enable --now homepage-agent
+sudo systemctl status homepage-agent
+```
+
+## Run (dev)
 
 ```bash
 cd agent
-cp .env.example .env   # set DEEPSEEK_API_KEY
+cp .env.example .env   # set DEEPSEEK_API_KEY; chmod 600 .env
 ./run.sh
 ```
 
@@ -39,17 +67,15 @@ Static site loads `assets/js/tutor.js`. Override endpoints before the script:
 </script>
 ```
 
-Deploy this `agent/` service behind HTTPS and point the homepage at it. Do not reuse the course tutor system prompt on the same process without separating configs.
+## Knowledge
 
-## Knowledge (RAG)
-
-- `knowledge/profile.md` — bio, education, paper list, contact
-- `knowledge/taste.md` — Hongyu insight/taste skill
-- `knowledge/papers/<arxiv-id>/` — original TeX (+ `INDEX.md` extract)
+- `knowledge/profile.md` — bio / paper list (system inject)
+- `knowledge/taste.summary.md` — short taste (system inject)
+- `knowledge/taste.md` — full skill (server Read bubble on research-taste questions)
+- `knowledge/papers/<arxiv-id>/INDEX.md` — paper extracts (server Read bubble)
 
 ## Notes
 
 - System prompt is minimal; name「茜茜」/ Cici is only revealed when asked.
-- Collapsed FAB uses the **greeting** avatar (not sleeping).
-- Status light: green online / red offline / amber checking.
-- Empty-state and placeholder copy: **Ask me anything**.
+- Isolated Claude settings dir so `~/.claude` proxy cannot hijack the model.
+- Default logs: metadata only (`msg_chars`, `reply_chars`, status, timing) — no full prompts/tools/secrets.

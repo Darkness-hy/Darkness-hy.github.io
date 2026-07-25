@@ -58,16 +58,18 @@ TEMPERATURE = float(os.environ.get("AGENT_TEMPERATURE", "0.3"))
 THINKING = os.environ.get("AGENT_THINKING", "disabled").strip().lower()
 # Stream intermediate process events (status/thinking/tool) to the browser.
 STREAM_PROCESS = os.environ.get("AGENT_STREAM_PROCESS", "1").lower() not in ("0", "false", "no", "")
-# Claude Code tools (comma-separated). No Bash/Edit.
-# Omit native WebSearch/WebFetch — they often fail on DeepSeek Anthropic gateway
-# ("no WebSearch tool"). Use MCP web_search / web_fetch + server prefetch instead.
-_DEFAULT_CC_TOOLS = "Read,Glob,Grep"
+# Claude Code built-in tools (comma-separated). Default: none.
+# Local file access is server-side only (taste.md / papers inject). Model tools:
+# MCP web_search + web_fetch only — free multi-call like Claude Code.
+# Omit native WebSearch/WebFetch (broken on DeepSeek Anthropic gateway).
+# Set AGENT_CC_TOOLS=Read to re-enable local Read (not recommended on shared hosts).
+_DEFAULT_CC_TOOLS = ""
 CC_TOOLS = [
     t.strip()
     for t in os.environ.get("AGENT_CC_TOOLS", _DEFAULT_CC_TOOLS).split(",")
     if t.strip()
 ]
-# Survey queries: server-side DDG search injected into context (reliable).
+# Survey queries: server-side multi-source search injected into context (reliable).
 SURVEY_PREFETCH = os.environ.get("AGENT_SURVEY_PREFETCH", "1").lower() not in (
     "0",
     "false",
@@ -75,11 +77,14 @@ SURVEY_PREFETCH = os.environ.get("AGENT_SURVEY_PREFETCH", "1").lower() not in (
     "",
 )
 # Extra dirs for Read beyond knowledge/ (comma-separated absolute paths).
+# Leave empty under the xixi isolation user.
 CC_ADD_DIRS = [
     p.strip()
     for p in os.environ.get("AGENT_CC_ADD_DIRS", "").split(",")
     if p.strip()
 ]
+# When no local CC tools, do not pass --add-dir (hardens FS exposure).
+CC_ENABLE_ADD_DIR = os.environ.get("AGENT_CC_ADD_DIR", "auto").strip().lower()
 # Pre-fetch http(s) URLs from the user message into context (reliable vs model skipping tools).
 URL_PREFETCH = os.environ.get("AGENT_URL_PREFETCH", "1").lower() not in ("0", "false", "no", "")
 URL_PREFETCH_MAX = int(os.environ.get("AGENT_URL_PREFETCH_MAX", "3"))
@@ -599,7 +604,7 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
 
 
 def _knowledge_map() -> str:
-    """Only taste.md + papers/ are Read-able; profile/summary come via system only."""
+    """Tool map aligned with Claude Code free multi-tool use (MCP web only)."""
     papers_dir = KNOWLEDGE_DIR / "papers"
     paper_ids: List[str] = []
     if papers_dir.exists():
@@ -608,18 +613,16 @@ def _knowledge_map() -> str:
         f"{aliases[0]}→{aid}" for aid, aliases in _PAPER_CATALOG
     )
     lines = [
-        "Local Read allow-list (ONLY these; never Read profile.md / taste.summary.md):",
-        f"- knowledge/taste.md — full hongyu-insight-taste skill "
-        "(Read when visitor asks research taste / beliefs)",
-        f"- knowledge/papers/<arxiv-id>/INDEX.md — one paper at a time; ids: {', '.join(paper_ids)}",
-        f"  aliases: {catalog}",
-        "System may include profile + taste.summary only — do not re-Read those.",
-        "Tools:",
-        "- Research taste / beliefs → context has Read(taste.md); answer from it.",
-        "- Named Hongyu paper → context may already have Read(papers/.../INDEX.md); use it.",
-        "- Field survey → Web search results only; do not Read papers.",
-        "- URL → Fetched pages or MCP web_fetch.",
-        "- No Bash/Edit/Glob spam. Do not invent citations.",
+        "Tools (use freely, multiple times, like Claude Code — no artificial call limit):",
+        "- web_search — Wikipedia + arXiv + OpenAlex + Crossref "
+        "(+ optional Brave/Serper/SearXNG). Call again with refined queries anytime.",
+        "- web_fetch — open a specific URL/paper page for more text.",
+        "Local files are NOT model-Read (server injects when needed):",
+        "- profile + taste.summary may appear as system excerpts (do not claim you Read them).",
+        "- Research taste / beliefs → server already Read knowledge/taste.md into context.",
+        f"- Named paper → server already Read knowledge/papers/<id>/INDEX.md "
+        f"(ids: {', '.join(paper_ids)}; aliases: {catalog}).",
+        "No Bash / Edit / Glob / Grep / local filesystem tools. Do not invent citations.",
     ]
     return "\n".join(lines)
 
@@ -639,72 +642,63 @@ def system_prompt(
             "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到才说。",
             "【强制精简】默认 2–4 句 / ≤80 汉字；先结论。禁止长文、多级分点、领域综述式铺陈。"
             "访客说「详细/展开」才可加长。最多 1 个 emoji。不编造。本轮简体中文。",
-            "【本地 Read 白名单】只能 Read knowledge/taste.md 与 knowledge/papers/**；"
-            "禁止 Read profile.md / taste.summary.md（它们若需要已在 system 中）。"
-            "【工具】联网用 MCP web_search / web_fetch（不要用已禁用的原生 WebSearch）。"
-            "调研题若上下文已有「Web search results」段落，直接用它回答，不要说没有搜索工具。"
-            "论文题若上下文已有 Paper sources，直接用它回答。"
-            "禁止说没有浏览器。",
+            "【工具·对齐 Claude Code】可自由多次调用 MCP web_search / web_fetch（无次数上限）；"
+            "需要更多事实就再搜、再 fetch。禁用原生 WebSearch。"
+            "本地无 Read/Glob/Grep/Bash；论文与 taste 由服务端注入。"
+            "上下文若有 Web search results / Paper sources / taste skill，优先使用，可再补充搜索。"
+            "禁止说没有浏览器或没有搜索工具。",
         ]
     else:
         lines = [
             "You are Cici (茜茜) on Hongyu Ding's homepage. Name yourself only if asked.",
             "Conciseness mandatory: 2–4 short sentences / ~60 words default. Lead with the answer. "
             "No long essays or multi-level bullet dumps unless the visitor asks for detail. ≤1 emoji. English this turn.",
-            "LOCAL READ ALLOW-LIST: only knowledge/taste.md and knowledge/papers/**. "
-            "Never Read profile.md or taste.summary.md (already in system when needed). "
-            "TOOLS: MCP web_search / web_fetch for the open web (native WebSearch disabled). "
-            "If context has 'Web search results' or 'Paper sources', use them. "
-            "Never claim search/read is unavailable.",
+            "TOOLS (Claude Code style): freely call MCP web_search / web_fetch as many times as needed "
+            "(no call budget). Refine queries and fetch key URLs. Native WebSearch is disabled. "
+            "No local Read/Glob/Grep/Bash — paper and taste files are server-injected when relevant. "
+            "If context already has Web search results / Paper sources / taste skill, use them; "
+            "you may still web_search for gaps. Never claim search is unavailable.",
         ]
     if taste_skill:
         if lang == "zh":
             lines.append(
-                "【本轮=research taste / 信念】已 Read knowledge/taste.md（完整 hongyu-insight-taste skill）。"
-                "system 里只有 taste 摘要；必须以 Read 到的完整 skill 回答："
-                "insight 标准、判断启发式、写作/叙事偏好；2–5 句，先结论。"
-                "禁止编造具体项目名/论文名/工具名。本轮不要再 Read 其他本地文件。"
+                "【本轮=research taste / 信念】服务端已注入完整 taste.md skill。"
+                "system 里只有 taste 摘要；必须以完整 skill 回答：insight 标准、判断启发式、写作偏好；"
+                "2–5 句，先结论。禁止编造项目名/论文名/工具名。本轮不必 web_search。"
             )
         else:
             lines.append(
-                "TASTE SKILL TURN: knowledge/taste.md was Read (full hongyu-insight-taste skill). "
-                "System only has the short taste summary; answer from the full skill content: "
-                "insight standards, judgment heuristics, writing/narrative taste. "
-                "2–5 sentences; lead with the point. Do not invent project/paper/tool names. "
-                "Do not Read other local files this turn."
+                "TASTE SKILL TURN: full taste.md skill is already in context (server Read). "
+                "System only has the short summary; answer from the full skill: insight standards, "
+                "judgment heuristics, writing taste. 2–5 sentences. No invented project/paper names. "
+                "No web_search needed this turn."
             )
-        lines.append(
-            "Tools this turn: none required (taste.md already Read). Do not call Read/Glob/Grep."
-        )
     elif paper_read:
         if lang == "zh":
             lines.append(
-                "【本轮=论文】上下文已有 Paper sources（对应 INDEX 摘录）。"
-                "只根据这些内容用 1 段 / 2–4 句概括；不要再 Read 其他文件，不要编造实验数字。"
+                "【本轮=论文】上下文已有 Paper sources（INDEX 摘录）。"
+                "用 1 段 / 2–4 句概括；不要编造实验数字。一般无需再搜；缺公开页可用 web_fetch。"
             )
         else:
             lines.append(
-                "PAPER TURN: Paper sources are already in context (INDEX excerpts). "
-                "Summarize from them in one short paragraph / 2–4 sentences. "
-                "Do not Read other files; do not invent numbers."
+                "PAPER TURN: Paper sources are already in context. "
+                "Summarize in one short paragraph / 2–4 sentences. Do not invent numbers. "
+                "Usually no search needed; web_fetch a public project page only if useful."
             )
-        lines.append(
-            "Tools this turn: none required (paper already Read). Do not call Read/Glob/Grep."
-        )
     elif survey:
         if lang == "zh":
             lines.append(
-                "【本轮=领域调研】上下文已有 Web search results：只根据这些结果用 2–4 句回答（定义、趋势、1 个开放问题）。"
-                "本轮禁止 Read 任何本地文件。Hongyu 相关最多半句。"
+                "【本轮=领域调研】上下文可能已有 Web search results 作起点。"
+                "用 2–4 句答（定义、趋势、1 个开放问题）。可像 Claude Code 一样再 web_search / web_fetch 补全。"
+                "Hongyu 相关最多半句。不要读本地论文。"
             )
         else:
             lines.append(
-                "FIELD SURVEY: Web search results are already in context. Answer in 2–4 sentences only. "
-                "Do NOT Read any local files this turn. At most half a sentence on Hongyu."
+                "FIELD SURVEY: Web search results may already be prefetched as a starting point. "
+                "Answer in 2–4 sentences (definition, trends, one open problem). "
+                "Freely web_search / web_fetch again like Claude Code if results are thin. "
+                "At most half a sentence on Hongyu. No local paper files."
             )
-        lines.append(
-            "Tools this turn: none required (results prefetched). Do not call Read/Glob/Grep."
-        )
     else:
         lines.append(_knowledge_map())
     if rag and not survey:
@@ -813,8 +807,8 @@ def survey_search_context(message: str) -> Tuple[str, List[dict]]:
         }
     )
     blocks: List[str] = [
-        "# Web search results (multi-source: Wikipedia + arXiv + OpenAlex + DDG — "
-        "use these; do not claim no WebSearch)",
+        "# Web search results (multi-source: Wikipedia + arXiv + OpenAlex + Crossref "
+        "[+ optional Brave/Serper/SearXNG] — use freely; may web_search again)",
         f"## query: {query}",
     ]
     seen_urls: set = set()
@@ -912,13 +906,31 @@ def sse(obj: dict) -> str:
 
 
 def log_turn(rec: dict) -> None:
+    """Append metadata-only chat log. Never write secrets or full tool dumps.
+
+    LOG_FULL=1 adds truncated message/reply only (still no env / API keys).
+    """
     if not LOG_DIR:
         return
+    # Hard strip any accidental secret-looking fields
+    safe = {k: v for k, v in rec.items() if k.lower() not in {
+        "api_key", "authorization", "deepseek_api_key", "anthropic_api_key",
+        "env", "system_prompt", "sys_prompt", "tool_result", "raw",
+    }}
+    if not LOG_FULL:
+        safe.pop("message", None)
+        safe.pop("reply", None)
+    else:
+        # Cap full-mode payloads
+        if isinstance(safe.get("message"), str) and len(safe["message"]) > 500:
+            safe["message"] = safe["message"][:500] + "…"
+        if isinstance(safe.get("reply"), str) and len(safe["reply"]) > 800:
+            safe["reply"] = safe["reply"][:800] + "…"
     try:
         Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         with open(Path(LOG_DIR) / f"chat-{day}.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            f.write(json.dumps(safe, ensure_ascii=False) + "\n")
     except OSError:
         pass
 
@@ -1084,21 +1096,39 @@ def _claude_isolated_settings() -> Tuple[str, str, Optional[str]]:
             "no_proxy": "*",
         },
         "permissions": {
-            # Headless allow-list (also pass --dangerously-skip-permissions).
-            "allow": [
-                "Read(*)",
-                "Glob(*)",
-                "Grep(*)",
-                "mcp__websearch__web_search",
-                "mcp__websearch__web_fetch",
-                "mcp__websearch__*",
-            ],
+            # Headless allow-list. Local FS tools only if CC_TOOLS includes them.
+            "allow": (
+                [
+                    *(
+                        [f"{t}(*)" for t in CC_TOOLS if t in ("Read", "Glob", "Grep")]
+                    ),
+                    "mcp__websearch__web_search",
+                    "mcp__websearch__web_fetch",
+                    "mcp__websearch__*",
+                ]
+            ),
             "deny": [
                 "Bash(*)",
                 "Edit(*)",
                 "Write(*)",
                 "MultiEdit(*)",
                 "NotebookEdit(*)",
+                # Hard-deny local discovery unless explicitly re-enabled in CC_TOOLS
+                *(
+                    []
+                    if "Glob" in CC_TOOLS
+                    else ["Glob(*)"]
+                ),
+                *(
+                    []
+                    if "Grep" in CC_TOOLS
+                    else ["Grep(*)"]
+                ),
+                *(
+                    []
+                    if "Read" in CC_TOOLS
+                    else ["Read(*)"]
+                ),
             ],
         },
         "effortLevel": EFFORT if EFFORT in ("low", "medium", "high") else "low",
@@ -1157,18 +1187,24 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
     env["CLAUDE_CODE_SIMPLE"] = "1"
 
     # Isolation via CLAUDE_CONFIG_DIR + --settings (DeepSeek, not local proxy).
-    # Native WebSearch/WebFetch omitted — use MCP web_search/web_fetch.
-    # Local Read allow-list is taste.md + papers/ (enforced in system prompt);
-    # only expose knowledge/ — not the whole code tree.
-    tools = CC_TOOLS or ["Read", "Glob", "Grep"]
-    add_dirs: List[str] = [str(KNOWLEDGE_DIR.resolve())]
-    for d in CC_ADD_DIRS:
-        p = Path(d)
-        if p.exists():
-            add_dirs.append(str(p.resolve()))
-    # de-dupe preserve order
-    seen = set()
-    add_dirs = [d for d in add_dirs if not (d in seen or seen.add(d))]
+    # Built-in tools: only those in CC_TOOLS (default empty).
+    # MCP web_search / web_fetch always available via mcp-config.
+    # Local knowledge is server-injected — no --add-dir by default.
+    tools = list(CC_TOOLS)
+    enable_add = CC_ENABLE_ADD_DIR
+    if enable_add == "auto":
+        enable_add_dir = bool(tools) or bool(CC_ADD_DIRS)
+    else:
+        enable_add_dir = enable_add not in ("0", "false", "no", "off")
+    add_dirs: List[str] = []
+    if enable_add_dir:
+        add_dirs.append(str(KNOWLEDGE_DIR.resolve()))
+        for d in CC_ADD_DIRS:
+            p = Path(d)
+            if p.exists():
+                add_dirs.append(str(p.resolve()))
+        seen: set = set()
+        add_dirs = [d for d in add_dirs if not (d in seen or seen.add(d))]
 
     cmd = [
         CLAUDE_BIN,
@@ -1179,8 +1215,6 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
         MODEL,
         "--effort",
         EFFORT,
-        "--tools",
-        *tools,
         "--dangerously-skip-permissions",
         "--system-prompt",
         sys_prompt,  # full replace of default system prompt
@@ -1190,6 +1224,11 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
         "--include-partial-messages",
         "--no-session-persistence",
     ]
+    # Empty --tools can error; omit flag when no built-ins (MCP still works).
+    if tools:
+        cmd.extend(["--tools", *tools])
+    else:
+        cmd.extend(["--tools", ""])  # explicit none; MCP tools still from mcp-config
     if mcp_config_path:
         cmd.extend(["--mcp-config", mcp_config_path])
     for d in add_dirs:
@@ -1718,6 +1757,7 @@ async def chat(
                     yield frame
         finally:
             _inflight -= 1
+            # Metadata-only by default (no full prompt/tools/secrets).
             rec = {
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "ip": ip,
@@ -1726,7 +1766,12 @@ async def chat(
                 "ms": int((time.time() - started) * 1000),
                 "rag_chars": len(rag),
                 "sys_chars": len(sys_p),
+                "reply_chars": len("".join(reply_parts)),
+                "msg_chars": len(req.message or ""),
                 "harness": HARNESS,
+                "taste_skill": taste_skill,
+                "paper_read": paper_read,
+                "survey": survey,
             }
             if LOG_FULL:
                 rec["message"] = req.message
