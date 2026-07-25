@@ -31,7 +31,7 @@
       checking: "Checking…",
       topic: "Ask me anything",
       empty:
-        "Hi, I'm the AI assistant on Hongyu Ding's homepage. I can talk about research and papers, and also about taste and beliefs — how he judges ideas, evidence, writing, design, and what counts as good work. Ask me anything.",
+        "Hi, I'm the AI assistant on Hongyu Ding's homepage. Ask about research, papers, or his taste and beliefs.",
       placeholder: "Ask me anything…",
       send: "send",
       stop: "stop",
@@ -53,7 +53,7 @@
       checking: "检测中…",
       topic: "Ask me anything",
       empty:
-        "你好，我是 Hongyu Ding 个人主页上的 AI 助理。除了研究、论文与合作，也可以聊 taste 与信念：如何判断想法、证据、写作与设计，以及什么算好工作。有什么都可以问我。",
+        "你好，我是 Hongyu Ding 个人主页上的 AI 助理。研究、论文，或 taste 与信念，都可以问我。",
       placeholder: "Ask me anything…",
       send: "发送",
       stop: "停止",
