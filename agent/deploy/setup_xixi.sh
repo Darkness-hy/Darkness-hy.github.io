@@ -84,6 +84,9 @@ AGENT_CC_ADD_DIRS=
 AGENT_SURVEY_PREFETCH=0
 AGENT_URL_PREFETCH=1
 AGENT_LOG_FULL=0
+AGENT_LOG_CHAT=1
+# Set a strong secret; required for /admin chat audit UI
+AGENT_ADMIN_TOKEN=${AGENT_ADMIN_TOKEN:-}
 AGENT_KNOWLEDGE_DIR=${KNOWLEDGE_DST}
 AGENT_LOG_DIR=${LOG_DST}
 # Cost / abuse guards (tune in env if needed)

@@ -29,7 +29,7 @@ from typing import AsyncIterator, Dict, List, Optional, Tuple
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -61,8 +61,20 @@ HISTORY_TURNS = int(os.environ.get("AGENT_HISTORY_TURNS", "8"))
 MSG_MAX_CHARS = int(os.environ.get("AGENT_MSG_MAX_CHARS", "2000"))
 TRUST_PROXY = os.environ.get("AGENT_TRUST_PROXY", "1").lower() not in ("0", "false", "no", "")
 BEARER = os.environ.get("AGENT_BEARER", os.environ.get("TUTOR_BEARER", ""))
+# Admin dashboard token (required for /admin). Separate from public chat bearer.
+ADMIN_TOKEN = (
+    os.environ.get("AGENT_ADMIN_TOKEN", "").strip()
+    or os.environ.get("AGENT_ADMIN_BEARER", "").strip()
+)
 LOG_DIR = os.environ.get("AGENT_LOG_DIR", str(ROOT / "logs"))
+# Legacy flag; prefer AGENT_LOG_CHAT (default on) for full message/reply logs.
 LOG_FULL = os.environ.get("AGENT_LOG_FULL", "0").lower() not in ("0", "false", "no", "")
+# Always log visitor message + assistant reply for admin audit (default ON).
+LOG_CHAT = os.environ.get("AGENT_LOG_CHAT", "1").lower() not in ("0", "false", "no", "")
+LOG_MSG_CHARS = int(os.environ.get("AGENT_LOG_MSG_CHARS", "4000"))
+LOG_REPLY_CHARS = int(os.environ.get("AGENT_LOG_REPLY_CHARS", "12000"))
+# How many days of chat-*.jsonl to keep when scanning admin (soft bound).
+LOG_RETENTION_DAYS = int(os.environ.get("AGENT_LOG_RETENTION_DAYS", "90"))
 # Persist daily/hourly counters across restarts (under LOG_DIR).
 QUOTA_FILE = Path(
     os.environ.get("AGENT_QUOTA_FILE", str(Path(LOG_DIR) / "quota.json"))
@@ -1219,26 +1231,38 @@ def sse(obj: dict) -> str:
 
 
 def log_turn(rec: dict) -> None:
-    """Append metadata-only chat log. Never write secrets or full tool dumps.
+    """Append chat log line (JSONL). Never write secrets or system prompts.
 
-    LOG_FULL=1 adds truncated message/reply only (still no env / API keys).
+    Default (LOG_CHAT=1): stores visitor message + assistant reply per IP for admin.
+    LOG_FULL is legacy alias for the same full fields with tighter caps.
     """
     if not LOG_DIR:
         return
     # Hard strip any accidental secret-looking fields
-    safe = {k: v for k, v in rec.items() if k.lower() not in {
-        "api_key", "authorization", "deepseek_api_key", "anthropic_api_key",
-        "env", "system_prompt", "sys_prompt", "tool_result", "raw",
-    }}
-    if not LOG_FULL:
+    ban = {
+        "api_key",
+        "authorization",
+        "deepseek_api_key",
+        "anthropic_api_key",
+        "env",
+        "system_prompt",
+        "sys_prompt",
+        "tool_result",
+        "raw",
+        "sys_p",
+    }
+    safe = {k: v for k, v in rec.items() if k.lower() not in ban}
+    store_body = LOG_CHAT or LOG_FULL
+    if not store_body:
         safe.pop("message", None)
         safe.pop("reply", None)
     else:
-        # Cap full-mode payloads
-        if isinstance(safe.get("message"), str) and len(safe["message"]) > 500:
-            safe["message"] = safe["message"][:500] + "…"
-        if isinstance(safe.get("reply"), str) and len(safe["reply"]) > 800:
-            safe["reply"] = safe["reply"][:800] + "…"
+        msg_cap = LOG_MSG_CHARS if LOG_CHAT else min(500, LOG_MSG_CHARS)
+        rep_cap = LOG_REPLY_CHARS if LOG_CHAT else min(800, LOG_REPLY_CHARS)
+        if isinstance(safe.get("message"), str) and len(safe["message"]) > msg_cap:
+            safe["message"] = safe["message"][:msg_cap] + "…"
+        if isinstance(safe.get("reply"), str) and len(safe["reply"]) > rep_cap:
+            safe["reply"] = safe["reply"][:rep_cap] + "…"
     try:
         Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -1246,6 +1270,136 @@ def log_turn(rec: dict) -> None:
             f.write(json.dumps(safe, ensure_ascii=False) + "\n")
     except OSError:
         pass
+
+
+def _admin_authorized(
+    authorization: Optional[str],
+    token_q: Optional[str],
+) -> bool:
+    if not ADMIN_TOKEN:
+        return False
+    if token_q and token_q.strip() == ADMIN_TOKEN:
+        return True
+    if authorization and authorization.strip() == f"Bearer {ADMIN_TOKEN}":
+        return True
+    return False
+
+
+def _require_admin(
+    authorization: Optional[str] = None,
+    token: Optional[str] = None,
+) -> None:
+    if not ADMIN_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="admin disabled (set AGENT_ADMIN_TOKEN)",
+        )
+    if not _admin_authorized(authorization, token):
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+
+def _chat_log_paths(days: Optional[int] = None) -> List[Path]:
+    root = Path(LOG_DIR)
+    if not root.is_dir():
+        return []
+    paths = sorted(root.glob("chat-*.jsonl"), reverse=True)
+    if days is not None and days > 0:
+        paths = paths[:days]
+    elif LOG_RETENTION_DAYS > 0:
+        paths = paths[:LOG_RETENTION_DAYS]
+    return paths
+
+
+def _iter_chat_logs(
+    *,
+    day: Optional[str] = None,
+    ip: Optional[str] = None,
+    days: Optional[int] = None,
+    limit: int = 500,
+    offset: int = 0,
+) -> Tuple[List[dict], int]:
+    """Read chat JSONL logs. Returns (rows newest-first page, total_matched)."""
+    rows: List[dict] = []
+    paths = _chat_log_paths(days=days)
+    if day:
+        paths = [p for p in paths if p.name == f"chat-{day}.jsonl"]
+    ip_f = (ip or "").strip() or None
+    for path in paths:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            if ip_f and str(rec.get("ip") or "") != ip_f:
+                continue
+            rows.append(rec)
+    # Newest first
+    rows.sort(key=lambda r: str(r.get("ts") or ""), reverse=True)
+    total = len(rows)
+    start = max(0, int(offset))
+    end = start + max(1, min(int(limit), 2000))
+    return rows[start:end], total
+
+
+def _ip_summary(days: int = 14) -> List[dict]:
+    """Aggregate turns per IP across recent log days."""
+    from collections import Counter, defaultdict
+
+    counts: Counter = Counter()
+    last_ts: Dict[str, str] = {}
+    first_ts: Dict[str, str] = {}
+    msg_preview: Dict[str, str] = {}
+    status_c: Dict[str, Counter] = defaultdict(Counter)
+
+    for path in _chat_log_paths(days=max(1, days)):
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            ip = str(rec.get("ip") or "unknown")
+            counts[ip] += 1
+            ts = str(rec.get("ts") or "")
+            if ts:
+                if ip not in last_ts or ts > last_ts[ip]:
+                    last_ts[ip] = ts
+                    if rec.get("message"):
+                        msg_preview[ip] = str(rec["message"])[:120]
+                if ip not in first_ts or ts < first_ts[ip]:
+                    first_ts[ip] = ts
+            status_c[ip][str(rec.get("status") or "?")] += 1
+
+    out = []
+    for ip, n in counts.most_common():
+        out.append(
+            {
+                "ip": ip,
+                "turns": n,
+                "first_ts": first_ts.get(ip),
+                "last_ts": last_ts.get(ip),
+                "last_message": msg_preview.get(ip, ""),
+                "status": dict(status_c.get(ip) or {}),
+            }
+        )
+    return out
 
 
 def _proc(kind: str, text: str, **extra) -> Tuple[str, str]:
@@ -2338,6 +2492,282 @@ async def frontend_tutor_css():
         headers={"Cache-Control": "no-store"},
     )
 
+
+# ── Admin: per-IP chat history ──────────────────────────────────────────────
+
+_ADMIN_HTML = """<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Agent Admin · chats</title>
+<style>
+  :root { --bg:#f7f3ea; --paper:#fffdf8; --ink:#1c1915; --muted:#6f675c; --line:#d9d2c5; --accent:#8b6914; --user:#1c1915; --bot:#fffdf8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; justify-content:space-between;
+    padding:.75rem 1rem; border-bottom:1px solid var(--line); background:var(--paper); position:sticky; top:0; z-index:5; }
+  h1 { margin:0; font-size:1rem; font-weight:650; }
+  .row { display:flex; flex-wrap:wrap; gap:.45rem; align-items:center; }
+  input, select, button { font:inherit; padding:.35rem .55rem; border:1px solid var(--line); border-radius:.4rem; background:#fff; color:var(--ink); }
+  button { cursor:pointer; background:var(--ink); color:#fff; border-color:var(--ink); }
+  button.ghost { background:transparent; color:var(--muted); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  main { display:grid; grid-template-columns: minmax(240px,320px) 1fr; min-height:calc(100vh - 52px); }
+  @media (max-width:800px) { main { grid-template-columns:1fr; } }
+  aside { border-right:1px solid var(--line); overflow:auto; max-height:calc(100vh - 52px); background:color-mix(in srgb,var(--paper) 80%,var(--bg)); }
+  .ip { display:block; width:100%; text-align:left; padding:.55rem .75rem; border:0; border-bottom:1px solid var(--line);
+    background:transparent; color:inherit; border-radius:0; cursor:pointer; }
+  .ip:hover, .ip.active { background:color-mix(in srgb,var(--accent) 12%,transparent); }
+  .ip .meta { color:var(--muted); font-size:.72rem; margin-top:.15rem; }
+  .ip .preview { color:var(--muted); font-size:.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  section { padding:1rem; overflow:auto; max-height:calc(100vh - 52px); }
+  .empty { color:var(--muted); padding:2rem 0; }
+  .turn { margin:0 0 .9rem; padding:.7rem .85rem; border:1px solid var(--line); border-radius:.65rem; background:var(--paper); }
+  .turn .bar { display:flex; flex-wrap:wrap; gap:.5rem; color:var(--muted); font-size:.72rem; margin-bottom:.4rem; }
+  .turn .msg { margin:.25rem 0; white-space:pre-wrap; word-break:break-word; }
+  .turn .msg b { color:var(--accent); font-weight:650; font-size:.75rem; display:block; margin-bottom:.15rem; }
+  .badge { display:inline-block; padding:.05rem .35rem; border-radius:.25rem; background:color-mix(in srgb,var(--ink) 8%,transparent); }
+  .badge.err { background:color-mix(in srgb,#c62828 15%,transparent); color:#8b1515; }
+  .login { max-width:360px; margin:12vh auto; padding:1.25rem; border:1px solid var(--line); border-radius:.75rem; background:var(--paper); }
+  .login h2 { margin:0 0 .75rem; font-size:1rem; }
+  .login input { width:100%; margin-bottom:.55rem; }
+  .errbox { color:#8b1515; font-size:.82rem; margin-top:.4rem; }
+  #pager { display:flex; gap:.4rem; align-items:center; margin-top:.5rem; color:var(--muted); font-size:.8rem; }
+</style>
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <h2>Admin · 对话记录</h2>
+  <input id="tok" type="password" placeholder="AGENT_ADMIN_TOKEN" autocomplete="current-password"/>
+  <button id="go" type="button">进入</button>
+  <div class="errbox" id="loginErr"></div>
+</div>
+<div id="app" hidden>
+  <header>
+    <h1>AI Assistant · 对话审计</h1>
+    <div class="row">
+      <label>最近 <select id="days">
+        <option value="3">3 天</option>
+        <option value="7" selected>7 天</option>
+        <option value="14">14 天</option>
+        <option value="30">30 天</option>
+        <option value="90">90 天</option>
+      </select></label>
+      <input id="filterIp" placeholder="筛选 IP" size="14"/>
+      <button type="button" id="refresh">刷新</button>
+      <button type="button" class="ghost" id="logout">退出</button>
+    </div>
+  </header>
+  <main>
+    <aside id="ipList"><div class="empty">加载中…</div></aside>
+    <section>
+      <div id="head" class="empty">选择左侧 IP 查看全部交互</div>
+      <div id="turns"></div>
+      <div id="pager" hidden>
+        <button type="button" class="ghost" id="prev">上一页</button>
+        <span id="pageInfo"></span>
+        <button type="button" class="ghost" id="next">下一页</button>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+const KEY = 'agent_admin_token';
+let token = localStorage.getItem(KEY) || new URLSearchParams(location.search).get('token') || '';
+let selectedIp = '';
+let offset = 0;
+const LIMIT = 50;
+
+async function api(path) {
+  const r = await fetch(path, { headers: { Authorization: 'Bearer ' + token } });
+  if (r.status === 401) throw new Error('unauthorized');
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function showLogin(err) {
+  document.getElementById('app').hidden = true;
+  document.getElementById('login').hidden = false;
+  document.getElementById('loginErr').textContent = err || '';
+}
+function showApp() {
+  document.getElementById('login').hidden = true;
+  document.getElementById('app').hidden = false;
+}
+
+async function loadIps() {
+  const days = document.getElementById('days').value;
+  const data = await api('/admin/api/ips?days=' + days);
+  const q = (document.getElementById('filterIp').value || '').trim();
+  const ips = (data.ips || []).filter(x => !q || x.ip.includes(q));
+  const el = document.getElementById('ipList');
+  if (!ips.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
+  el.innerHTML = ips.map(x => {
+    const last = (x.last_ts || '').replace('T',' ').slice(0,19);
+    const prev = (x.last_message || '').replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
+    const active = x.ip === selectedIp ? ' active' : '';
+    return `<button type="button" class="ip${active}" data-ip="${x.ip}">
+      <div><strong>${x.ip}</strong> · ${x.turns} 条</div>
+      <div class="meta">${last || ''}</div>
+      <div class="preview">${prev}</div>
+    </button>`;
+  }).join('');
+  el.querySelectorAll('.ip').forEach(btn => btn.onclick = () => {
+    selectedIp = btn.dataset.ip; offset = 0; loadIps(); loadTurns();
+  });
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadTurns() {
+  if (!selectedIp) return;
+  const days = document.getElementById('days').value;
+  const data = await api('/admin/api/turns?ip=' + encodeURIComponent(selectedIp)
+    + '&days=' + days + '&limit=' + LIMIT + '&offset=' + offset);
+  document.getElementById('head').innerHTML =
+    `<strong>${esc(selectedIp)}</strong> · 共 ${data.total} 条交互`;
+  const turns = data.turns || [];
+  const box = document.getElementById('turns');
+  if (!turns.length) { box.innerHTML = '<div class="empty">无消息正文（可能是旧日志仅元数据）</div>'; }
+  else {
+    box.innerHTML = turns.map(t => {
+      const st = String(t.status||'');
+      const bad = st !== 'ok';
+      const ts = (t.ts||'').replace('T',' ').slice(0,19);
+      return `<article class="turn">
+        <div class="bar">
+          <span>${esc(ts)} UTC</span>
+          <span class="badge${bad?' err':''}">${esc(st)}</span>
+          <span>${esc(t.lang||'')}</span>
+          <span>${t.ms||0} ms</span>
+          ${t.survey?'<span class="badge">survey</span>':''}
+          ${t.taste_skill?'<span class="badge">taste</span>':''}
+          ${t.paper_read?'<span class="badge">paper</span>':''}
+        </div>
+        <div class="msg"><b>用户</b>${esc(t.message || '(无正文)')}</div>
+        <div class="msg"><b>助手</b>${esc(t.reply || '(无回复)')}</div>
+      </article>`;
+    }).join('');
+  }
+  const pager = document.getElementById('pager');
+  pager.hidden = data.total <= LIMIT;
+  document.getElementById('pageInfo').textContent =
+    `${offset+1}–${Math.min(offset+LIMIT, data.total)} / ${data.total}`;
+  document.getElementById('prev').disabled = offset <= 0;
+  document.getElementById('next').disabled = offset + LIMIT >= data.total;
+}
+
+document.getElementById('go').onclick = async () => {
+  token = document.getElementById('tok').value.trim();
+  try {
+    await api('/admin/api/ips?days=1');
+    localStorage.setItem(KEY, token);
+    showApp(); loadIps();
+  } catch (e) { showLogin('Token 无效或未配置'); }
+};
+document.getElementById('logout').onclick = () => {
+  localStorage.removeItem(KEY); token=''; selectedIp=''; showLogin('');
+};
+document.getElementById('refresh').onclick = () => { loadIps(); if (selectedIp) loadTurns(); };
+document.getElementById('days').onchange = () => { offset=0; loadIps(); if (selectedIp) loadTurns(); };
+document.getElementById('filterIp').oninput = () => loadIps();
+document.getElementById('prev').onclick = () => { offset = Math.max(0, offset-LIMIT); loadTurns(); };
+document.getElementById('next').onclick = () => { offset += LIMIT; loadTurns(); };
+
+(async () => {
+  if (!token) { showLogin(''); return; }
+  try { await api('/admin/api/ips?days=1'); showApp(); loadIps(); }
+  catch { showLogin('请重新登录'); }
+})();
+</script>
+</body>
+</html>
+"""
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page():
+    """Password-gated chat audit UI (token entered in page or ?token=)."""
+    return HTMLResponse(
+        content=_ADMIN_HTML,
+        headers={
+            "Cache-Control": "no-store",
+            "X-Robots-Tag": "noindex, nofollow",
+        },
+    )
+
+
+@app.get("/admin/api/ips")
+async def admin_ips(
+    days: int = 14,
+    authorization: Optional[str] = Header(default=None),
+    token: Optional[str] = None,
+):
+    _require_admin(authorization, token)
+    days = max(1, min(int(days or 14), LOG_RETENTION_DAYS or 90))
+    ips = await asyncio.to_thread(_ip_summary, days)
+    return {
+        "days": days,
+        "count": len(ips),
+        "ips": ips,
+        "log_chat": LOG_CHAT or LOG_FULL,
+    }
+
+
+@app.get("/admin/api/turns")
+async def admin_turns(
+    ip: str,
+    day: Optional[str] = None,
+    days: int = 30,
+    limit: int = 50,
+    offset: int = 0,
+    authorization: Optional[str] = Header(default=None),
+    token: Optional[str] = None,
+):
+    _require_admin(authorization, token)
+    ip = (ip or "").strip()
+    if not ip:
+        raise HTTPException(status_code=400, detail="ip required")
+    limit = max(1, min(int(limit or 50), 200))
+    offset = max(0, int(offset or 0))
+    # If day set, filter that file; else scan recent days then filter ip
+    days_n = max(1, min(int(days or 30), LOG_RETENTION_DAYS or 90))
+    rows, total = await asyncio.to_thread(
+        _iter_chat_logs,
+        day=day,
+        ip=ip,
+        days=None if day else days_n,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "ip": ip,
+        "day": day,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "turns": rows,
+    }
+
+
+@app.get("/admin/api/days")
+async def admin_days(
+    authorization: Optional[str] = Header(default=None),
+    token: Optional[str] = None,
+):
+    _require_admin(authorization, token)
+    days = []
+    for p in _chat_log_paths():
+        name = p.name  # chat-YYYY-MM-DD.jsonl
+        if name.startswith("chat-") and name.endswith(".jsonl"):
+            days.append(name[5:-6])
+    return {"days": days}
+
+
 @app.get("/health")
 async def health():
     ready, reason = readiness()
@@ -2398,6 +2828,21 @@ async def chat(
             ip,
             reason,
             retry_after,
+        )
+        # Still audit denied attempts (message only)
+        await asyncio.to_thread(
+            log_turn,
+            {
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "ip": ip,
+                "lang": lang,
+                "status": f"denied:{reason}",
+                "ms": 0,
+                "message": (req.message or "")[:LOG_MSG_CHARS],
+                "reply": "",
+                "msg_chars": len(req.message or ""),
+                "reply_chars": 0,
+            },
         )
         raise HTTPException(
             status_code=429,
@@ -2541,6 +2986,7 @@ async def chat(
         finally:
             _inflight -= 1
             # Metadata-only by default (no full prompt/tools/secrets).
+            reply_text = "".join(reply_parts)
             rec = {
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "ip": ip,
@@ -2549,17 +2995,17 @@ async def chat(
                 "ms": int((time.time() - started) * 1000),
                 "rag_chars": len(rag),
                 "sys_chars": len(sys_p) if sys_p else 0,
-                "reply_chars": len("".join(reply_parts)),
+                "reply_chars": len(reply_text),
                 "msg_chars": len(req.message or ""),
                 "harness": HARNESS,
                 "taste_skill": taste_skill,
                 "paper_read": paper_read,
                 "survey": survey,
                 "survey_ms": survey_ms,
+                # Full interaction body for admin (stripped/capped in log_turn)
+                "message": req.message or "",
+                "reply": reply_text,
             }
-            if LOG_FULL:
-                rec["message"] = req.message
-                rec["reply"] = "".join(reply_parts)
             await asyncio.to_thread(log_turn, rec)
 
     return StreamingResponse(
