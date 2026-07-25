@@ -31,7 +31,7 @@
       checking: "Checking…",
       topic: "Ask me anything",
       empty:
-        "Hi — ask me anything about Hongyu's research, papers, education, or collaboration.",
+        "Hi, I'm the AI assistant on Hongyu Ding's homepage. Ask me anything about research, papers, education, or collaboration.",
       placeholder: "Ask me anything…",
       send: "send",
       stop: "stop",
@@ -53,7 +53,7 @@
       checking: "检测中…",
       topic: "Ask me anything",
       empty:
-        "你好——关于 Hongyu 的研究、论文、教育经历或合作意向，都可以问我。",
+        "你好，我是 Hongyu Ding 个人主页上的 AI 助理。关于研究、论文、教育经历或合作意向，都可以问我。",
       placeholder: "Ask me anything…",
       send: "发送",
       stop: "停止",
