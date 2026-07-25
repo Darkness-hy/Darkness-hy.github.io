@@ -535,53 +535,72 @@
     }
   }
 
-  // Steady typewriter: always ~CHARS_PER_TICK every TICK_MS, never jump to catch up.
-  // Incoming SSE fills fullText; UI reveals at constant visual speed.
-  const TYPE_TICK_MS = 28;
-  const TYPE_CHARS_PER_TICK = 2; // ~70 chars/sec — stable, readable
+  // Steady typewriter via rAF: constant chars/sec, never jump/dump.
+  // SSE only fills fullText; UI reveals at TYPE_CPS regardless of network bursts.
+  const TYPE_CPS = 48; // characters per second — stable visual pace
+  let drainRaf = 0;
+  let typeCarry = 0;
+  let typeLastTs = 0;
 
   function stopDrain() {
-    if (drainTimer) clearInterval(drainTimer);
-    drainTimer = null;
+    if (drainTimer) {
+      clearInterval(drainTimer);
+      drainTimer = null;
+    }
+    if (drainRaf) {
+      cancelAnimationFrame(drainRaf);
+      drainRaf = 0;
+    }
+    typeCarry = 0;
+    typeLastTs = 0;
   }
 
   function startDrain() {
-    if (drainTimer) return; // already running — keep constant pace
-    drainTimer = setInterval(() => {
+    if (drainRaf) return;
+    typeLastTs = 0;
+    const tick = (ts) => {
+      if (!typeLastTs) typeLastTs = ts;
+      const dt = Math.min(0.05, (ts - typeLastTs) / 1000); // clamp lag spikes
+      typeLastTs = ts;
       if (shownLen < fullText.length) {
-        shownLen = Math.min(
-          fullText.length,
-          shownLen + TYPE_CHARS_PER_TICK
-        );
-        state.streamShown = fullText.slice(0, shownLen);
-        render();
+        typeCarry += TYPE_CPS * dt;
+        const n = Math.floor(typeCarry);
+        if (n > 0) {
+          typeCarry -= n;
+          // hard cap step so a long frame never dumps a paragraph
+          const step = Math.min(n, 3);
+          typeCarry += n - step; // keep remainder for next frames
+          shownLen = Math.min(fullText.length, shownLen + step);
+          state.streamShown = fullText.slice(0, shownLen);
+          render();
+        }
+        drainRaf = requestAnimationFrame(tick);
       } else if (streamDone) {
-        // buffer fully revealed and server done
-        stopDrain();
+        drainRaf = 0;
         finishStream();
+      } else {
+        // caught up to buffer; keep ticking for more SSE
+        drainRaf = requestAnimationFrame(tick);
       }
-      // else: caught up to buffer, waiting for more SSE — keep timer alive
-    }, TYPE_TICK_MS);
+    };
+    drainRaf = requestAnimationFrame(tick);
   }
 
-  /** Resolve when typewriter has revealed all buffered text (cap wait ~12s). */
+  /** Resolve when typewriter has revealed all buffered text (cap ~15s). */
   function waitTypewriterCaughtUp() {
     if (shownLen >= fullText.length) return Promise.resolve();
-    if (!drainTimer) startDrain();
+    if (!drainRaf) startDrain();
     return new Promise((resolve) => {
-      const t0 = Date.now();
-      const id = setInterval(() => {
-        if (shownLen >= fullText.length || Date.now() - t0 > 12000) {
-          clearInterval(id);
-          // snap remaining so we don't block tools forever
-          if (shownLen < fullText.length) {
-            shownLen = fullText.length;
-            state.streamShown = fullText;
-            render();
-          }
+      const t0 = performance.now();
+      const poll = (ts) => {
+        if (shownLen >= fullText.length || ts - t0 > 15000) {
+          // soft: do not snap entire buffer (that causes the dump effect)
           resolve();
+          return;
         }
-      }, TYPE_TICK_MS);
+        requestAnimationFrame(poll);
+      };
+      requestAnimationFrame(poll);
     });
   }
 

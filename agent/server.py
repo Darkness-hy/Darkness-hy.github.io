@@ -29,7 +29,8 @@ from typing import AsyncIterator, Dict, List, Optional, Tuple
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent
@@ -639,10 +640,14 @@ def system_prompt(
     """Minimal persona + tool map; light RAG; survey uses web_search."""
     if lang == "zh":
         lines = [
-            "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到才说。",
+            "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到名字才说「茜茜」。",
+            "【身份/模型·强制】被问「你是谁/什么模型/哪家公司」时：你是主页助手茜茜；"
+            f"底层模型是 DeepSeek（{MODEL}），由 Hongyu 的 agent 服务调用，运行在他的服务器上。"
+            "你不是 Claude、不是 GPT、不是 Anthropic/OpenAI 产品。禁止声称自己是 Claude Code / Claude Sonnet。"
+            "不确定细节时只说 DeepSeek，不要编造版本号。",
             "【强制精简】默认 2–4 句 / ≤80 汉字；先结论。禁止长文、多级分点、领域综述式铺陈。"
             "访客说「详细/展开」才可加长。最多 1 个 emoji。不编造。本轮简体中文。",
-            "【工具·对齐 Claude Code】可自由多次调用 web_search / web_fetch；"
+            "【工具】可自由多次调用 web_search / web_fetch；"
             "未知论文/公开领域问题必须先 web_search 再答；可穿插简短中间句。"
             "可讨论任何公开论文，不限于 Hongyu 的工作。"
             "本地无文件系统工具；Hongyu 论文/taste 由服务端注入。"
@@ -651,9 +656,15 @@ def system_prompt(
     else:
         lines = [
             "You are Cici (茜茜) on Hongyu Ding's homepage. Name yourself only if asked.",
+            "IDENTITY / MODEL (mandatory when asked who you are or which model): "
+            f"You are Cici, the homepage assistant. Backend model is DeepSeek ({MODEL}) "
+            "via Hongyu's agent service on his server. "
+            "You are NOT Claude, NOT GPT, NOT an Anthropic or OpenAI product. "
+            "Never claim to be Claude Code / Claude Sonnet / Claude 4. "
+            "If unsure of the exact snapshot, say DeepSeek — do not invent version strings.",
             "Conciseness mandatory: 2–4 short sentences / ~60 words default. Lead with the answer. "
             "No long essays or multi-level bullet dumps unless the visitor asks for detail. ≤1 emoji. English this turn.",
-            "TOOLS (Claude Code style): freely call web_search / web_fetch (multiple times OK). "
+            "TOOLS: freely call web_search / web_fetch (multiple times OK). "
             "For unknown papers or open-web topics, you MUST web_search before answering; "
             "show progress with short intermediate lines if useful. "
             "You may discuss any public research (not only Hongyu's papers). "
@@ -2017,6 +2028,35 @@ async def _startup() -> None:
         len(_DOC_CACHE),
     )
 
+
+
+# Optional: serve latest frontend assets (bypass stale GitHub Pages cache during deploy lag)
+_FRONTEND_ROOT = Path(os.environ.get(
+    "AGENT_FRONTEND_ROOT",
+    str(ROOT.parent),  # Darkness-hy.github.io/
+))
+
+@app.get("/frontend/tutor.js")
+async def frontend_tutor_js():
+    path = _FRONTEND_ROOT / "assets" / "js" / "tutor.js"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="tutor.js missing")
+    return FileResponse(
+        path,
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-store"},
+    )
+
+@app.get("/frontend/tutor.css")
+async def frontend_tutor_css():
+    path = _FRONTEND_ROOT / "assets" / "css" / "tutor.css"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="tutor.css missing")
+    return FileResponse(
+        path,
+        media_type="text/css",
+        headers={"Cache-Control": "no-store"},
+    )
 
 @app.get("/health")
 async def health():
