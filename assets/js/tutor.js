@@ -432,32 +432,27 @@
       }
 
       if (role === "tool_call" || role === "tool_result") {
-        // Compact Claude-Code style: one line, no full dump
-        // e.g.  ● WebFetch(https://…)
-        //       ⎿  200 · Title · 3k chars
+        // Independent tool bubble with emoji (not CC one-liner chrome)
+        const meta = toolBubbleMeta(turn.name || "", role, turn.content || "");
         const bubble = document.createElement("div");
-        bubble.className = `agent-bubble agent-bubble--tool agent-bubble--${role}`;
-        const line = document.createElement("div");
-        line.className = "agent-tool__line";
-        if (role === "tool_call") {
-          const mark = document.createElement("span");
-          mark.className = "agent-tool__mark";
-          mark.textContent = "●";
-          const label = document.createElement("span");
-          label.className = "agent-tool__label";
-          // content already formatted as Tool(arg) by server
-          label.textContent = turn.content || turn.name || "tool";
-          line.append(mark, label);
-        } else {
-          const mark = document.createElement("span");
-          mark.className = "agent-tool__mark agent-tool__mark--result";
-          mark.textContent = " ";
-          const label = document.createElement("span");
-          label.className = "agent-tool__label agent-tool__label--result";
-          label.textContent = turn.content || "⎿  done";
-          line.append(mark, label);
+        bubble.className = `agent-bubble agent-bubble--tool agent-bubble--${role} agent-bubble--tool-${meta.kind}`;
+        const title = document.createElement("div");
+        title.className = "agent-tool__title";
+        const emoji = document.createElement("span");
+        emoji.className = "agent-tool__emoji";
+        emoji.textContent = meta.emoji;
+        emoji.setAttribute("aria-hidden", "true");
+        const titleText = document.createElement("span");
+        titleText.className = "agent-tool__title-text";
+        titleText.textContent = meta.title;
+        title.append(emoji, titleText);
+        bubble.appendChild(title);
+        if (meta.detail) {
+          const detail = document.createElement("div");
+          detail.className = "agent-tool__detail";
+          detail.textContent = meta.detail;
+          bubble.appendChild(detail);
         }
-        bubble.appendChild(line);
         col.appendChild(bubble);
       } else {
         const bubble = document.createElement("div");
