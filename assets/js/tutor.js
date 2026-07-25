@@ -44,6 +44,7 @@
         "Summarize Uni-LaViRA in one paragraph",
       ],
       busy: "The assistant is busy — try again in a moment.",
+      rateLimit: "Usage limit reached — please try again later.",
       network: "Could not reach the assistant.",
       process: "Process",
       thinking: "Thinking",
@@ -72,6 +73,7 @@
         "用一段话概括 Uni-LaViRA",
       ],
       busy: "助理正忙，请稍后再试。",
+      rateLimit: "使用次数已达上限，请稍后再试。",
       network: "无法连接助理服务。",
       process: "过程",
       thinking: "思考",
@@ -838,7 +840,23 @@
         stream: true,
       }),
     });
-    if (res.status === 429 || res.status === 503) throw new Error(t().busy);
+    if (res.status === 429 || res.status === 503) {
+      let detail = "";
+      try {
+        const body = await res.json();
+        detail = (body && (body.detail || body.message)) || "";
+        if (Array.isArray(detail)) {
+          detail = detail.map((d) => d.msg || d).join(" ");
+        }
+      } catch {
+        /* ignore non-json */
+      }
+      const reason = res.headers.get("X-RateLimit-Reason") || "";
+      if (reason === "busy" || res.status === 503) {
+        throw new Error(detail || t().busy);
+      }
+      throw new Error(detail || t().rateLimit);
+    }
     if (!res.ok || !res.body) throw new Error(`${t().network} (${res.status})`);
 
     const reader = res.body.getReader();

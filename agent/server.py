@@ -46,14 +46,27 @@ TIMEOUT = int(os.environ.get("AGENT_TIMEOUT", os.environ.get("TUTOR_TIMEOUT", "1
 CLAUDE_TIMEOUT = int(os.environ.get("AGENT_CLAUDE_TIMEOUT", "90"))
 # Abort Claude Code after this many api_retry events (real failures only).
 CLAUDE_MAX_RETRIES = int(os.environ.get("AGENT_CLAUDE_MAX_RETRIES", "3"))
-MAX_CONCURRENCY = int(os.environ.get("AGENT_MAX_CONCURRENCY", "3"))
-MAX_QUEUE = int(os.environ.get("AGENT_MAX_QUEUE", "15"))
-RATE_PER_MIN = int(os.environ.get("AGENT_RATE_PER_MIN", "20"))
-RATE_GLOBAL_PER_MIN = int(os.environ.get("AGENT_RATE_GLOBAL_PER_MIN", "60"))
+MAX_CONCURRENCY = int(os.environ.get("AGENT_MAX_CONCURRENCY", "2"))
+MAX_QUEUE = int(os.environ.get("AGENT_MAX_QUEUE", "8"))
+# Abuse / cost guards (all env-overridable). 0 = disable that window.
+RATE_PER_MIN = int(os.environ.get("AGENT_RATE_PER_MIN", "6"))
+RATE_PER_HOUR = int(os.environ.get("AGENT_RATE_PER_HOUR", "25"))
+RATE_PER_DAY = int(os.environ.get("AGENT_RATE_PER_DAY", "40"))
+RATE_GLOBAL_PER_MIN = int(os.environ.get("AGENT_RATE_GLOBAL_PER_MIN", "30"))
+RATE_GLOBAL_PER_DAY = int(os.environ.get("AGENT_RATE_GLOBAL_PER_DAY", "500"))
+# Min seconds between two accepted chats from the same IP.
+RATE_COOLDOWN_S = float(os.environ.get("AGENT_RATE_COOLDOWN_S", "2.0"))
+# Cap history sent to the model (cost + abuse).
+HISTORY_TURNS = int(os.environ.get("AGENT_HISTORY_TURNS", "8"))
+MSG_MAX_CHARS = int(os.environ.get("AGENT_MSG_MAX_CHARS", "2000"))
 TRUST_PROXY = os.environ.get("AGENT_TRUST_PROXY", "1").lower() not in ("0", "false", "no", "")
 BEARER = os.environ.get("AGENT_BEARER", os.environ.get("TUTOR_BEARER", ""))
 LOG_DIR = os.environ.get("AGENT_LOG_DIR", str(ROOT / "logs"))
 LOG_FULL = os.environ.get("AGENT_LOG_FULL", "0").lower() not in ("0", "false", "no", "")
+# Persist daily/hourly counters across restarts (under LOG_DIR).
+QUOTA_FILE = Path(
+    os.environ.get("AGENT_QUOTA_FILE", str(Path(LOG_DIR) / "quota.json"))
+)
 RAG_BUDGET = int(os.environ.get("AGENT_RAG_BUDGET", "3500"))
 TEMPERATURE = float(os.environ.get("AGENT_TEMPERATURE", "0.3"))
 THINKING = os.environ.get("AGENT_THINKING", "disabled").strip().lower()
@@ -138,45 +151,297 @@ app.add_middleware(
 
 _sem = asyncio.Semaphore(MAX_CONCURRENCY)
 _inflight = 0
+# Sliding windows (in-memory, minute-scale)
 _hits: Dict[str, deque] = defaultdict(deque)
 _global_hits: deque = deque()
+_last_hit_ts: Dict[str, float] = {}
+# Longer windows (hour/day) — also mirrored to disk
+_quota_lock = asyncio.Lock()
+_quota_state: Dict[str, object] = {
+    "day": "",
+    "global_day": 0,
+    "ips": {},  # ip -> {day, day_count, hour, hour_count}
+}
+_quota_loaded = False
 
 
 class Turn(BaseModel):
     role: str
-    content: str = Field(default="", max_length=8000)
+    content: str = Field(default="", max_length=4000)
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(max_length=4000)
-    history: List[Turn] = Field(default_factory=list, max_length=50)
-    context: Optional[str] = Field(default=None, max_length=16000)
+    message: str = Field(max_length=MSG_MAX_CHARS)
+    history: List[Turn] = Field(default_factory=list, max_length=20)
+    context: Optional[str] = Field(default=None, max_length=8000)
     lang: str = Field(default="en", max_length=8)
     stream: bool = True
 
 
-def _window_ok(q: deque, limit: int) -> bool:
+def _window_count(q: deque, window_s: float, now: float) -> int:
+    while q and now - q[0] > window_s:
+        q.popleft()
+    return len(q)
+
+
+def _window_ok(q: deque, limit: int, window_s: float = 60.0) -> bool:
+    """Append now if under limit. Mutates q."""
     if limit <= 0:
         return True
     now = time.time()
-    while q and now - q[0] > 60:
-        q.popleft()
-    if len(q) >= limit:
+    if _window_count(q, window_s, now) >= limit:
         return False
     q.append(now)
     return True
 
 
-def rate_ok(ip: str) -> bool:
-    if not _window_ok(_hits[ip], RATE_PER_MIN):
-        return False
-    return _window_ok(_global_hits, RATE_GLOBAL_PER_MIN)
+def _day_key(now: Optional[float] = None) -> str:
+    ts = now if now is not None else time.time()
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+
+
+def _hour_key(now: Optional[float] = None) -> str:
+    ts = now if now is not None else time.time()
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H")
+
+
+def _load_quota_unlocked() -> None:
+    global _quota_state, _quota_loaded
+    if _quota_loaded:
+        return
+    _quota_loaded = True
+    path = QUOTA_FILE
+    try:
+        if path.is_file():
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                _quota_state = {
+                    "day": str(raw.get("day") or ""),
+                    "global_day": int(raw.get("global_day") or 0),
+                    "ips": dict(raw.get("ips") or {}),
+                }
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as e:
+        logger.warning("quota load failed: %s", e)
+
+
+def _save_quota_unlocked() -> None:
+    path = QUOTA_FILE
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        # Cap ip map size (LRU-ish: drop zero-day entries + oldest when huge)
+        ips = _quota_state.get("ips") or {}
+        if isinstance(ips, dict) and len(ips) > 5000:
+            day = _quota_state.get("day")
+            keep = {
+                k: v
+                for k, v in ips.items()
+                if isinstance(v, dict) and v.get("day") == day
+            }
+            if len(keep) > 5000:
+                # keep highest day_count first is wrong for fairness — keep most recent hour
+                items = sorted(
+                    keep.items(),
+                    key=lambda kv: str((kv[1] or {}).get("hour") or ""),
+                    reverse=True,
+                )[:4000]
+                keep = dict(items)
+            _quota_state["ips"] = keep
+        tmp.write_text(
+            json.dumps(_quota_state, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        tmp.replace(path)
+    except OSError as e:
+        logger.warning("quota save failed: %s", e)
+
+
+def _quota_check_and_consume(ip: str) -> Tuple[bool, str, int]:
+    """Apply multi-window limits. Returns (ok, reason, retry_after_s).
+
+    On success, increments all counters. On failure, does not increment.
+    """
+    now = time.time()
+    ip = (ip or "unknown").strip() or "unknown"
+
+    # Cooldown between accepts
+    if RATE_COOLDOWN_S > 0:
+        last = _last_hit_ts.get(ip, 0.0)
+        wait = RATE_COOLDOWN_S - (now - last)
+        if wait > 0:
+            return False, "cooldown", max(1, int(wait) + 1)
+
+    # Per-IP minute (in-memory sliding)
+    if RATE_PER_MIN > 0:
+        n = _window_count(_hits[ip], 60.0, now)
+        if n >= RATE_PER_MIN:
+            oldest = _hits[ip][0] if _hits[ip] else now
+            return False, "rate_per_min", max(1, int(60 - (now - oldest)) + 1)
+
+    # Global minute
+    if RATE_GLOBAL_PER_MIN > 0:
+        n = _window_count(_global_hits, 60.0, now)
+        if n >= RATE_GLOBAL_PER_MIN:
+            oldest = _global_hits[0] if _global_hits else now
+            return False, "rate_global_min", max(1, int(60 - (now - oldest)) + 1)
+
+    day = _day_key(now)
+    hour = _hour_key(now)
+    _load_quota_unlocked()
+
+    # Roll day
+    if _quota_state.get("day") != day:
+        _quota_state["day"] = day
+        _quota_state["global_day"] = 0
+        _quota_state["ips"] = {}
+
+    if RATE_GLOBAL_PER_DAY > 0 and int(_quota_state.get("global_day") or 0) >= RATE_GLOBAL_PER_DAY:
+        # Until UTC midnight
+        retry = int(
+            (
+                datetime.fromtimestamp(now, tz=timezone.utc).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                .timestamp()
+                + 86400
+            )
+            - now
+        )
+        return False, "global_day", max(60, retry)
+
+    ips = _quota_state.setdefault("ips", {})
+    if not isinstance(ips, dict):
+        ips = {}
+        _quota_state["ips"] = ips
+    rec = ips.get(ip)
+    if not isinstance(rec, dict):
+        rec = {"day": day, "day_count": 0, "hour": hour, "hour_count": 0}
+        ips[ip] = rec
+    if rec.get("day") != day:
+        rec["day"] = day
+        rec["day_count"] = 0
+        rec["hour"] = hour
+        rec["hour_count"] = 0
+    if rec.get("hour") != hour:
+        rec["hour"] = hour
+        rec["hour_count"] = 0
+
+    if RATE_PER_HOUR > 0 and int(rec.get("hour_count") or 0) >= RATE_PER_HOUR:
+        # Until next UTC hour
+        retry = int(
+            (
+                datetime.fromtimestamp(now, tz=timezone.utc).replace(
+                    minute=0, second=0, microsecond=0
+                )
+                .timestamp()
+                + 3600
+            )
+            - now
+        )
+        return False, "rate_per_hour", max(30, retry)
+
+    if RATE_PER_DAY > 0 and int(rec.get("day_count") or 0) >= RATE_PER_DAY:
+        retry = int(
+            (
+                datetime.fromtimestamp(now, tz=timezone.utc).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                .timestamp()
+                + 86400
+            )
+            - now
+        )
+        return False, "rate_per_day", max(60, retry)
+
+    # Consume
+    _hits[ip].append(now)
+    _global_hits.append(now)
+    _last_hit_ts[ip] = now
+    rec["hour_count"] = int(rec.get("hour_count") or 0) + 1
+    rec["day_count"] = int(rec.get("day_count") or 0) + 1
+    _quota_state["global_day"] = int(_quota_state.get("global_day") or 0) + 1
+    # Trim sliding windows
+    _window_count(_hits[ip], 60.0, now)
+    _window_count(_global_hits, 60.0, now)
+    _save_quota_unlocked()
+    return True, "ok", 0
+
+
+def _refund_quota(ip: str) -> None:
+    """Undo one consume (e.g. rejected as busy after quota accept)."""
+    now = time.time()
+    ip = (ip or "unknown").strip() or "unknown"
+    # Sliding windows: drop newest hit if present
+    if _hits.get(ip):
+        try:
+            _hits[ip].pop()
+        except IndexError:
+            pass
+    if _global_hits:
+        try:
+            _global_hits.pop()
+        except IndexError:
+            pass
+    day = _day_key(now)
+    hour = _hour_key(now)
+    _load_quota_unlocked()
+    if _quota_state.get("day") == day:
+        g = int(_quota_state.get("global_day") or 0)
+        _quota_state["global_day"] = max(0, g - 1)
+        ips = _quota_state.get("ips") or {}
+        if isinstance(ips, dict):
+            rec = ips.get(ip)
+            if isinstance(rec, dict) and rec.get("day") == day:
+                rec["day_count"] = max(0, int(rec.get("day_count") or 0) - 1)
+                if rec.get("hour") == hour:
+                    rec["hour_count"] = max(0, int(rec.get("hour_count") or 0) - 1)
+        _save_quota_unlocked()
+
+
+def rate_limit_detail(reason: str, lang: str = "en") -> str:
+    """User-facing short message for 429 bodies."""
+    zh = lang.startswith("zh")
+    messages = {
+        "cooldown": (
+            "发送太快，请稍后再试。" if zh else "Sending too fast — wait a moment."
+        ),
+        "rate_per_min": (
+            "本分钟请求过多，请稍后再试。"
+            if zh
+            else "Too many requests this minute — try again shortly."
+        ),
+        "rate_per_hour": (
+            "本小时额度已用完，请稍后再来。"
+            if zh
+            else "Hourly limit reached — please come back later."
+        ),
+        "rate_per_day": (
+            "今日对话次数已达上限，请明天再试。"
+            if zh
+            else "Daily chat limit reached — try again tomorrow."
+        ),
+        "rate_global_min": (
+            "服务暂时繁忙，请稍后再试。"
+            if zh
+            else "Service is busy — try again in a moment."
+        ),
+        "global_day": (
+            "今日全站额度已满，请明天再试。"
+            if zh
+            else "Daily service budget reached — try again tomorrow."
+        ),
+        "busy": (
+            "服务繁忙，请稍后再试。" if zh else "Service busy — try again later."
+        ),
+    }
+    return messages.get(reason, messages["busy"])
 
 
 def client_ip(request: Request, xff: Optional[str]) -> str:
     if TRUST_PROXY and xff:
-        return xff.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+        return xff.split(",")[0].strip()[:64]
+    host = request.client.host if request.client else "unknown"
+    return (host or "unknown")[:64]
 
 
 def readiness() -> Tuple[bool, Optional[str]]:
@@ -938,10 +1203,14 @@ async def prefetch_urls(message: str) -> Tuple[str, List[dict]]:
     return "\n".join(blocks), ui_items
 def user_prompt(message: str, history: List[Turn]) -> str:
     parts: List[str] = []
-    for t in history[-8:]:
+    n = max(0, HISTORY_TURNS)
+    for t in (history or [])[-n:]:
         who = "Visitor" if t.role == "user" else "Assistant"
-        parts.append(f"{who}: {t.content}")
-    parts.append(f"Visitor: {message}")
+        content = (t.content or "")[:MSG_MAX_CHARS]
+        if content.strip():
+            parts.append(f"{who}: {content}")
+    msg = (message or "")[:MSG_MAX_CHARS]
+    parts.append(f"Visitor: {msg}")
     return "\n".join(parts)
 
 
@@ -2072,6 +2341,14 @@ async def frontend_tutor_css():
 @app.get("/health")
 async def health():
     ready, reason = readiness()
+    day = _day_key()
+    async with _quota_lock:
+        _load_quota_unlocked()
+        global_used = (
+            int(_quota_state.get("global_day") or 0)
+            if _quota_state.get("day") == day
+            else 0
+        )
     return {
         "ok": True,
         "ready": ready,
@@ -2084,6 +2361,17 @@ async def health():
         "knowledge_docs": len(_DOC_CACHE) or len(_load_docs()),
         "max_concurrency": MAX_CONCURRENCY,
         "inflight": _inflight,
+        "limits": {
+            "per_ip_min": RATE_PER_MIN,
+            "per_ip_hour": RATE_PER_HOUR,
+            "per_ip_day": RATE_PER_DAY,
+            "global_min": RATE_GLOBAL_PER_MIN,
+            "global_day": RATE_GLOBAL_PER_DAY,
+            "cooldown_s": RATE_COOLDOWN_S,
+            "msg_max_chars": MSG_MAX_CHARS,
+            "history_turns": HISTORY_TURNS,
+        },
+        "global_day_used": global_used,
     }
 
 
@@ -2098,13 +2386,38 @@ async def chat(
     if BEARER and authorization != f"Bearer {BEARER}":
         raise HTTPException(status_code=401, detail="unauthorized")
     ip = client_ip(request, x_forwarded_for)
-    if not rate_ok(ip):
-        raise HTTPException(status_code=429, detail="rate limited")
+    lang = "zh" if req.lang.lower().startswith("zh") else "en"
+
+    # Multi-window cost guards (per-IP + global). Fail closed before inflight++.
+    async with _quota_lock:
+        ok, reason, retry_after = _quota_check_and_consume(ip)
+    if not ok:
+        detail = rate_limit_detail(reason, lang)
+        logger.info(
+            "quota deny ip=%s reason=%s retry=%s",
+            ip,
+            reason,
+            retry_after,
+        )
+        raise HTTPException(
+            status_code=429,
+            detail=detail,
+            headers={
+                "Retry-After": str(max(1, int(retry_after))),
+                "X-RateLimit-Reason": reason,
+            },
+        )
     if _inflight >= MAX_CONCURRENCY + MAX_QUEUE:
-        raise HTTPException(status_code=429, detail="服务繁忙,请稍后再试")
+        # Refund this accept so busy rejections don't burn daily quota
+        async with _quota_lock:
+            _refund_quota(ip)
+        raise HTTPException(
+            status_code=429,
+            detail=rate_limit_detail("busy", lang),
+            headers={"Retry-After": "5", "X-RateLimit-Reason": "busy"},
+        )
     _inflight += 1
 
-    lang = "zh" if req.lang.lower().startswith("zh") else "en"
     ql = req.message.lower()
     # Every user message goes through the model API — no canned policy replies.
 
