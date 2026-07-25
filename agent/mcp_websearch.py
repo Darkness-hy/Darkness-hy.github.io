@@ -464,9 +464,12 @@ def searxng_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
 def free_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     """Free general web search via `ddgs` metasearch (no API key).
 
-    Prefer backends that actually return quality hits in practice:
-    auto → yahoo → brave → bing. Skip pure duckduckgo (often empty).
+    Tries several backends and *merges* hits. Prefers titles that share
+    distinctive tokens with the query (e.g. method name AGiLe).
+    Skip pure duckduckgo (often empty).
     """
+    import time as _time
+
     q = (query or "").strip()
     if not q:
         return []
@@ -479,10 +482,34 @@ def free_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
         except Exception:
             return []
 
+    # Distinctive mixed-case / acronym tokens for ranking
+    special = set(
+        m.lower()
+        for m in re.findall(
+            r"\b[A-Za-z]*[A-Z][a-z]+[A-Z][A-Za-z0-9]*\b|\b[A-Z]{2,}[a-z]+\b", q
+        )
+    )
+    q_toks = set(re.findall(r"[A-Za-z0-9]{4,}", q.lower()))
+
+    def _rank(title: str) -> int:
+        tl = (title or "").lower()
+        sc = 0
+        for s in special:
+            if s in tl:
+                sc += 10
+        sc += sum(1 for t in q_toks if t in tl)
+        return sc
+
     backends = ("auto", "yahoo", "brave", "bing")
+    merged: List[Dict[str, str]] = []
+    seen: set = set()
+    t0 = _time.perf_counter()
+    hard_cap = 4.5  # never spend more than this on free web alone
+
     for backend in backends:
+        if _time.perf_counter() - t0 > hard_cap:
+            break
         try:
-            out: List[Dict[str, str]] = []
             with DDGS() as ddgs:
                 kwargs: Dict[str, Any] = {"max_results": max_results}
                 if backend != "auto":
@@ -493,19 +520,31 @@ def free_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
                     body = str(row.get("body") or row.get("snippet") or "")
                     if not title and not href:
                         continue
-                    out.append(
+                    key = _norm_title(title) or href
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    merged.append(
                         {
                             "title": title,
                             "url": href,
                             "snippet": _clean_snippet(body, 360),
                             "source": f"web:{backend}",
+                            "_rank": _rank(title),
                         }
                     )
-            if out:
-                return out
         except Exception:
             continue
-    return []
+        # Early exit if we already have a strong method-name hit
+        if any(int(h.get("_rank") or 0) >= 10 for h in merged):
+            break
+
+    merged.sort(key=lambda h: int(h.get("_rank") or 0), reverse=True)
+    out: List[Dict[str, str]] = []
+    for h in merged[:max_results]:
+        h.pop("_rank", None)
+        out.append(h)
+    return out
 
 
 def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
