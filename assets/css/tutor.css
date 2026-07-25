@@ -366,8 +366,25 @@
 
 .agent-bubble--assistant ul,
 .agent-bubble--assistant ol {
-  margin: 0.25rem 0 0.45rem;
-  padding-left: 1.2rem;
+  margin: 0.25rem 0 0.15rem;
+  padding-left: 1.15rem;
+}
+
+.agent-bubble--assistant li {
+  margin: 0.12rem 0;
+}
+
+.agent-bubble--assistant li + li {
+  margin-top: 0.2rem;
+}
+
+.agent-bubble--assistant strong {
+  font-weight: 700;
+}
+
+.agent-bubble--assistant em {
+  font-style: italic;
+  opacity: 0.92;
 }
 
 .agent-bubble--assistant code {

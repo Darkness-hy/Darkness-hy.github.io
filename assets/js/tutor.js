@@ -210,26 +210,83 @@
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     // Strip trailing newlines that would pad bubble height
     const raw = String(text || "").replace(/^\s+|\s+$/g, "");
+    const hasMd =
+      /\*\*|__|\*[^*]+\*|_[^_]+_|`|\[.+\]\(https?:|^\s*[-*•]\s|^\s*\d+\.\s/m.test(
+        raw
+      );
     // One-liners without markdown: raw text only (no <p> → no 2-line chrome)
     const isPlainOneLine =
       raw.length > 0 &&
       raw.length < 120 &&
       !/\n/.test(raw) &&
-      !/\*\*|`|\[.+\]\(https?:/.test(raw);
+      !hasMd;
     if (isPlainOneLine) {
       return esc(raw);
     }
     let html = esc(raw);
     html = html.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code}</code></pre>`);
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Bold before italic so **x** is not partially eaten by *...*
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+    html = html.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+    html = html.replace(/_([^_\n]+)_/g, "<em>$1</em>");
     html = html.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+
+    // Turn consecutive - / * / 1. lines into <ul>/<ol>
+    const formatBlock = (block) => {
+      const lines = block.split("\n");
+      const out = [];
+      let listType = null; // "ul" | "ol"
+      let listItems = [];
+      const flushList = () => {
+        if (!listType || !listItems.length) return;
+        out.push(
+          `<${listType}>${listItems.map((li) => `<li>${li}</li>`).join("")}</${listType}>`
+        );
+        listType = null;
+        listItems = [];
+      };
+      for (const line of lines) {
+        const ul = line.match(/^\s*[-*•]\s+(.+)$/);
+        const ol = line.match(/^\s*\d+\.\s+(.+)$/);
+        if (ul) {
+          if (listType && listType !== "ul") flushList();
+          listType = "ul";
+          listItems.push(ul[1]);
+        } else if (ol) {
+          if (listType && listType !== "ol") flushList();
+          listType = "ol";
+          listItems.push(ol[1]);
+        } else {
+          flushList();
+          out.push(line);
+        }
+      }
+      flushList();
+      // Join non-list leftovers with <br>
+      return out
+        .map((part) =>
+          part.startsWith("<ul>") || part.startsWith("<ol>")
+            ? part
+            : part.replace(/\n/g, "<br>")
+        )
+        .join("<br>");
+    };
+
     // Prefer <br> over multi-<p> for soft newlines; only double-newline → paragraph
     const blocks = html.split(/\n{2,}/).filter((b) => b.length);
     if (blocks.length <= 1) {
-      return blocks[0] ? blocks[0].replace(/\n/g, "<br>") : "";
+      return blocks[0] ? formatBlock(blocks[0]) : "";
     }
-    return blocks.map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+    return blocks
+      .map((p) => {
+        const inner = formatBlock(p);
+        // Lists already block-level; wrap plain text in <p>
+        if (inner.startsWith("<ul>") || inner.startsWith("<ol>")) return inner;
+        return `<p>${inner}</p>`;
+      })
+      .join("");
   }
 
   function processLabel(kind) {
