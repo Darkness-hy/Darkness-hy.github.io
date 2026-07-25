@@ -146,6 +146,8 @@
 .agent-row {
   display: flex;
   width: 100%;
+  /* prevent flex item min-size from stretching bubbles */
+  align-items: flex-start;
 }
 
 .agent-row--user {
@@ -161,36 +163,20 @@
   justify-content: flex-start;
 }
 
-/* Columns hug bubble content — short messages stay one compact line */
+/*
+ * Bubble column: size to content only.
+ * Avoid width:max-content + % max-width cycles (can force a ~2-line-wide box).
+ */
+.agent-col {
+  display: block; /* not flex column — bubble is the only sizing child */
+  max-width: 85%;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
 .agent-row--user .agent-col {
-  align-items: flex-end;
-  max-width: min(88%, 36rem);
-}
-
-.agent-row--assistant .agent-col,
-.agent-row--tool_call .agent-col,
-.agent-row--tool_result .agent-col {
-  align-items: flex-start;
-  max-width: min(88%, 36rem);
-}
-
-/* Tool call: one short bubble — e.g. "🌐 WebSearch …" (no result dumps) */
-.agent-bubble--tool,
-.agent-bubble--tool_call {
-  display: inline-block;
-  width: max-content;
-  max-width: min(92%, 36rem);
-  padding: 0.35rem 0.65rem;
-  border: 1px solid color-mix(in srgb, #5b8def 35%, var(--color-line, #d9d2c5));
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--color-paper, #fffdf8) 85%, #e8f0ff);
-  box-shadow: 0 3px 12px color-mix(in srgb, var(--color-ink, #1c1915) 6%, transparent);
-  color: var(--color-ink, #1c1915);
-  font-size: 0.82rem;
-  font-weight: 500;
-  line-height: 1.35;
-  word-break: break-word;
-  white-space: normal;
+  /* keep user bubble on the right edge of the row */
+  margin-left: auto;
 }
 
 /* Intermediate / streaming assistant segments between tools */
@@ -199,13 +185,24 @@
   border-style: dashed;
 }
 
-.agent-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  width: max-content;
-  max-width: min(92%, 36rem);
-  min-width: 0;
+/* Tool call: one short bubble — e.g. "🌐 WebSearch …" */
+.agent-bubble--tool,
+.agent-bubble--tool_call {
+  display: inline-block;
+  box-sizing: border-box;
+  width: auto;
+  max-width: 100%;
+  padding: 0.32rem 0.6rem;
+  border: 1px solid color-mix(in srgb, #5b8def 35%, var(--color-line, #d9d2c5));
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-paper, #fffdf8) 85%, #e8f0ff);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--color-ink, #1c1915) 6%, transparent);
+  color: var(--color-ink, #1c1915);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.3;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .agent-process {
@@ -314,41 +311,48 @@
 }
 
 .agent-bubble {
-  /* Shrink-wrap: short text ("你是谁") = one-line chip, not a wide 2-line box */
+  /*
+   * Intrinsic sizing for short messages:
+   * - width follows text (not a fixed ~2-line-wide slab)
+   * - height is one line for short plain text
+   * Do NOT use pre-wrap (trailing \n becomes a blank second line).
+   */
   display: inline-block;
-  width: max-content;
-  max-width: min(88%, 36rem);
-  padding: 0.4rem 0.7rem;
+  box-sizing: border-box;
+  width: auto;
+  max-width: 100%;
+  padding: 0.35rem 0.65rem;
   border-radius: 0.75rem;
   font-size: 0.86rem;
-  line-height: 1.4;
+  line-height: 1.35;
   word-break: break-word;
-  overflow-wrap: anywhere;
-  box-sizing: border-box;
-  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  white-space: normal;
+  vertical-align: top;
 }
 
 .agent-bubble--user {
   background: var(--color-ink, #1c1915);
   color: #fff;
   border-bottom-right-radius: 0.25rem;
+  /* user text is plain; keep single-line when short */
+  white-space: pre-line; /* collapse runs of spaces, keep real newlines only */
 }
 
 .agent-bubble--assistant {
   background: var(--color-paper, #fffdf8);
   border: 1px solid var(--color-line, #d9d2c5);
   border-bottom-left-radius: 0.25rem;
-  /* Markdown may inject <p>; keep single-line height for short replies */
-  white-space: normal;
 }
 
-.agent-bubble--assistant p {
+/* Kill default <p> block spacing that inflates short bubbles to ~2 lines tall */
+.agent-bubble--assistant > p {
   margin: 0;
-  display: block;
+  padding: 0;
 }
 
-.agent-bubble--assistant p + p {
-  margin-top: 0.4rem;
+.agent-bubble--assistant > p + p {
+  margin-top: 0.35rem;
 }
 
 .agent-bubble--assistant ul,

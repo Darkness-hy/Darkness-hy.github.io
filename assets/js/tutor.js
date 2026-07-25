@@ -208,10 +208,12 @@
   function simpleMarkdown(text) {
     const esc = (s) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const raw = String(text || "");
-    // Short plain one-liners: no <p> wrapper (avoids inflated 2-line bubble height)
+    // Strip trailing newlines that would pad bubble height
+    const raw = String(text || "").replace(/^\s+|\s+$/g, "");
+    // One-liners without markdown: raw text only (no <p> → no 2-line chrome)
     const isPlainOneLine =
-      raw.length < 80 &&
+      raw.length > 0 &&
+      raw.length < 120 &&
       !/\n/.test(raw) &&
       !/\*\*|`|\[.+\]\(https?:/.test(raw);
     if (isPlainOneLine) {
@@ -222,11 +224,12 @@
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
     html = html.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
-    html = html
-      .split(/\n{2,}/)
-      .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-      .join("");
-    return html;
+    // Prefer <br> over multi-<p> for soft newlines; only double-newline → paragraph
+    const blocks = html.split(/\n{2,}/).filter((b) => b.length);
+    if (blocks.length <= 1) {
+      return blocks[0] ? blocks[0].replace(/\n/g, "<br>") : "";
+    }
+    return blocks.map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
   }
 
   function processLabel(kind) {
