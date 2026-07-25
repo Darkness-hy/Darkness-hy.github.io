@@ -597,6 +597,90 @@
       },
     ];
   }
+
+
+  function toolBubbleMeta(name, role, content) {
+    const raw = String(name || "tool");
+    const short = raw.includes("__") ? raw.split("__").pop() : raw;
+    const lower = (short || "").toLowerCase();
+    const text = String(content || "");
+
+    // Parse Tool(arg) from server one-liners
+    let arg = "";
+    const m = text.match(/^[A-Za-z_][A-Za-z0-9_]*\(([\s\S]*)\)$/);
+    if (m) {
+      arg = m[1].replace(/^['"]|['"]$/g, "").trim();
+    } else if (text.startsWith("⎿")) {
+      arg = text.replace(/^⎿\s*/, "").trim();
+    } else if (text && !/^webfetch|websearch|read|glob|grep/i.test(text)) {
+      arg = text;
+    }
+
+    let kind = "generic";
+    let emoji = "🛠️";
+    let title = short || "Tool";
+
+    if (/websearch|web_search/i.test(lower) || /websearch/i.test(text)) {
+      kind = "search";
+      emoji = role === "tool_result" ? "✅" : "🔍";
+      title = role === "tool_result" ? "Web search done" : "Web search";
+    } else if (/webfetch|web_fetch|url_prefetch/i.test(lower) || /webfetch/i.test(text)) {
+      kind = "fetch";
+      emoji = role === "tool_result" ? "✅" : "🌐";
+      title = role === "tool_result" ? "Page fetched" : "Fetching page";
+    } else if (/^read$/i.test(lower) || /^read\(/i.test(text)) {
+      kind = "read";
+      emoji = role === "tool_result" ? "✅" : "📄";
+      title = role === "tool_result" ? "File read" : "Reading file";
+    } else if (/^glob$/i.test(lower)) {
+      kind = "glob";
+      emoji = "📁";
+      title = role === "tool_result" ? "Files found" : "Finding files";
+    } else if (/^grep$/i.test(lower)) {
+      kind = "grep";
+      emoji = "🔎";
+      title = role === "tool_result" ? "Search done" : "Searching files";
+    } else if (role === "tool_result") {
+      emoji = "✅";
+      title = `${short} done`;
+    }
+
+    // bilingual title when UI is zh
+    if (lang() === "zh") {
+      const zhMap = {
+        "Web search": "正在联网搜索",
+        "Web search done": "搜索完成",
+        "Fetching page": "正在打开网页",
+        "Page fetched": "网页已获取",
+        "Reading file": "正在读取文件",
+        "File read": "文件已读取",
+        "Finding files": "正在查找文件",
+        "Files found": "文件查找完成",
+        "Searching files": "正在检索文件",
+        "Search done": "检索完成",
+      };
+      if (zhMap[title]) title = zhMap[title];
+      else if (role === "tool_result") title = `${short} 完成`;
+      else title = `调用 ${short}`;
+    }
+
+    // shorten long URLs / paths for detail line
+    let detail = arg;
+    if (detail.length > 96) {
+      if (/^https?:\/\//i.test(detail)) {
+        try {
+          const u = new URL(detail);
+          detail = u.host + (u.pathname.length > 40 ? u.pathname.slice(0, 40) + "…" : u.pathname);
+        } catch {
+          detail = detail.slice(0, 93) + "…";
+        }
+      } else {
+        detail = "…" + detail.slice(-90);
+      }
+    }
+
+    return { kind, emoji, title, detail };
+  }
   async function ask(message, history) {
     const headers = { "Content-Type": "application/json", Accept: "text/event-stream" };
     if (TOKEN) headers.Authorization = `Bearer ${TOKEN}`;
