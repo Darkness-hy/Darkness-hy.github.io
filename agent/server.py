@@ -746,26 +746,31 @@ def _html_to_text(html: str) -> str:
     return text.strip()
 
 
-def survey_search_context(message: str) -> Tuple[str, List[dict]]:
-    """Server-side multi-source search for field-survey questions.
-
-    Sources: Wikipedia + arXiv + OpenAlex + DuckDuckGo (see mcp_websearch.multi_search).
-    Returns (context_for_model, ui_tool_bubbles). Avoids broken native WebSearch.
-    """
-    if not SURVEY_PREFETCH or not _is_survey_query(message.lower()):
-        return "", []
-    # Build one focused English-friendly query
-    q = re.sub(r"\s+", " ", message).strip()
+def _survey_query(message: str) -> str:
+    """Compact English query for multi_search (shared by UI bubble + prefetch)."""
+    q = re.sub(r"\s+", " ", (message or "")).strip()
     query = q
     if re.search(r"[A-Za-z]{3,}", q):
         latin = " ".join(re.findall(r"[A-Za-z][A-Za-z0-9\-_/]+", q))
         if latin:
-            # academic-oriented query improves arXiv / OpenAlex hit quality
-            query = f"{latin} robotics survey"
-    if "mobile" in q.lower() and "manipulation" in q.lower():
+            query = f"{latin} robotics"
+    ql = q.lower()
+    if "mobile" in ql and "manipulation" in ql:
         query = "mobile manipulation robotics"
-    elif "操控" in q and ("移动" in q or "mobile" in q.lower()):
+    elif "操控" in q and ("移动" in q or "mobile" in ql):
         query = "mobile manipulation robotics"
+    return query
+
+
+def survey_search_context(message: str) -> Tuple[str, List[dict]]:
+    """Server-side multi-source search for field-survey questions.
+
+    Sources: Wikipedia + arXiv + OpenAlex + Crossref (budget-capped multi_search).
+    Returns (context_for_model, ui_tool_bubbles). Avoids broken native WebSearch.
+    """
+    if not SURVEY_PREFETCH or not _is_survey_query(message.lower()):
+        return "", []
+    query = _survey_query(message)
 
     try:
         from mcp_websearch import multi_search  # type: ignore
@@ -782,7 +787,14 @@ def survey_search_context(message: str) -> Tuple[str, List[dict]]:
             "text": f"WebSearch({query})",
         }
     ]
-    hits = multi_search(query, max_results=7)
+    t0 = time.time()
+    hits = multi_search(query, max_results=6)
+    logger.info(
+        "survey multi_search q=%r hits=%d ms=%d",
+        query,
+        len(hits),
+        int((time.time() - t0) * 1000),
+    )
     ok_hits = [
         h
         for h in hits
@@ -1695,49 +1707,52 @@ async def chat(
     paper_read = bool(paper_ui)
     if paper_read:
         survey = False
+
+    # Kick off multi_search immediately so it overlaps local RAG / URL work.
+    # Hard wait budget inside gen() — never block response open on slow sources.
+    need_survey = bool(SURVEY_PREFETCH and survey and not taste_skill and not paper_read)
+    survey_task: Optional[asyncio.Task] = None
+    survey_q = _survey_query(req.message) if need_survey else ""
+    if need_survey:
+        survey_task = asyncio.create_task(
+            asyncio.to_thread(survey_search_context, req.message)
+        )
+
     rag = select_rag(req.message)
     # Reliable URL access: server pre-fetches links in the question
     fetched, prefetch_ui = await prefetch_urls(req.message)
     # Full taste.md via Read bubble (system only has taste.summary)
     taste_ctx, taste_ui = taste_skill_context(req.message)
-    # Multi-source survey search — avoids broken native WebSearch
-    survey_ctx, survey_ui = (
-        ("", [])
-        if (taste_skill or paper_read)
-        else survey_search_context(req.message)
-    )
-    extra_bits = [
-        x for x in (req.context, fetched, taste_ctx, paper_ctx, survey_ctx) if x
-    ]
-    extra = "\n\n".join(extra_bits) if extra_bits else None
-    sys_p = system_prompt(
-        lang,
-        rag,
-        extra,
-        survey=survey,
-        taste_skill=taste_skill,
-        paper_read=paper_read,
-    )
+
+    # Base extra without survey (survey injected after wait in gen)
+    base_extra_bits = [x for x in (req.context, fetched, taste_ctx, paper_ctx) if x]
     prompt = user_prompt(req.message, req.history)
-    # UI bubbles: taste.md Read / paper Read / URL fetch / survey search
-    # Never emit Read for system-only files (profile, taste.summary)
+
+    # UI bubbles for local/server reads (survey bubble emitted in gen ASAP)
     ui_tool_items: List[dict] = []
     seen_ui: set = set()
-    for item in list(paper_ui) + list(taste_ui) + list(prefetch_ui) + list(survey_ui):
+    for item in list(paper_ui) + list(taste_ui) + list(prefetch_ui):
         if item.get("type") != "tool_call":
-            continue  # only show call bubbles in UI
+            continue
         key = (item.get("name"), item.get("text"))
         if key in seen_ui:
             continue
         seen_ui.add(key)
         ui_tool_items.append(item)
 
+    # Survey wait budget: slightly above multi_search budget
+    survey_wait_s = float(os.environ.get("AGENT_SURVEY_WAIT_S", "3.2"))
+
     async def gen():
         global _inflight
         started = time.time()
         reply_parts: List[str] = []
         status = "ok"
+        survey_ctx = ""
+        survey_ms = 0
+        sys_p = ""
         try:
+            # 1) Instant UI feedback (Read bubbles) — do not wait on web
             for item in ui_tool_items:
                 frame, _ = _tool_msg(
                     "tool_call",
@@ -1746,6 +1761,49 @@ async def chat(
                 )
                 if frame:
                     yield frame
+
+            # 2) Survey: show WebSearch bubble immediately, then await budget-capped search
+            if survey_task is not None:
+                frame, _ = _tool_msg(
+                    "tool_call",
+                    "WebSearch",
+                    f"WebSearch({survey_q})",
+                )
+                if frame:
+                    yield frame
+                t_s = time.time()
+                try:
+                    survey_ctx, _survey_ui = await asyncio.wait_for(
+                        survey_task, timeout=survey_wait_s
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "survey search timed out after %.1fs q=%r",
+                        survey_wait_s,
+                        survey_q,
+                    )
+                    survey_ctx = ""
+                    if not survey_task.done():
+                        survey_task.cancel()
+                except Exception as e:
+                    logger.warning("survey search failed: %s", e)
+                    survey_ctx = ""
+                survey_ms = int((time.time() - t_s) * 1000)
+
+            extra_bits = list(base_extra_bits)
+            if survey_ctx:
+                extra_bits.append(survey_ctx)
+            extra = "\n\n".join(extra_bits) if extra_bits else None
+            sys_p = system_prompt(
+                lang,
+                rag,
+                extra,
+                survey=survey,
+                taste_skill=taste_skill,
+                paper_read=paper_read,
+            )
+
+            # 3) Model stream
             async with _sem:
                 async for frame, text in stream_model(sys_p, prompt):
                     if not frame:
@@ -1765,13 +1823,14 @@ async def chat(
                 "status": status,
                 "ms": int((time.time() - started) * 1000),
                 "rag_chars": len(rag),
-                "sys_chars": len(sys_p),
+                "sys_chars": len(sys_p) if sys_p else 0,
                 "reply_chars": len("".join(reply_parts)),
                 "msg_chars": len(req.message or ""),
                 "harness": HARNESS,
                 "taste_skill": taste_skill,
                 "paper_read": paper_read,
                 "survey": survey,
+                "survey_ms": survey_ms,
             }
             if LOG_FULL:
                 rec["message"] = req.message

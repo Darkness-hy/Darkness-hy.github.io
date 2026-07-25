@@ -34,6 +34,11 @@ _UA = "HomepageAgent/1.2 (+https://hongyuding.site; research assistant)"
 _WIKI_UA = "HomepageAgent/1.2 (https://hongyuding.site; academic homepage assistant)"
 _MAIL_UA = "HomepageAgent/1.2 (mailto:skyhyding@gmail.com; +https://hongyuding.site)"
 
+# Hard latency budget for multi_search (survey blocks on this).
+# Wall-clock: return whatever sources finished within budget.
+SEARCH_BUDGET_S = float(os.environ.get("AGENT_SEARCH_BUDGET_S", "2.5"))
+HTTP_TIMEOUT_S = float(os.environ.get("AGENT_SEARCH_HTTP_TIMEOUT_S", "2.8"))
+
 
 def _read_message() -> Optional[Dict[str, Any]]:
     headers: Dict[str, str] = {}
@@ -87,25 +92,26 @@ def _clean_snippet(s: str, n: int = 420) -> str:
 # ---------- sources ----------
 
 
-def wiki_search(query: str, max_results: int = 2) -> List[Dict[str, str]]:
+def wiki_search(query: str, max_results: int = 1) -> List[Dict[str, str]]:
+    """Fast Wikipedia lookup: at most 2 opensearch tries + 1 summary."""
     q = (query or "").strip()
     if not q:
         return []
-    max_results = max(1, min(int(max_results or 2), 4))
+    max_results = max(1, min(int(max_results or 1), 2))
     latin = " ".join(re.findall(r"[A-Za-z][A-Za-z0-9\- ]+", q)).strip()
     words = re.findall(r"[A-Za-z][A-Za-z0-9\-]+", latin or q)
-    candidates: List[str] = []
     ql = (latin or q).lower()
+    # Prefer canonical page titles first (avoids empty multi-word academic queries)
+    candidates: List[str] = []
     if "mobile" in ql and "manipulat" in ql:
-        candidates.extend(["Mobile manipulator", "Mobile robot"])
-    if "foundation model" in ql or "embodied" in ql:
+        candidates.append("Mobile manipulator")
+    if "foundation model" in ql:
         candidates.append("Foundation model")
     if words:
         candidates.append(" ".join(words[:3]))
-        candidates.append(" ".join(words[:2]))
     if latin:
-        candidates.append(latin[:60])
-    candidates.append(q[:60])
+        candidates.append(latin[:40])
+    # unique, max 2 tries (was 4 × 8s = worst-case 32s+)
     seen_q: set = set()
     search_qs: List[str] = []
     for c in candidates:
@@ -114,10 +120,13 @@ def wiki_search(query: str, max_results: int = 2) -> List[Dict[str, str]]:
             continue
         seen_q.add(c.lower())
         search_qs.append(c)
+        if len(search_qs) >= 2:
+            break
 
     titles: List[str] = []
     urls: List[str] = []
-    for search_q in search_qs[:4]:
+    to = min(HTTP_TIMEOUT_S, 2.5)
+    for search_q in search_qs:
         try:
             surl = "https://en.wikipedia.org/w/api.php?" + urllib.parse.urlencode(
                 {
@@ -128,7 +137,7 @@ def wiki_search(query: str, max_results: int = 2) -> List[Dict[str, str]]:
                     "format": "json",
                 }
             )
-            raw = _http_get(surl, timeout=8.0, headers={"User-Agent": _WIKI_UA})
+            raw = _http_get(surl, timeout=to, headers={"User-Agent": _WIKI_UA})
             data = json.loads(raw)
             tlist = data[1] if isinstance(data, list) and len(data) > 1 else []
             ulist = data[3] if isinstance(data, list) and len(data) > 3 else []
@@ -141,22 +150,25 @@ def wiki_search(query: str, max_results: int = 2) -> List[Dict[str, str]]:
         return []
 
     out: List[Dict[str, str]] = []
+    # Only first hit summary (second title without summary is still useful)
     for i, title in enumerate(titles[:max_results]):
         page_url = urls[i] if i < len(urls) else ""
         extract = ""
-        try:
-            sum_url = (
-                "https://en.wikipedia.org/api/rest_v1/page/summary/"
-                + urllib.parse.quote(title.replace(" ", "_"))
-            )
-            sraw = _http_get(sum_url, timeout=8.0, headers={"User-Agent": _WIKI_UA})
-            sdata = json.loads(sraw)
-            extract = sdata.get("extract") or ""
-            page_url = (
-                sdata.get("content_urls", {}).get("desktop", {}).get("page") or page_url
-            )
-        except Exception:
-            pass
+        if i == 0:
+            try:
+                sum_url = (
+                    "https://en.wikipedia.org/api/rest_v1/page/summary/"
+                    + urllib.parse.quote(title.replace(" ", "_"))
+                )
+                sraw = _http_get(sum_url, timeout=to, headers={"User-Agent": _WIKI_UA})
+                sdata = json.loads(sraw)
+                extract = sdata.get("extract") or ""
+                page_url = (
+                    sdata.get("content_urls", {}).get("desktop", {}).get("page")
+                    or page_url
+                )
+            except Exception:
+                pass
         out.append(
             {
                 "title": f"[Wikipedia] {title}",
@@ -184,7 +196,7 @@ def arxiv_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
         }
     )
     try:
-        xml = _http_get(url, timeout=12.0)
+        xml = _http_get(url, timeout=HTTP_TIMEOUT_S)
     except Exception:
         return []
     entries = re.findall(r"<entry>(.*?)</entry>", xml, flags=re.S)
@@ -226,7 +238,7 @@ def openalex_search(
     }
     url = "https://api.openalex.org/works?" + urllib.parse.urlencode(params)
     try:
-        raw = _http_get(url, timeout=12.0, headers={"User-Agent": _MAIL_UA})
+        raw = _http_get(url, timeout=HTTP_TIMEOUT_S, headers={"User-Agent": _MAIL_UA})
         data = json.loads(raw)
     except Exception:
         return []
@@ -278,7 +290,7 @@ def crossref_search(query: str, max_results: int = 4, min_year: int = 2018) -> L
     }
     url = "https://api.crossref.org/works?" + urllib.parse.urlencode(params)
     try:
-        raw = _http_get(url, timeout=12.0, headers={"User-Agent": _MAIL_UA})
+        raw = _http_get(url, timeout=HTTP_TIMEOUT_S, headers={"User-Agent": _MAIL_UA})
         data = json.loads(raw)
     except Exception:
         return []
@@ -426,34 +438,79 @@ def searxng_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     return out
 
 
-def multi_search(query: str, max_results: int = 7) -> List[Dict[str, str]]:
-    """Merge academic + optional general web; prefer scholarly quality."""
+def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
+    """Merge academic + optional general web under a hard wall-clock budget.
+
+    Default budget ~2.5s (AGENT_SEARCH_BUDGET_S). Slow sources are dropped
+    rather than blocking the chat response.
+    """
+    import time as _time
+
     q = (query or "").strip()
     if not q:
         return []
-    max_results = max(1, min(int(max_results or 7), 10))
+    max_results = max(1, min(int(max_results or 6), 10))
+    budget = max(0.8, float(SEARCH_BUDGET_S))
+    t0 = _time.perf_counter()
 
-    jobs = {
-        "wiki": lambda: wiki_search(q, max_results=2),
-        "arxiv": lambda: arxiv_search(q, max_results=4),
-        "openalex": lambda: openalex_search(q, max_results=4, min_year=2018),
-        "crossref": lambda: crossref_search(q, max_results=4, min_year=2018),
-        "brave": lambda: brave_search(q, max_results=4),
-        "serper": lambda: serper_search(q, max_results=4),
-        "searxng": lambda: searxng_search(q, max_results=4),
+    # Always-on free academic stack. Optional sources only if configured
+    # (skip empty-key calls entirely — they were free but still scheduled).
+    jobs: Dict[str, Any] = {
+        "wiki": lambda: wiki_search(q, max_results=1),
+        "arxiv": lambda: arxiv_search(q, max_results=3),
+        "crossref": lambda: crossref_search(q, max_results=3, min_year=2018),
+        "openalex": lambda: openalex_search(q, max_results=3, min_year=2018),
     }
-    buckets: Dict[str, List[Dict[str, str]]] = {k: [] for k in jobs}
-    with ThreadPoolExecutor(max_workers=7) as ex:
-        futs = {ex.submit(fn): name for name, fn in jobs.items()}
-        for fut in as_completed(futs):
-            name = futs[fut]
-            try:
-                buckets[name] = fut.result() or []
-            except Exception:
-                buckets[name] = []
+    if (os.environ.get("BRAVE_API_KEY") or "").strip():
+        jobs["brave"] = lambda: brave_search(q, max_results=3)
+    if (os.environ.get("SERPER_API_KEY") or "").strip():
+        jobs["serper"] = lambda: serper_search(q, max_results=3)
+    if (os.environ.get("SEARXNG_URL") or "").strip():
+        jobs["searxng"] = lambda: searxng_search(q, max_results=3)
 
-    # Prefer definition + academia, then optional general web keys
-    order = ("wiki", "arxiv", "crossref", "openalex", "brave", "serper", "searxng")
+    buckets: Dict[str, List[Dict[str, str]]] = {k: [] for k in jobs}
+    # Prefer fast sources first in merge order
+    order = tuple(
+        k
+        for k in (
+            "wiki",
+            "arxiv",
+            "crossref",
+            "openalex",
+            "brave",
+            "serper",
+            "searxng",
+        )
+        if k in jobs
+    )
+
+    # IMPORTANT: do not use `with ThreadPoolExecutor` — its __exit__ waits for
+    # all running HTTP calls (was the 10–30s survey stall). shutdown(wait=False).
+    ex = ThreadPoolExecutor(max_workers=len(jobs) or 1)
+    futs = {ex.submit(fn): name for name, fn in jobs.items()}
+    try:
+        try:
+            for fut in as_completed(list(futs.keys()), timeout=budget):
+                name = futs[fut]
+                try:
+                    buckets[name] = fut.result(timeout=0) or []
+                except Exception:
+                    buckets[name] = []
+                n_ready = sum(len(v) for v in buckets.values())
+                if n_ready >= max_results and (_time.perf_counter() - t0) > 0.5:
+                    break
+                if (_time.perf_counter() - t0) >= budget:
+                    break
+        except TimeoutError:
+            pass
+        except Exception:
+            pass
+    finally:
+        for fut in futs:
+            if not fut.done():
+                fut.cancel()
+        ex.shutdown(wait=False, cancel_futures=True)
+
     seen_urls: set = set()
     seen_titles: set = set()
     merged: List[Dict[str, str]] = []
@@ -491,7 +548,7 @@ def multi_search(query: str, max_results: int = 7) -> List[Dict[str, str]]:
             {
                 "title": "search_empty",
                 "url": "",
-                "snippet": "No results. Prefer local knowledge or rephrase the query.",
+                "snippet": "No results within search budget. Prefer local knowledge or rephrase.",
                 "source": "none",
             }
         ]
