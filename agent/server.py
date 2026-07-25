@@ -1575,30 +1575,29 @@ HTTP_TOOL_ROUNDS = int(os.environ.get("AGENT_HTTP_TOOL_ROUNDS", "3"))
 
 
 def _search_relevance(query: str, title: str) -> int:
-    """Rough overlap score between query and a result title (higher = better)."""
-    q_toks = set(re.findall(r"[A-Za-z0-9]{3,}", (query or "").lower()))
-    # Drop ultra-common stop-ish tokens
-    stop = {
-        "the",
-        "and",
-        "for",
-        "via",
-        "with",
-        "from",
-        "into",
-        "using",
-        "learning",
-        "robust",
-        "paper",
-        "arxiv",
-        "robot",
-        "robotic",
-        "robots",
-    }
-    q_toks = {t for t in q_toks if t not in stop}
-    if not q_toks:
-        return 0
+    """Rough overlap score between query and a result title (higher = better).
+
+    Mixed-case product names (e.g. AGiLe) must appear in the title or score is 0.
+    """
+    q = query or ""
     t = (title or "").lower()
+    # Require mixed-case codenames / method names in title when present in query
+    mixed = re.findall(r"\b[A-Za-z]*[A-Z][a-z]+[A-Z][A-Za-z0-9]*\b", q)
+    mixed += re.findall(r"\b[A-Z]{2,}[a-z]+\b", q)  # e.g. AGiLe-like
+    for m in mixed:
+        if m.lower() not in t and m.lower().replace("-", "") not in t.replace("-", ""):
+            return 0
+    q_toks = set(re.findall(r"[A-Za-z0-9]{3,}", q.lower()))
+    stop = {
+        "the", "and", "for", "via", "with", "from", "into", "using", "learning",
+        "robust", "paper", "arxiv", "robot", "robotic", "robots", "based", "long",
+        "horizon", "manipulation", "planning", "latent", "grounded", "bidirectional",
+    }
+    q_toks = {tok for tok in q_toks if tok not in stop}
+    if not q_toks:
+        # only generic words — weak match on raw overlap
+        raw = set(re.findall(r"[A-Za-z0-9]{4,}", q.lower()))
+        return sum(1 for tok in raw if tok in t)
     return sum(1 for tok in q_toks if tok in t)
 
 
