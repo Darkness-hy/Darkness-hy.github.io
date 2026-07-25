@@ -642,22 +642,23 @@ def system_prompt(
             "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到才说。",
             "【强制精简】默认 2–4 句 / ≤80 汉字；先结论。禁止长文、多级分点、领域综述式铺陈。"
             "访客说「详细/展开」才可加长。最多 1 个 emoji。不编造。本轮简体中文。",
-            "【工具·对齐 Claude Code】可自由多次调用 MCP web_search / web_fetch（无次数上限）；"
-            "需要更多事实就再搜、再 fetch。禁用原生 WebSearch。"
-            "本地无 Read/Glob/Grep/Bash；论文与 taste 由服务端注入。"
-            "上下文若有 Web search results / Paper sources / taste skill，优先使用，可再补充搜索。"
-            "禁止说没有浏览器或没有搜索工具。",
+            "【工具·对齐 Claude Code】可自由多次调用 web_search / web_fetch；"
+            "未知论文/公开领域问题必须先 web_search 再答；可穿插简短中间句。"
+            "可讨论任何公开论文，不限于 Hongyu 的工作。"
+            "本地无文件系统工具；Hongyu 论文/taste 由服务端注入。"
+            "禁止说没有搜索工具。",
         ]
     else:
         lines = [
             "You are Cici (茜茜) on Hongyu Ding's homepage. Name yourself only if asked.",
             "Conciseness mandatory: 2–4 short sentences / ~60 words default. Lead with the answer. "
             "No long essays or multi-level bullet dumps unless the visitor asks for detail. ≤1 emoji. English this turn.",
-            "TOOLS (Claude Code style): freely call MCP web_search / web_fetch as many times as needed "
-            "(no call budget). Refine queries and fetch key URLs. Native WebSearch is disabled. "
-            "No local Read/Glob/Grep/Bash — paper and taste files are server-injected when relevant. "
-            "If context already has Web search results / Paper sources / taste skill, use them; "
-            "you may still web_search for gaps. Never claim search is unavailable.",
+            "TOOLS (Claude Code style): freely call web_search / web_fetch (multiple times OK). "
+            "For unknown papers or open-web topics, you MUST web_search before answering; "
+            "show progress with short intermediate lines if useful. "
+            "You may discuss any public research (not only Hongyu's papers). "
+            "No local filesystem tools — Hongyu paper/taste files are server-injected when relevant. "
+            "Never claim search is unavailable.",
         ]
     if taste_skill:
         if lang == "zh":
@@ -1528,8 +1529,112 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
         except Exception:
             pass
 
+# OpenAI-compatible tool schemas (same capabilities as MCP websearch).
+_HTTP_TOOLS: List[dict] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": (
+                "Search Wikipedia, arXiv, OpenAlex, Crossref (optional Brave/Serper). "
+                "Use for unknown papers, field facts, SOTA. Call freely, multiple times."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Concise English search query",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "1-8 results (default 6)",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_fetch",
+            "description": "Fetch a public URL as readable text (HTML stripped).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "http(s) URL"},
+                    "max_chars": {"type": "integer", "description": "Max chars (default 8000)"},
+                },
+                "required": ["url"],
+            },
+        },
+    },
+]
+HTTP_TOOL_ROUNDS = int(os.environ.get("AGENT_HTTP_TOOL_ROUNDS", "4"))
+
+
+def _exec_http_tool(name: str, arguments: str) -> Tuple[str, str, str]:
+    """Run web_search / web_fetch. Returns (ui_call_line, ui_result_line, tool_content)."""
+    try:
+        args = json.loads(arguments or "{}")
+        if not isinstance(args, dict):
+            args = {}
+    except json.JSONDecodeError:
+        args = {}
+    short = (name or "").split("__")[-1]
+
+    if short in ("web_search", "WebSearch"):
+        q = str(args.get("query") or args.get("q") or "").strip()
+        n = int(args.get("max_results") or 6)
+        call = f"WebSearch({q})" if q else "WebSearch()"
+        try:
+            from mcp_websearch import multi_search  # type: ignore
+
+            hits = multi_search(q, max_results=n) if q else []
+        except Exception as e:
+            hits = []
+            content = json.dumps({"error": str(e)[:200]}, ensure_ascii=False)
+            return call, "⎿  search error", content
+        ok = [h for h in hits if h.get("title") != "search_empty"]
+        lines = []
+        for h in ok[:8]:
+            lines.append(
+                f"- [{h.get('source')}] {h.get('title')}\n  {h.get('url')}\n  {h.get('snippet') or ''}"
+            )
+        content = "\n".join(lines) if lines else "No results."
+        titles = " · ".join((h.get("title") or "")[:40] for h in ok[:3])
+        result = f"⎿  {len(ok)} results" + (f" · {titles}" if titles else "")
+        return call, result[:400], content
+
+    if short in ("web_fetch", "WebFetch"):
+        url = str(args.get("url") or "").strip()
+        max_chars = int(args.get("max_chars") or 8000)
+        call = f"WebFetch({url})" if url else "WebFetch()"
+        try:
+            from mcp_websearch import web_fetch  # type: ignore
+
+            payload = web_fetch(url, max_chars=max_chars)
+        except Exception as e:
+            payload = {"ok": False, "error": str(e)[:200], "url": url}
+        if payload.get("ok"):
+            text = str(payload.get("text") or "")
+            result = f"⎿  {payload.get('status', '')} · {len(text)} chars"
+            content = text[:12000]
+        else:
+            result = f"⎿  error · {payload.get('error', '')}"[:200]
+            content = json.dumps(payload, ensure_ascii=False)
+        return call, result, content
+
+    return f"{short}()", "⎿  unknown tool", json.dumps({"error": f"unknown tool {name}"})
+
+
 async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, str]]:
-    """Direct DeepSeek OpenAI-compatible streaming (default fast path)."""
+    """Direct DeepSeek OpenAI-compatible path with tool loop (no Claude Code spawn).
+
+    Emits intermediate assistant text (delta + text_break) and every tool_call /
+    tool_result so the UI can show the full CC-like timeline.
+    """
     if not DEEPSEEK_KEY:
         yield sse({"type": "error", "message": "助理服务缺少模型 API Key"}), ""
         return
@@ -1538,68 +1643,168 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
     if frame:
         yield frame, ""
 
-    payload: dict = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": sys_prompt},
-            {"role": "user", "content": prompt},
-        ],
-        "stream": True,
-        "temperature": TEMPERATURE,
-    }
     thinking_on = THINKING not in ("0", "false", "no", "off", "disabled", "")
-    if thinking_on:
-        payload["thinking"] = {"type": "enabled"}
-    else:
-        payload["thinking"] = {"type": "disabled"}
-
+    messages: List[dict] = [
+        {"role": "system", "content": sys_prompt},
+        {"role": "user", "content": prompt},
+    ]
     url = f"{OPENAI_BASE_URL}/chat/completions"
     timeout = httpx.Timeout(connect=15.0, read=float(TIMEOUT), write=15.0, pool=15.0)
+    headers = {
+        "Authorization": f"Bearer {DEEPSEEK_KEY}",
+        "Content-Type": "application/json",
+    }
     got_text = False
+    open_text_segment = False
+
+    def _close_text_segment() -> Optional[str]:
+        nonlocal open_text_segment
+        if open_text_segment:
+            open_text_segment = False
+            return sse({"type": "text_break"})
+        return None
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            async with client.stream(
-                "POST",
-                url,
-                headers={
-                    "Authorization": f"Bearer {DEEPSEEK_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-            ) as resp:
+            for round_i in range(max(1, HTTP_TOOL_ROUNDS)):
+                payload: dict = {
+                    "model": MODEL,
+                    "messages": messages,
+                    "stream": False,
+                    "temperature": TEMPERATURE,
+                    "tools": _HTTP_TOOLS,
+                    "tool_choice": "auto",
+                }
+                if thinking_on:
+                    payload["thinking"] = {"type": "enabled"}
+                else:
+                    payload["thinking"] = {"type": "disabled"}
+
+                resp = await client.post(url, headers=headers, json=payload)
                 if resp.status_code >= 400:
-                    detail = (await resp.aread()).decode("utf-8", "replace")
-                    logger.error("http chat error %s: %s", resp.status_code, detail[:1000])
+                    detail = resp.text[:1000]
+                    logger.error("http chat error %s: %s", resp.status_code, detail)
                     yield sse({"type": "error", "message": "助理暂时不可用,请稍后再试"}), ""
                     return
-                async for line in resp.aiter_lines():
-                    line = line.strip()
-                    if not line or line.startswith(":") or not line.startswith("data:"):
-                        continue
-                    data = line[5:].strip()
-                    if data == "[DONE]":
-                        break
-                    try:
-                        msg = json.loads(data)
-                    except json.JSONDecodeError:
-                        continue
-                    choices = msg.get("choices") or []
-                    if not choices:
-                        continue
-                    delta = choices[0].get("delta") or {}
-                    # DeepSeek reasoning / thinking channels when enabled
-                    for key in ("reasoning_content", "reasoning", "thinking"):
-                        r = delta.get(key)
-                        if isinstance(r, str) and r:
-                            frame, _ = _proc("thinking", r)
-                            if frame:
-                                yield frame, ""
-                    text = delta.get("content") or ""
-                    if text:
+
+                data = resp.json()
+                choices = data.get("choices") or []
+                if not choices:
+                    yield sse({"type": "error", "message": "助理暂时没有返回内容,请重试"}), ""
+                    return
+                msg = choices[0].get("message") or {}
+                # Reasoning / intermediate thinking (if any)
+                for key in ("reasoning_content", "reasoning", "thinking"):
+                    r = msg.get(key)
+                    if isinstance(r, str) and r.strip() and thinking_on:
+                        frame, _ = _proc("thinking", r)
+                        if frame:
+                            yield frame, ""
+
+                content = msg.get("content")
+                if isinstance(content, str) and content.strip():
+                    # Intermediate or final assistant text — always surface
+                    br = _close_text_segment()
+                    if br:
+                        yield br, ""
+                    # chunk for smoother UI drain
+                    text = content
+                    chunk = 48
+                    for i in range(0, len(text), chunk):
+                        part = text[i : i + chunk]
                         got_text = True
-                        yield sse({"type": "delta", "text": text}), text
+                        open_text_segment = True
+                        yield sse({"type": "delta", "text": part}), part
+
+                tool_calls = msg.get("tool_calls") or []
+                if not tool_calls:
+                    br = _close_text_segment()
+                    if br:
+                        yield br, ""
+                    break
+
+                # Close text bubble before tool bubbles
+                br = _close_text_segment()
+                if br:
+                    yield br, ""
+
+                # Assistant message with tool_calls must be appended as-is
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": content if isinstance(content, str) else None,
+                        "tool_calls": tool_calls,
+                    }
+                )
+
+                for tc in tool_calls:
+                    if not isinstance(tc, dict):
+                        continue
+                    fn = tc.get("function") or {}
+                    name = str(fn.get("name") or tc.get("name") or "tool")
+                    raw_args = fn.get("arguments") or "{}"
+                    if not isinstance(raw_args, str):
+                        raw_args = json.dumps(raw_args, ensure_ascii=False)
+                    tid = str(tc.get("id") or "")
+                    call_line, result_line, tool_body = await asyncio.to_thread(
+                        _exec_http_tool, name, raw_args
+                    )
+                    # UI: full call line + result summary (and body in tool_result text tail)
+                    frame, _ = _tool_msg("tool_call", name, call_line)
+                    if frame:
+                        yield frame, ""
+                    # Include a short preview of tool body so UI can show "内容"
+                    preview = re.sub(r"\s+", " ", tool_body)[:180]
+                    result_ui = result_line
+                    if preview and "error" not in result_line.lower():
+                        result_ui = f"{result_line}\n{preview}"
+                    frame, _ = _tool_msg(
+                        "tool_result",
+                        name,
+                        result_ui[:500],
+                        tool_use_id=tid or None,
+                    )
+                    if frame:
+                        yield frame, ""
+
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tid,
+                            "content": tool_body[:12000],
+                        }
+                    )
+            else:
+                # exhausted rounds — ask once more without tools for a final answer
+                payload = {
+                    "model": MODEL,
+                    "messages": messages
+                    + [
+                        {
+                            "role": "user",
+                            "content": "Please give a short final answer now without more tools.",
+                        }
+                    ],
+                    "stream": False,
+                    "temperature": TEMPERATURE,
+                }
+                resp = await client.post(url, headers=headers, json=payload)
+                if resp.status_code < 400:
+                    msg = ((resp.json().get("choices") or [{}])[0].get("message") or {})
+                    content = msg.get("content") or ""
+                    if content:
+                        br = _close_text_segment()
+                        if br:
+                            yield br, ""
+                        got_text = True
+                        open_text_segment = True
+                        yield sse({"type": "delta", "text": content}), content
+
+        br = _close_text_segment()
+        if br:
+            yield br, ""
         if got_text:
-            yield sse({"type": "done"}), ""
+            yield sse({"type": "done", "path": "http-tools"}), ""
         else:
             yield sse({"type": "error", "message": "助理暂时没有返回内容,请重试"}), ""
     except httpx.TimeoutException:
@@ -1610,26 +1815,30 @@ async def stream_http(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, 
 
 
 async def stream_model(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str, str]]:
+    """Route harness. Default: HTTP+tools (no per-request Claude Code cold start).
+
+    AGENT_HARNESS:
+      - http / openai / deepseek / auto  → HTTP tool loop (fast)
+      - claude-code / claude             → headless Claude Code (slower cold start)
+    """
     mode = HARNESS
-    # Default / http: direct DeepSeek (low latency).
-    if mode in ("http", "openai", "deepseek"):
+    # Prefer HTTP tool loop — eliminates claude process spawn (~5–10s)
+    if mode in ("http", "openai", "deepseek", "auto", ""):
         async for item in stream_http(sys_prompt, prompt):
             yield item
         return
 
-    # auto: Claude Code first (fail-fast), then HTTP.
-    # claude-code / claude: Claude only (optional no-fallback).
-    if mode in ("claude-code", "claude", "auto"):
+    if mode in ("claude-code", "claude"):
         try:
             async for item in stream_claude(sys_prompt, prompt):
                 yield item
             return
         except RuntimeError as e:
-            logger.warning("claude harness failed (%s); falling back to HTTP", e)
+            logger.warning("claude harness failed (%s); falling back to HTTP tools", e)
             frame, _ = _proc("status", f"fallback → HTTP ({e})")
             if frame:
                 yield frame, ""
-            if mode in ("claude-code", "claude") and os.environ.get("AGENT_NO_HTTP_FALLBACK", "").lower() in (
+            if os.environ.get("AGENT_NO_HTTP_FALLBACK", "").lower() in (
                 "1",
                 "true",
                 "yes",
@@ -1640,7 +1849,6 @@ async def stream_model(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str,
                 yield item
             return
 
-    # unknown harness → HTTP
     async for item in stream_http(sys_prompt, prompt):
         yield item
 @app.on_event("startup")

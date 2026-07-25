@@ -432,18 +432,23 @@
       }
 
       if (role === "tool_call" || role === "tool_result") {
-        // Only show compact call bubbles: "🌐 WebSearch https://…"
-        if (role === "tool_result") {
-          return;
-        }
-        // content is already a display line when committed via pushToolTurn
+        // Show both call and result bubbles (CC-style timeline)
         const raw = turn.content || "";
-        const line = /^(🌐|📄|📁|🔎|🛠️)\s/.test(raw)
-          ? raw
-          : formatToolCallLine(turn.name || "", raw);
-        if (!line) return;
+        let line = raw;
+        if (role === "tool_result") {
+          // keep result preview text (⎿ … / multi-line)
+          line = String(raw).trim();
+          if (!line) return;
+        } else {
+          line = /^(🌐|📄|📁|🔎|🛠️)\s/.test(raw)
+            ? raw
+            : formatToolCallLine(turn.name || "", raw);
+          if (!line) return;
+        }
         const bubble = document.createElement("div");
-        bubble.className = "agent-bubble agent-bubble--tool agent-bubble--tool_call";
+        bubble.className =
+          "agent-bubble agent-bubble--tool agent-bubble--" +
+          (role === "tool_result" ? "tool_result" : "tool_call");
         bubble.textContent = line;
         col.appendChild(bubble);
       } else {
@@ -609,19 +614,25 @@
   }
 
   function pushToolTurn(role, name, text) {
-    // Only show call bubbles (no result dumps)
-    if (role === "tool_result") return;
     // Flush any intermediate model text BEFORE the tool bubble
     flushAssistantText();
     const content = String(text || "").slice(0, 500);
-    const line = formatToolCallLine(name || "tool", content);
-    if (!line) return;
+    const isResult = role === "tool_result";
+    let line;
+    if (isResult) {
+      // Server already sends compact "⎿ …" (+ optional preview)
+      line = content.trim();
+      if (!line) return;
+      if (!line.startsWith("⎿")) line = "⎿  " + line;
+    } else {
+      line = formatToolCallLine(name || "tool", content);
+      if (!line) return;
+    }
     const last = state.turns[state.turns.length - 1];
-    if (last && last.role === "tool_call" && last.content === line) return;
-    // Commit tool immediately as its own chat message
+    if (last && last.role === role && last.content === line) return;
     state.turns = [
       ...state.turns,
-      { role: "tool_call", name: name || "tool", content: line },
+      { role: isResult ? "tool_result" : "tool_call", name: name || "tool", content: line },
     ];
   }
 
@@ -668,9 +679,12 @@
     let emoji = "🛠️";
     let label = short || "Tool";
 
-    if (/websearch|web_search|webfetch|web_fetch|url_prefetch/i.test(lower)) {
+    if (/websearch|web_search/i.test(lower)) {
       emoji = "🌐";
       label = "WebSearch";
+    } else if (/webfetch|web_fetch|url_prefetch/i.test(lower)) {
+      emoji = "🌐";
+      label = "WebFetch";
     } else if (/^read$/i.test(lower)) {
       emoji = "📄";
       label = "Read";

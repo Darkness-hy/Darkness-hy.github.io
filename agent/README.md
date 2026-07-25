@@ -1,6 +1,6 @@
 # Homepage AI agent (茜茜)
 
-Claude Code headless harness (`claude -p --system-prompt …`) targeting **DeepSeek v4 Flash**, with server-side RAG over profile / taste / paper indexes.
+Default **HTTP tool loop** (DeepSeek, no per-request Claude Code cold start). Optional Claude Code headless harness (`claude -p --system-prompt …`) targeting **DeepSeek v4 Flash**, with server-side RAG over profile / taste / paper indexes.
 
 ## Tools (aligned with free Claude Code multi-call use)
 
