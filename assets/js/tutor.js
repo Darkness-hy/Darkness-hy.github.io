@@ -49,6 +49,8 @@
       thinking: "Thinking",
       tool: "Tool",
       status: "Status",
+      toolCall: "Tool call",
+      toolResult: "Tool result",
     },
     zh: {
       title: "AI 助理",
@@ -75,6 +77,8 @@
       thinking: "思考",
       tool: "工具",
       status: "状态",
+      toolCall: "工具调用",
+      toolResult: "工具返回",
     },
   };
   function deriveHealth(chatUrl) {
@@ -272,6 +276,8 @@
     streamShown: "",
     // Intermediate harness process: status / thinking / tool (streamed live)
     processLog: [],
+    // Live tool bubbles during streaming (flushed into turns on finish)
+    liveToolTurns: [],
     input: "",
     busy: false,
     error: null,
@@ -400,25 +406,53 @@
       bodyEl.appendChild(empty);
     }
 
-    state.turns.forEach((turn) => {
+    function appendTurn(turn, { live = false } = {}) {
+      const role = turn.role || "assistant";
       const row = document.createElement("div");
-      row.className = `agent-row agent-row--${turn.role}`;
+      row.className = `agent-row agent-row--${role}`;
       const col = document.createElement("div");
       col.className = "agent-col";
-      if (turn.role === "assistant" && turn.process && turn.process.length) {
+
+      if (role === "assistant" && turn.process && turn.process.length) {
         const proc = renderProcessBlock(turn.process, { open: false, live: false });
         if (proc) col.appendChild(proc);
       }
-      const bubble = document.createElement("div");
-      bubble.className = `agent-bubble agent-bubble--${turn.role}`;
-      if (turn.role === "user") bubble.textContent = turn.content;
-      else bubble.innerHTML = simpleMarkdown(turn.content);
-      col.appendChild(bubble);
+
+      if (role === "tool_call" || role === "tool_result") {
+        const bubble = document.createElement("div");
+        bubble.className = `agent-bubble agent-bubble--tool agent-bubble--${role}`;
+        const head = document.createElement("div");
+        head.className = "agent-tool__head";
+        const tag = document.createElement("span");
+        tag.className = "agent-tool__tag";
+        tag.textContent =
+          role === "tool_call" ? t().toolCall : t().toolResult;
+        const name = document.createElement("span");
+        name.className = "agent-tool__name";
+        name.textContent = turn.name || "tool";
+        head.append(tag, name);
+        const body = document.createElement("pre");
+        body.className = "agent-tool__body";
+        body.textContent = turn.content || "";
+        bubble.append(head, body);
+        col.appendChild(bubble);
+      } else {
+        const bubble = document.createElement("div");
+        bubble.className = `agent-bubble agent-bubble--${role}`;
+        if (role === "user") bubble.textContent = turn.content;
+        else bubble.innerHTML = simpleMarkdown(turn.content || "");
+        col.appendChild(bubble);
+      }
       row.appendChild(col);
       bodyEl.appendChild(row);
-    });
+    }
+
+    state.turns.forEach((turn) => appendTurn(turn));
 
     if (state.busy) {
+      // Tool calls/results appear as their own rows while streaming
+      state.liveToolTurns.forEach((turn) => appendTurn(turn, { live: true }));
+
       const row = document.createElement("div");
       row.className = "agent-row agent-row--assistant";
       const col = document.createElement("div");
@@ -431,7 +465,9 @@
       bubble.className = "agent-bubble agent-bubble--assistant";
       bubble.innerHTML = state.streamShown
         ? simpleMarkdown(state.streamShown)
-        : '<span class="agent-typing" style="color:var(--color-muted)">…</span>';
+        : state.liveToolTurns.length
+          ? '<span class="agent-typing" style="color:var(--color-muted)">…</span>'
+          : '<span class="agent-typing" style="color:var(--color-muted)">…</span>';
       col.appendChild(bubble);
       row.appendChild(col);
       bodyEl.appendChild(row);
@@ -502,9 +538,18 @@
   function finishStream() {
     const content = fullText;
     const process = state.processLog.slice();
-    state.turns = [...state.turns, { role: "assistant", content, process }];
+    const tools = state.liveToolTurns.slice();
+    // Commit tool turns first (each is its own message), then final assistant answer
+    const next = [...state.turns, ...tools];
+    if (content && content.trim()) {
+      next.push({ role: "assistant", content, process });
+    } else if (process.length && !tools.length) {
+      next.push({ role: "assistant", content: "_(no text reply)_", process });
+    }
+    state.turns = next;
     state.streamShown = "";
     state.processLog = [];
+    state.liveToolTurns = [];
     state.busy = false;
     state.justAnswered = true;
     render();
@@ -513,6 +558,17 @@
       state.justAnswered = false;
       render();
     }, 1500);
+  }
+
+  function pushToolTurn(role, name, text) {
+    state.liveToolTurns = [
+      ...state.liveToolTurns,
+      {
+        role, // tool_call | tool_result
+        name: name || "tool",
+        content: String(text || "").slice(0, 12000),
+      },
+    ];
   }
   async function ask(message, history) {
     const headers = { "Content-Type": "application/json", Accept: "text/event-stream" };
@@ -555,6 +611,13 @@
         if (ev.type === "delta" && typeof ev.text === "string") {
           fullText += ev.text;
           if (!drainTimer) startDrain();
+        } else if (ev.type === "tool_call" || ev.type === "tool_result") {
+          pushToolTurn(
+            ev.type,
+            ev.name || "tool",
+            typeof ev.text === "string" ? ev.text : ""
+          );
+          render();
         } else if (ev.type === "thinking" || ev.type === "tool" || ev.type === "status") {
           const text = typeof ev.text === "string" ? ev.text : ev.message || "";
           pushProcess(ev.type, text);
@@ -568,7 +631,8 @@
             stopDrain();
             finishStream();
           }
-        }      }
+        }
+      }
     }
     streamDone = true;
     if (!state.busy) return;
@@ -589,11 +653,15 @@
     state.error = null;
     state.input = "";
     inputEl.value = "";
-    const history = state.turns.map((x) => ({ role: x.role, content: x.content }));
+    // Only user/assistant text goes back as chat history (skip tool bubbles)
+    const history = state.turns
+      .filter((x) => x.role === "user" || x.role === "assistant")
+      .map((x) => ({ role: x.role, content: x.content }));
     state.turns = [...state.turns, { role: "user", content: message }];
     state.busy = true;
     state.streamShown = "";
     state.processLog = [];
+    state.liveToolTurns = [];
     fullText = "";
     shownLen = 0;
     streamDone = false;
@@ -624,14 +692,19 @@
     abortCtrl?.abort();
     stopDrain();
     state.busy = false;
+    const tools = state.liveToolTurns.slice();
+    const next = [...state.turns, ...tools];
     if (fullText) {
-      state.turns = [
-        ...state.turns,
-        { role: "assistant", content: fullText, process: state.processLog.slice() },
-      ];
+      next.push({
+        role: "assistant",
+        content: fullText,
+        process: state.processLog.slice(),
+      });
     }
+    state.turns = next;
     state.streamShown = "";
     state.processLog = [];
+    state.liveToolTurns = [];
     render();
   }
   fab.addEventListener("click", () => {

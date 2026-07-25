@@ -2,9 +2,20 @@
 
 Claude Code headless harness (`claude -p --system-prompt …`, no default Claude Code system boilerplate) targeting **DeepSeek v4 Flash**, plus local RAG over paper TeX + profile + taste notes.
 
-`AGENT_HARNESS=http` (default): direct DeepSeek OpenAI-compatible HTTP streaming — low latency.
+`AGENT_HARNESS=claude-code` (current prod): headless Claude Code against DeepSeek Anthropic-compat, with tools:
 
-`auto` / `claude-code`: Claude Code headless first (fail-fast after a few API retries; DeepSeek Anthropic-compat often 502s), then HTTP. Intermediate `status` / `thinking` / `tool` SSE events are streamed to the frontend when present.
+- **Read / Glob / Grep** — local `knowledge/` (profile, taste, paper TeX) and optional `AGENT_CC_ADD_DIRS`
+- **web_search (MCP)** — free DuckDuckGo search via `mcp_websearch.py` (no API key)
+- **WebSearch / WebFetch** — Claude-native tools when the model backend supports them  
+- **No Bash/Edit** on the public homepage agent  
+
+Frontend: each tool call / tool result is a **separate chat bubble**; final answer is another bubble.
+
+Uses an **isolated settings file** so global `~/.claude/settings.json` (e.g. local cli-proxy on `:8317`) cannot hijack the request. Do **not** use `--bare` if you need WebSearch (it strips those tools).
+
+`http`: direct DeepSeek OpenAI-compatible streaming (fallback if Claude Code fails).
+
+`auto`: Claude Code first, then HTTP. Intermediate `status` / `thinking` / `tool` SSE events stream to the frontend when present (thinking only if `AGENT_THINKING` enabled).
 
 ## Run
 
