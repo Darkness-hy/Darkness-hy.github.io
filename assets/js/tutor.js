@@ -535,28 +535,54 @@
     }
   }
 
+  // Steady typewriter: always ~CHARS_PER_TICK every TICK_MS, never jump to catch up.
+  // Incoming SSE fills fullText; UI reveals at constant visual speed.
+  const TYPE_TICK_MS = 28;
+  const TYPE_CHARS_PER_TICK = 2; // ~70 chars/sec — stable, readable
+
   function stopDrain() {
     if (drainTimer) clearInterval(drainTimer);
     drainTimer = null;
   }
 
   function startDrain() {
-    // Poll only to detect streamDone while already caught up.
-    // Token display is live in the delta handler (no catch-up dump).
-    stopDrain();
+    if (drainTimer) return; // already running — keep constant pace
     drainTimer = setInterval(() => {
       if (shownLen < fullText.length) {
-        // Gentle continuous catch-up only if tiny lag (never jump whole buffer)
-        const lag = fullText.length - shownLen;
-        const step = Math.min(lag, lag > 12 ? 3 : 1);
-        shownLen += step;
+        shownLen = Math.min(
+          fullText.length,
+          shownLen + TYPE_CHARS_PER_TICK
+        );
         state.streamShown = fullText.slice(0, shownLen);
         render();
       } else if (streamDone) {
+        // buffer fully revealed and server done
         stopDrain();
         finishStream();
       }
-    }, 20);
+      // else: caught up to buffer, waiting for more SSE — keep timer alive
+    }, TYPE_TICK_MS);
+  }
+
+  /** Resolve when typewriter has revealed all buffered text (cap wait ~12s). */
+  function waitTypewriterCaughtUp() {
+    if (shownLen >= fullText.length) return Promise.resolve();
+    if (!drainTimer) startDrain();
+    return new Promise((resolve) => {
+      const t0 = Date.now();
+      const id = setInterval(() => {
+        if (shownLen >= fullText.length || Date.now() - t0 > 12000) {
+          clearInterval(id);
+          // snap remaining so we don't block tools forever
+          if (shownLen < fullText.length) {
+            shownLen = fullText.length;
+            state.streamShown = fullText;
+            render();
+          }
+          resolve();
+        }
+      }, TYPE_TICK_MS);
+    });
   }
 
   /** Commit current streamed assistant text as its own bubble (between tools / at end). */
@@ -749,17 +775,16 @@
           continue;
         }
         if (ev.type === "delta" && typeof ev.text === "string") {
-          // Live token stream: append and paint immediately (continuous, no dump)
+          // Buffer only — typewriter drain reveals at constant speed
           fullText += ev.text;
-          shownLen = fullText.length;
-          state.streamShown = fullText;
           if (!drainTimer) startDrain();
-          render();
         } else if (ev.type === "text_break") {
-          // Server signals end of an intermediate assistant segment
+          // Wait until typewriter catches up, then commit segment
+          await waitTypewriterCaughtUp();
           flushAssistantText();
           render();
         } else if (ev.type === "tool_call" || ev.type === "tool_result") {
+          await waitTypewriterCaughtUp();
           pushToolTurn(
             ev.type,
             ev.name || "tool",
@@ -767,9 +792,9 @@
           );
           render();
         } else if (ev.type === "thinking") {
-          // Show intermediate thinking/text as its own soft assistant bubble
           const th = typeof ev.text === "string" ? ev.text : "";
           if (th.trim()) {
+            await waitTypewriterCaughtUp();
             flushAssistantText();
             state.turns = [
               ...state.turns,
@@ -788,6 +813,8 @@
         } else if (ev.type === "done") {
           streamDone = true;
           if (ev.truncated) fullText += "\n\n_(回答可能被中断,请重试)_";
+          // Do not finish immediately — let typewriter finish remaining buffer
+          if (!drainTimer) startDrain();
           if (shownLen >= fullText.length) {
             stopDrain();
             finishStream();

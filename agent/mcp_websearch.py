@@ -500,41 +500,54 @@ def free_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
         sc += sum(1 for t in q_toks if t in tl)
         return sc
 
-    backends = ("auto", "yahoo", "brave", "bing")
+    # yahoo often ranks paper titles best; auto/brave/bing as fallbacks
+    backends = ("yahoo", "auto", "brave", "bing")
     merged: List[Dict[str, str]] = []
     seen: set = set()
     t0 = _time.perf_counter()
-    hard_cap = 4.5  # never spend more than this on free web alone
+    hard_cap = 5.0  # never spend more than this on free web alone
+
+    # Prefer exact title query first when it looks like a paper title
+    queries = [q]
+    if ":" in q and len(q) > 40:
+        # "Name: rest of title" → also search short name + key phrase
+        head = q.split(":", 1)[0].strip()
+        if head:
+            queries.append(head + " " + " ".join(q.split()[1:8]))
+            queries.append(f'"{head}" robot manipulation')
 
     for backend in backends:
         if _time.perf_counter() - t0 > hard_cap:
             break
-        try:
-            with DDGS() as ddgs:
-                kwargs: Dict[str, Any] = {"max_results": max_results}
-                if backend != "auto":
-                    kwargs["backend"] = backend
-                for row in ddgs.text(q, **kwargs):
-                    title = str(row.get("title") or "")
-                    href = str(row.get("href") or row.get("link") or "")
-                    body = str(row.get("body") or row.get("snippet") or "")
-                    if not title and not href:
-                        continue
-                    key = _norm_title(title) or href
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    merged.append(
-                        {
-                            "title": title,
-                            "url": href,
-                            "snippet": _clean_snippet(body, 360),
-                            "source": f"web:{backend}",
-                            "_rank": _rank(title),
-                        }
-                    )
-        except Exception:
-            continue
+        for qq in queries[:2]:
+            if _time.perf_counter() - t0 > hard_cap:
+                break
+            try:
+                with DDGS() as ddgs:
+                    kwargs: Dict[str, Any] = {"max_results": max_results}
+                    if backend != "auto":
+                        kwargs["backend"] = backend
+                    for row in ddgs.text(qq, **kwargs):
+                        title = str(row.get("title") or "")
+                        href = str(row.get("href") or row.get("link") or "")
+                        body = str(row.get("body") or row.get("snippet") or "")
+                        if not title and not href:
+                            continue
+                        key = _norm_title(title) or href
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        merged.append(
+                            {
+                                "title": title,
+                                "url": href,
+                                "snippet": _clean_snippet(body, 360),
+                                "source": f"web:{backend}",
+                                "_rank": _rank(title),
+                            }
+                        )
+            except Exception:
+                continue
         # Early exit if we already have a strong method-name hit
         if any(int(h.get("_rank") or 0) >= 10 for h in merged):
             break

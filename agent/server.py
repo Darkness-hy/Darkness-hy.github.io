@@ -1575,30 +1575,40 @@ HTTP_TOOL_ROUNDS = int(os.environ.get("AGENT_HTTP_TOOL_ROUNDS", "3"))
 
 
 def _search_relevance(query: str, title: str) -> int:
-    """Rough overlap score between query and a result title (higher = better).
+    """Overlap score between query and a result title (higher = better).
 
-    Mixed-case product names (e.g. AGiLe) must appear in the title or score is 0.
+    Method names like AGiLe in the title are a strong hit (score >= 10).
+    If the query has such a name and the title lacks it → score 0.
     """
     q = query or ""
     t = (title or "").lower()
-    # Require mixed-case codenames / method names in title when present in query
-    mixed = re.findall(r"\b[A-Za-z]*[A-Z][a-z]+[A-Z][A-Za-z0-9]*\b", q)
-    mixed += re.findall(r"\b[A-Z]{2,}[a-z]+\b", q)  # e.g. AGiLe-like
-    for m in mixed:
-        if m.lower() not in t and m.lower().replace("-", "") not in t.replace("-", ""):
+    # Mixed-case / camel-ish method names (AGiLe, LaViRA, Uni-LaViRA, …)
+    mixed = re.findall(r"\b[A-Za-z]*[A-Z][a-z]+[A-Z][A-Za-z0-9\-]*\b", q)
+    mixed += re.findall(r"\b[A-Z]{2,}[a-z]+\b", q)
+    # Also bare tokens that look like product names in quotes or leading
+    mixed = list(dict.fromkeys(mixed))
+    if mixed:
+        hit_any = False
+        for m in mixed:
+            ml = m.lower().replace("-", "")
+            tl = t.replace("-", "")
+            if ml in tl or m.lower() in t:
+                hit_any = True
+                break
+        if not hit_any:
             return 0
-    q_toks = set(re.findall(r"[A-Za-z0-9]{3,}", q.lower()))
+        # Strong positive: method name present
+        base = 10
+    else:
+        base = 0
+    q_toks = set(re.findall(r"[A-Za-z0-9]{4,}", q.lower()))
     stop = {
         "the", "and", "for", "via", "with", "from", "into", "using", "learning",
-        "robust", "paper", "arxiv", "robot", "robotic", "robots", "based", "long",
-        "horizon", "manipulation", "planning", "latent", "grounded", "bidirectional",
+        "robust", "paper", "arxiv", "robot", "robotic", "robots", "based",
+        "that", "this", "what", "about",
     }
     q_toks = {tok for tok in q_toks if tok not in stop}
-    if not q_toks:
-        # only generic words — weak match on raw overlap
-        raw = set(re.findall(r"[A-Za-z0-9]{4,}", q.lower()))
-        return sum(1 for tok in raw if tok in t)
-    return sum(1 for tok in q_toks if tok in t)
+    return base + sum(1 for tok in q_toks if tok in t)
 
 
 def _exec_http_tool(name: str, arguments: str) -> Tuple[str, str, str, int]:
@@ -1634,9 +1644,12 @@ def _exec_http_tool(name: str, arguments: str) -> Tuple[str, str, str, int]:
             sc = _search_relevance(q, str(h.get("title") or ""))
             scored.append((sc, h))
         scored.sort(key=lambda x: x[0], reverse=True)
-        # Threshold: need at least 2 distinctive token hits for long queries
-        q_len = len(re.findall(r"[A-Za-z0-9]{3,}", q))
-        min_score = 3 if q_len >= 6 else 2 if q_len >= 3 else 1
+        # Method-name hits score >= 10; else need modest token overlap
+        has_method = bool(
+            re.findall(r"\b[A-Za-z]*[A-Z][a-z]+[A-Z][A-Za-z0-9\-]*\b", q)
+            or re.findall(r"\b[A-Z]{2,}[a-z]+\b", q)
+        )
+        min_score = 10 if has_method else (2 if len(q.split()) >= 4 else 1)
         relevant = [h for sc, h in scored if sc >= min_score]
         lines = []
         for h in (relevant or ok)[:8]:
