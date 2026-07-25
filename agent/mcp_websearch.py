@@ -101,16 +101,15 @@ def wiki_search(query: str, max_results: int = 1) -> List[Dict[str, str]]:
     latin = " ".join(re.findall(r"[A-Za-z][A-Za-z0-9\- ]+", q)).strip()
     words = re.findall(r"[A-Za-z][A-Za-z0-9\-]+", latin or q)
     ql = (latin or q).lower()
-    # Prefer canonical page titles first (avoids empty multi-word academic queries)
+    # Prefer short title-like queries (no topic-specific hardcodes / canned pages)
     candidates: List[str] = []
-    if "mobile" in ql and "manipulat" in ql:
-        candidates.append("Mobile manipulator")
-    if "foundation model" in ql:
-        candidates.append("Foundation model")
     if words:
         candidates.append(" ".join(words[:3]))
     if latin:
         candidates.append(latin[:40])
+    # Title-case multi-word latin often matches Wikipedia better
+    if latin and " " in latin:
+        candidates.append(latin[:60].title())
     # unique, max 2 tries (was 4 × 8s = worst-case 32s+)
     seen_q: set = set()
     search_qs: List[str] = []
