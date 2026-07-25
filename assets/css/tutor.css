@@ -313,16 +313,16 @@
 .agent-bubble {
   display: block;
   box-sizing: border-box;
-  /* Prefer natural text width; cap for long messages only */
+  /* Natural text width; absolute rem cap only (no % → no circular shrink) */
   width: max-content;
-  max-width: min(22rem, 100%);
+  max-width: 22rem;
   padding: 0.35rem 0.65rem;
   border-radius: 0.75rem;
   font-size: 0.86rem;
   line-height: 1.35;
-  /* Never break mid-glyph runs just to fill a crushed box */
-  word-break: normal;
-  overflow-wrap: anywhere; /* only wrap when truly exceeding max-width */
+  /* CJK: don't break between every character under pressure */
+  word-break: keep-all;
+  overflow-wrap: break-word;
   white-space: normal;
 }
 
@@ -338,7 +338,6 @@
   border-bottom-left-radius: 0.25rem;
 }
 
-/* Kill default <p> block spacing that inflates short bubbles to ~2 lines tall */
 .agent-bubble--assistant > p {
   margin: 0;
   padding: 0;
@@ -346,6 +345,13 @@
 
 .agent-bubble--assistant > p + p {
   margin-top: 0.35rem;
+}
+
+.agent-bubble--tool,
+.agent-bubble--tool_call {
+  width: max-content;
+  max-width: 22rem;
+  word-break: break-word; /* queries may need mid-string wrap */
 }
 
 .agent-bubble--assistant ul,
