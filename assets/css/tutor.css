@@ -146,7 +146,6 @@
 .agent-row {
   display: flex;
   width: 100%;
-  /* prevent flex item min-size from stretching bubbles */
   align-items: flex-start;
 }
 
@@ -164,18 +163,19 @@
 }
 
 /*
- * Bubble column: size to content only.
- * Avoid width:max-content + % max-width cycles (can force a ~2-line-wide box).
+ * CRITICAL: flex-shrink must be 0.
+ * Default shrink:1 crushed the column narrower than Chinese text width,
+ * so "你是谁" wrapped onto 2 lines inside a too-narrow bubble.
  */
 .agent-col {
-  display: block; /* not flex column — bubble is the only sizing child */
+  display: block;
+  flex: 0 0 auto; /* do not grow, do not shrink */
+  width: fit-content;
   max-width: 85%;
   min-width: 0;
-  flex: 0 1 auto;
 }
 
 .agent-row--user .agent-col {
-  /* keep user bubble on the right edge of the row */
   margin-left: auto;
 }
 
@@ -311,32 +311,25 @@
 }
 
 .agent-bubble {
-  /*
-   * Intrinsic sizing for short messages:
-   * - width follows text (not a fixed ~2-line-wide slab)
-   * - height is one line for short plain text
-   * Do NOT use pre-wrap (trailing \n becomes a blank second line).
-   */
-  display: inline-block;
+  display: block;
   box-sizing: border-box;
-  width: auto;
-  max-width: 100%;
+  /* Prefer natural text width; cap for long messages only */
+  width: max-content;
+  max-width: min(22rem, 100%);
   padding: 0.35rem 0.65rem;
   border-radius: 0.75rem;
   font-size: 0.86rem;
   line-height: 1.35;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  /* Never break mid-glyph runs just to fill a crushed box */
+  word-break: normal;
+  overflow-wrap: anywhere; /* only wrap when truly exceeding max-width */
   white-space: normal;
-  vertical-align: top;
 }
 
 .agent-bubble--user {
   background: var(--color-ink, #1c1915);
   color: #fff;
   border-bottom-right-radius: 0.25rem;
-  /* user text is plain; keep single-line when short */
-  white-space: pre-line; /* collapse runs of spaces, keep real newlines only */
 }
 
 .agent-bubble--assistant {
