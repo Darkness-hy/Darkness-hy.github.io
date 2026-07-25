@@ -188,7 +188,7 @@ def _load_docs() -> List[Tuple[str, str]]:
         _DOC_CACHE = docs
         return docs
 
-    for name in ("profile.md", "taste.md"):
+    for name in ("profile.md", "taste.summary.md", "taste.md"):
         p = KNOWLEDGE_DIR / name
         if p.exists():
             docs.append((name, p.read_text(encoding="utf-8", errors="ignore")))
@@ -213,7 +213,8 @@ def _tokens(text: str) -> set:
     return {t for t in re.findall(r"[a-zA-Z一-鿿]{2,}", text.lower()) if len(t) > 1}
 
 
-_PAPER_HINTS = (
+# Only named Hongyu papers / explicit paper asks pull local paper RAG.
+_PAPER_NAME_HINTS = (
     "uni-lavira",
     "lavira",
     "v-dreamer",
@@ -222,26 +223,65 @@ _PAPER_HINTS = (
     "mfrs",
     "paper",
     "arxiv",
-    "navigation",
-    "reward",
-    "marl",
-    "robot",
-    "embodied",
     "论文",
-    "导航",
+)
+# Open-field survey → web first, not local INDEX spam
+_SURVEY_HINTS = (
+    "调研",
+    "综述",
+    "领域",
+    "survey",
+    "landscape",
+    "state of the art",
+    "sota",
+    "field",
+    "community",
+    "literature",
+    "related work",
+    "research area",
 )
 
 
+def _is_survey_query(ql: str) -> bool:
+    return any(k in ql for k in _SURVEY_HINTS)
+
+
+def _want_full_taste(ql: str) -> bool:
+    """True only when visitor asks for deep/full taste skill, not a light mention."""
+    deep = (
+        "taste.md",
+        "full taste",
+        "detailed taste",
+        "taste skill",
+        "writing taste",
+        "visual",
+        "collaboration",
+        "展开",
+        "详细",
+        "完整",
+        "taste 细节",
+        "写作",
+        "审美",
+        "协作",
+    )
+    if any(k in ql for k in deep):
+        return True
+    # "research taste / beliefs" → summary is enough unless "detailed"
+    return False
+
+
 def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
-    """Compact RAG: pin short profile/taste; papers only when query needs them."""
+    """Compact RAG: profile + taste.summary; full taste/papers only when needed."""
     docs = _load_docs()
     if not docs:
         return ""
 
     q = _tokens(query)
     ql = query.lower()
-    want_papers = any(kw in ql for kw in _PAPER_HINTS) or any(
-        t in q for t in ("paper", "arxiv", "lavira", "mfrs", "acorm", "dreamer")
+    survey = _is_survey_query(ql)
+    want_papers = (not survey) and (
+        any(kw in ql for kw in _PAPER_NAME_HINTS)
+        or any(t in q for t in ("paper", "arxiv", "lavira", "mfrs", "acorm", "dreamer"))
     )
     want_taste = any(
         k in ql
@@ -258,20 +298,32 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
             "原则",
         )
     )
+    full_taste = _want_full_taste(ql)
+
+    # Open survey: only tiny profile blurb — force web_search in system rules
+    if survey and not want_papers:
+        for doc_id, text in docs:
+            if doc_id == "profile.md":
+                chunk = text.strip()[:900]
+                return f"### {doc_id}\n{chunk}\n"
+        return ""
 
     ordered: List[Tuple[str, str, float]] = []
     for doc_id, text in docs:
         if doc_id == "profile.md":
             score = 1e6
+        elif doc_id == "taste.summary.md":
+            score = 1e5 if want_taste else 80.0
         elif doc_id == "taste.md":
-            score = 1e5 if want_taste or not want_papers else 50.0
+            # Never inject full taste into RAG; Read on demand only
+            continue
         else:
             if not want_papers:
                 continue
             dt = _tokens(text[:6000])
             overlap = len(q & dt) if q else 0
             boost = 0.0
-            for kw in _PAPER_HINTS:
+            for kw in _PAPER_NAME_HINTS:
                 hay = doc_id.lower().replace("-", "") + text[:1500].lower()
                 if kw in ql and kw.replace("-", "") in hay.replace("-", ""):
                     boost += 8
@@ -287,13 +339,13 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
     for doc_id, text, score in ordered:
         chunk = text.strip()
         if doc_id == "profile.md":
-            per_cap = 1600
-        elif doc_id == "taste.md":
-            per_cap = 2200 if want_taste else 1200
+            per_cap = 1200
+        elif doc_id == "taste.summary.md":
+            per_cap = 900
         elif doc_id.endswith("INDEX.md"):
-            per_cap = 2800
+            per_cap = 1800  # one paper summary at a time
         else:
-            per_cap = 1800
+            per_cap = 1200
         if len(chunk) > per_cap:
             chunk = chunk[:per_cap] + "\n[...truncated...]\n"
         block = f"### {doc_id}\n{chunk}\n"
@@ -306,74 +358,82 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
             break
         parts.append(block)
         used += len(block)
-        # at most profile + taste + 2 papers
-        if len(parts) >= (4 if want_papers else 2):
+        # at most profile + taste.summary + 1 paper INDEX
+        if len(parts) >= (3 if want_papers else 2):
             break
+    # Hint when full taste may be needed later
+    if want_taste and not full_taste:
+        parts.append(
+            "### note\nTaste detail: use taste.summary.md above. "
+            f"Only Read {KNOWLEDGE_DIR / 'taste.md'} if visitor asks for full/deep taste.\n"
+        )
     return "\n".join(parts)
 
 
 def _knowledge_map() -> str:
     """Short map so Claude Code Read can open the right files."""
     papers_dir = KNOWLEDGE_DIR / "papers"
-    paper_lines: List[str] = []
+    paper_ids: List[str] = []
     if papers_dir.exists():
-        for d in sorted(papers_dir.iterdir()):
-            if not d.is_dir():
-                continue
-            tex = sorted(d.glob("*.tex"))
-            sections = sorted((d / "section").glob("*.tex")) if (d / "section").is_dir() else []
-            index = d / "INDEX.md"
-            bits = []
-            if index.exists():
-                bits.append("INDEX.md")
-            bits.extend(p.name for p in tex[:4])
-            if sections:
-                bits.append(f"section/*.tex ({len(sections)} files)")
-            paper_lines.append(f"- papers/{d.name}/: " + ", ".join(bits))
+        paper_ids = sorted(d.name for d in papers_dir.iterdir() if d.is_dir())
     lines = [
-        "Local files you may Read (prefer tools over guessing):",
-        f"- {KNOWLEDGE_DIR / 'profile.md'} — bio, education, paper list, contact",
-        f"- {KNOWLEDGE_DIR / 'taste.md'} — Hongyu insight/taste skill (hongyu-insight-taste)",
-        f"- {KNOWLEDGE_DIR / 'papers'}/<arxiv-id>/ — paper TeX + INDEX.md",
+        "Local files (Read sparingly — do not open every paper):",
+        f"- {KNOWLEDGE_DIR / 'profile.md'} — bio / paper list",
+        f"- {KNOWLEDGE_DIR / 'taste.summary.md'} — taste short summary (default)",
+        f"- {KNOWLEDGE_DIR / 'taste.md'} — full taste skill (only if visitor asks detail)",
+        f"- {KNOWLEDGE_DIR / 'papers'}/<arxiv-id>/INDEX.md — one paper at a time; ids: {', '.join(paper_ids)}",
+        "Tools:",
+        "- Field survey / 调研 / landscape / SOTA → MUST call web_search first (do NOT Read all INDEX.md).",
+        "- Specific Hongyu paper by name → Read that paper's INDEX.md (or TeX) only.",
+        "- Taste detail → Read taste.md only when summary is not enough.",
+        "- URL → use Fetched pages or WebFetch/web_fetch.",
+        "- No Bash/Edit. Do not invent citations or paper results.",
     ]
-    # Optional root taste skill outside knowledge/
-    root_taste = Path("/home/nvme03/dhy/workspace/code/HONGYU_INSIGHT_TASTE_SKILL.md")
-    if root_taste.exists():
-        lines.append(f"- {root_taste} — full insight/taste skill source (same family as taste.md)")
-    lines.extend(paper_lines[:12])
-    lines.append(
-        "Tools: Read/Glob/Grep for local files; web_search + web_fetch (MCP, free) and/or "
-        "WebSearch/WebFetch for public web. If a URL is in the question or in Fetched pages, use it. "
-        "Do not use Bash/Edit. Do not invent paper results."
-    )
     return "\n".join(lines)
 
 
-def system_prompt(lang: str, rag: str, extra_context: Optional[str]) -> str:
-    """Minimal persona + tool map; light RAG as hints; Read for full documents."""
+def system_prompt(
+    lang: str,
+    rag: str,
+    extra_context: Optional[str],
+    *,
+    survey: bool = False,
+) -> str:
+    """Minimal persona + tool map; light RAG; survey uses web_search."""
     if lang == "zh":
         lines = [
             "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到才说。",
-            "【强制精简】每条回复必须短：默认 2–4 句或不超过约 80 个汉字；先给结论。"
-            "禁止长文、分点堆砌、背景科普、重复。只有访客明确要求「详细/展开」时才可写长。"
-            "最多 1 个 emoji。不编造论文结果/职位/联系方式；不确定就直说。本轮用简体中文。",
-            "用户给出 http(s) 链接时：若有 Fetched pages 就直接用；否则 WebFetch/web_fetch。"
-            "禁止说没有浏览器。taste 用 Read taste.md；论文用 Read papers/<id>/；搜索用 web_search。",
+            "【强制精简】默认 2–4 句 / ≤80 汉字；先结论。禁止长文、多级分点、领域综述式铺陈。"
+            "访客说「详细/展开」才可加长。最多 1 个 emoji。不编造。本轮简体中文。",
+            "【工具】调研/领域/SOTA/文献脉络 → 先 web_search（可 1–2 次），不要连读所有 papers/*/INDEX.md。"
+            "taste 默认用 taste.summary.md；仅当访客要完整 taste/写作审美/协作细节时 Read taste.md。"
+            "Hongyu 某篇论文细节 → 只 Read 对应一篇。URL → Fetched pages 或 WebFetch。"
+            "禁止说没有浏览器。不要把「领域调研」答成「只从 Hongyu 论文视角的长文」。",
         ]
     else:
         lines = [
-            "You are Cici (茜茜), the AI assistant on Hongyu Ding's homepage. Name yourself only if asked.",
-            " conciseness is mandatory: default 2–4 short sentences (or ~60 words). Lead with the answer. "
-            "No long essays, no bullet dumps, no background lectures, no repetition. "
-            "Only expand if the visitor explicitly asks for detail. At most one emoji. "
-            "Never invent paper results/affiliations/awards/contact. Use English this turn.",
-            "If an http(s) URL is present: use Fetched pages when provided, else WebFetch/web_fetch. "
-            "Never claim you have no browser. Taste → Read taste.md; papers → Read papers/<id>/; search → web_search.",
+            "You are Cici (茜茜) on Hongyu Ding's homepage. Name yourself only if asked.",
+            " conciseness mandatory: 2–4 short sentences / ~60 words default. Lead with the answer. "
+            "No long essays or multi-level bullet dumps unless the visitor asks for detail. ≤1 emoji. English this turn.",
+            "TOOLS: field survey / landscape / SOTA / literature → call web_search first (1–2 times). "
+            "Do NOT Read every papers/*/INDEX.md. Taste: use taste.summary.md; Read taste.md only for deep detail. "
+            "Hongyu paper detail → Read that one paper only. URL → Fetched pages or WebFetch. "
+            "Never claim no browser. Do not answer open field surveys as a long Hongyu-papers-only essay.",
         ]
+    if survey:
+        if lang == "zh":
+            lines.append(
+                "【本轮=领域调研】必须先 web_search（或 WebSearch）查公开资料，再简短作答。"
+                "禁止连开多篇本地 INDEX/TeX。可用一句带过 Hongyu 相关工作，但主体应是领域视角。"
+            )
+        else:
+            lines.append(
+                "THIS TURN IS A FIELD SURVEY: call web_search (or WebSearch) first, then answer briefly. "
+                "Do not open many local INDEX/TeX files. At most one short mention of Hongyu's work."
+            )
     lines.append(_knowledge_map())
     if rag:
-        # Short extracts as hints; tools should load full sources when needed.
-        lines.append("Hint excerpts (may be truncated; prefer Read for full text):\n" + rag)
+        lines.append("Hint excerpts (truncated; Read only if needed):\n" + rag)
     if extra_context:
         lines.append(extra_context[: (URL_PREFETCH_CHARS * URL_PREFETCH_MAX + 2000)])
     return "\n".join(lines)
@@ -769,6 +829,7 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
     tool_json_buf: Dict[int, str] = {}
     tool_names: Dict[int, str] = {}
     tool_id_names: Dict[str, str] = {}
+    emitted_tool_calls: set = set()  # avoid double tool_call from stream+assistant snapshots
     thinking_on = THINKING not in ("0", "false", "no", "off", "disabled", "")
 
     # Quiet status (CC doesn't dump tool lists every turn)
@@ -887,13 +948,15 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                         name = tool_names.pop(idx, "tool")
                         raw_in = tool_json_buf.pop(idx, "").strip()
                         summary = _summarize_tool_input(name, raw_in)
-                        frame, _ = _proc("tool", summary, name=name, phase="use")
-                        if frame:
-                            yield frame, ""
-                        # Separate chat bubble — CC one-liner only
-                        frame, _ = _tool_msg("tool_call", name, summary)
-                        if frame:
-                            yield frame, ""
+                        key = f"{name}|{raw_in[:200]}"
+                        if key not in emitted_tool_calls:
+                            emitted_tool_calls.add(key)
+                            frame, _ = _proc("tool", summary, name=name, phase="use")
+                            if frame:
+                                yield frame, ""
+                            frame, _ = _tool_msg("tool_call", name, summary)
+                            if frame:
+                                yield frame, ""
                     else:
                         tool_json_buf.pop(idx, None)
                         tool_names.pop(idx, None)
@@ -968,12 +1031,15 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                             inp = block.get("input")
                             raw_in = json.dumps(inp, ensure_ascii=False) if inp is not None else ""
                             summary = _summarize_tool_input(name, raw_in)
-                            frame, _ = _proc("tool", summary, name=name, phase="use")
-                            if frame:
-                                yield frame, ""
-                            frame, _ = _tool_msg("tool_call", name, summary)
-                            if frame:
-                                yield frame, ""
+                            key = tid or f"{name}|{raw_in[:200]}"
+                            if key not in emitted_tool_calls:
+                                emitted_tool_calls.add(key)
+                                frame, _ = _proc("tool", summary, name=name, phase="use")
+                                if frame:
+                                    yield frame, ""
+                                frame, _ = _tool_msg("tool_call", name, summary)
+                                if frame:
+                                    yield frame, ""
                 continue
 
             if mtype == "result" and not got_text:
@@ -1190,12 +1256,14 @@ async def chat(
     _inflight += 1
 
     lang = "zh" if req.lang.lower().startswith("zh") else "en"
+    ql = req.message.lower()
+    survey = _is_survey_query(ql)
     rag = select_rag(req.message)
     # Reliable URL access: server pre-fetches links in the question
     fetched, prefetch_ui = await prefetch_urls(req.message)
     extra_bits = [x for x in (req.context, fetched) if x]
     extra = "\n\n".join(extra_bits) if extra_bits else None
-    sys_p = system_prompt(lang, rag, extra)
+    sys_p = system_prompt(lang, rag, extra, survey=survey)
     prompt = user_prompt(req.message, req.history)
 
     async def gen():
