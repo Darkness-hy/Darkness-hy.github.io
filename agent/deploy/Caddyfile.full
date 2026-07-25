@@ -1,0 +1,61 @@
+tutor.hongyuding.site {
+    @cors {
+        header_regexp Origin ^https://darkness-hy\.github\.io$|^http://localhost:5180$
+    }
+
+    @cors_preflight {
+        method OPTIONS
+        header_regexp Origin ^https://darkness-hy\.github\.io$|^http://localhost:5180$
+    }
+
+    header @cors {
+        Access-Control-Allow-Origin "{http.request.header.Origin}"
+        Access-Control-Allow-Methods "POST, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+        Access-Control-Max-Age "86400"
+        Vary "Origin"
+    }
+
+    respond @cors_preflight 204
+
+    reverse_proxy 127.0.0.1:18787 {
+        flush_interval -1
+        header_down -Access-Control-Allow-Origin
+        header_down -Access-Control-Allow-Methods
+        header_down -Access-Control-Allow-Headers
+        header_down -Access-Control-Allow-Credentials
+        header_down -Access-Control-Max-Age
+        header_down -Vary
+    }
+}
+
+agent.hongyuding.site {
+    @cors {
+        header_regexp Origin ^https://(darkness-hy\.github\.io|hongyuding\.site|www\.hongyuding\.site)$|^http://(localhost|127\.0\.0\.1):(4173|8000|8080)$
+    }
+
+    @cors_preflight {
+        method OPTIONS
+        header_regexp Origin ^https://(darkness-hy\.github\.io|hongyuding\.site|www\.hongyuding\.site)$|^http://(localhost|127\.0\.0\.1):(4173|8000|8080)$
+    }
+
+    header @cors {
+        Access-Control-Allow-Origin "{http.request.header.Origin}"
+        Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, Accept"
+        Access-Control-Max-Age "86400"
+        Vary "Origin"
+    }
+
+    respond @cors_preflight 204
+
+    reverse_proxy 127.0.0.1:8788 {
+        flush_interval -1
+        header_down -Access-Control-Allow-Origin
+        header_down -Access-Control-Allow-Methods
+        header_down -Access-Control-Allow-Headers
+        header_down -Access-Control-Allow-Credentials
+        header_down -Access-Control-Max-Age
+        header_down -Vary
+    }
+}

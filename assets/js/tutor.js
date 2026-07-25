@@ -4,7 +4,7 @@
   const ENDPOINT =
     window.HOMEPAGE_AGENT_ENDPOINT ||
     window.TUTOR_ENDPOINT ||
-    "https://tutor.hongyuding.site/chat";
+    "https://agent.hongyuding.site/chat";
   const HEALTH_ENDPOINT =
     window.HOMEPAGE_AGENT_HEALTH ||
     window.TUTOR_HEALTH ||
