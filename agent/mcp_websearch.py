@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Minimal MCP server: free web search via DuckDuckGo (no API key).
+"""Minimal MCP server: free web search via DuckDuckGo (package: ddgs).
 
-Uses the `duckduckgo_search` / `ddgs` package when available; falls back to a
-best-effort HTML scrape. Claude Code calls tool `web_search`.
+No API key. Tools:
+  - web_search: DuckDuckGo text results
+  - web_fetch: fetch a public URL as text
 """
 from __future__ import annotations
 
@@ -42,19 +43,20 @@ def _write_message(msg: Dict[str, Any]) -> None:
 
 
 def ddg_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
-    """Free DuckDuckGo search — no API key."""
+    """Free DuckDuckGo search via `ddgs` (preferred) or legacy package."""
     q = (query or "").strip()
     if not q:
         return []
     max_results = max(1, min(int(max_results or 5), 8))
 
-    # Preferred: duckduckgo_search / ddgs package
+    # Prefer new package name
     for mod_name in ("ddgs", "duckduckgo_search"):
         try:
             mod = __import__(mod_name)
             DDGS = getattr(mod, "DDGS")
             out: List[Dict[str, str]] = []
             with DDGS() as ddgs:
+                # ddgs supports backend=auto; don't force deprecated backends
                 for row in ddgs.text(q, max_results=max_results):
                     out.append(
                         {
@@ -68,61 +70,52 @@ def ddg_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
         except Exception:
             continue
 
-    # Fallback HTML (often blocked; kept as last resort)
-    url = "https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": q})
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
-        },
-        method="GET",
-    )
+    # arXiv free fallback for robotics/academic queries
     try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            html = resp.read().decode("utf-8", "replace")
-    except Exception as e:
-        return [{"title": "search_error", "url": "", "snippet": str(e)[:300]}]
-
-    results: List[Dict[str, str]] = []
-    for m in re.finditer(
-        r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>',
-        html,
-        flags=re.I | re.S,
-    ):
-        href, title = m.group(1), m.group(2)
-        title = unescape(re.sub(r"<[^>]+>", "", title))
-        title = re.sub(r"\s+", " ", title).strip()
-        if "uddg=" in href:
-            qs = urllib.parse.parse_qs(urllib.parse.urlparse(href).query)
-            href = urllib.parse.unquote(qs.get("uddg", [href])[0])
-        snippet = ""
-        sn = re.search(
-            r'class="result__snippet"[^>]*>(.*?)</(?:a|td|div)',
-            html[m.end() : m.end() + 800],
-            flags=re.I | re.S,
-        )
-        if sn:
-            snippet = unescape(re.sub(r"<[^>]+>", "", sn.group(1)))
-            snippet = re.sub(r"\s+", " ", snippet).strip()[:280]
-        if title and href.startswith("http"):
-            results.append({"title": title, "url": href, "snippet": snippet})
-        if len(results) >= max_results:
-            break
-    if not results:
-        return [
+        aq = "all:" + "+".join(q.split()[:8])
+        url = "http://export.arxiv.org/api/query?" + urllib.parse.urlencode(
             {
-                "title": "search_empty",
-                "url": "",
-                "snippet": "No results (provider blocked or empty). Prefer local knowledge/ papers.",
+                "search_query": aq,
+                "start": 0,
+                "max_results": max_results,
+                "sortBy": "relevance",
+                "sortOrder": "descending",
             }
-        ]
-    return results
+        )
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "HomepageAgent/1.0 (+https://hongyuding.site)"}
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            xml = resp.read().decode("utf-8", "replace")
+        titles = re.findall(r"<title>([^<]+)</title>", xml)[1:]
+        ids = re.findall(r"<id>(https?://arxiv.org/abs/[^<]+)</id>", xml)
+        summaries = re.findall(r"<summary>([^<]+)</summary>", xml)
+        out = []
+        for i, title in enumerate(titles[:max_results]):
+            out.append(
+                {
+                    "title": unescape(title.strip()),
+                    "url": ids[i] if i < len(ids) else "",
+                    "snippet": unescape(re.sub(r"\s+", " ", summaries[i])).strip()[:320]
+                    if i < len(summaries)
+                    else "",
+                }
+            )
+        if out:
+            return out
+    except Exception:
+        pass
+
+    return [
+        {
+            "title": "search_empty",
+            "url": "",
+            "snippet": "No results. Prefer local knowledge or rephrase the query.",
+        }
+    ]
 
 
 def web_fetch(url: str, max_chars: int = 8000) -> Dict[str, Any]:
-    """Fetch a public URL and return text (HTML stripped). Free, no API key."""
     url = (url or "").strip()
     if not url.startswith("http://") and not url.startswith("https://"):
         return {"ok": False, "error": "url must start with http:// or https://", "url": url}
@@ -166,7 +159,7 @@ TOOLS = [
         "name": "web_search",
         "description": (
             "Free web search via DuckDuckGo (no API key). Use for public facts, "
-            "arXiv pages, news. Returns title/url/snippet list."
+            "field surveys, arXiv/SOTA. Returns title/url/snippet list."
         ),
         "inputSchema": {
             "type": "object",
@@ -186,15 +179,15 @@ TOOLS = [
         "name": "web_fetch",
         "description": (
             "Fetch a public http(s) URL and return readable text (HTML stripped). "
-            "Use when the visitor pastes a specific link (e.g. GitHub Pages project site)."
+            "Use when the visitor pastes a specific link."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "url": {"type": "string", "description": "Full http(s) URL to open"},
+                "url": {"type": "string", "description": "Full http(s) URL"},
                 "max_chars": {
                     "type": "integer",
-                    "description": "Max characters of body text (default 8000)",
+                    "description": "Max characters (default 8000)",
                     "minimum": 500,
                     "maximum": 20000,
                 },
@@ -217,7 +210,7 @@ def handle(msg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "result": {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "homepage-ddg-websearch", "version": "1.1.0"},
+                "serverInfo": {"name": "homepage-ddg-websearch", "version": "1.2.0"},
             },
         }
     if method == "notifications/initialized":

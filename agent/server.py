@@ -58,14 +58,22 @@ TEMPERATURE = float(os.environ.get("AGENT_TEMPERATURE", "0.3"))
 THINKING = os.environ.get("AGENT_THINKING", "disabled").strip().lower()
 # Stream intermediate process events (status/thinking/tool) to the browser.
 STREAM_PROCESS = os.environ.get("AGENT_STREAM_PROCESS", "1").lower() not in ("0", "false", "no", "")
-# Claude Code tools (comma-separated). No Bash/Edit on the public homepage agent.
-# Note: --bare strips WebSearch; we do not use --bare when tools are enabled.
-_DEFAULT_CC_TOOLS = "Read,Glob,Grep,WebSearch,WebFetch"
+# Claude Code tools (comma-separated). No Bash/Edit.
+# Omit native WebSearch/WebFetch — they often fail on DeepSeek Anthropic gateway
+# ("no WebSearch tool"). Use MCP web_search / web_fetch + server prefetch instead.
+_DEFAULT_CC_TOOLS = "Read,Glob,Grep"
 CC_TOOLS = [
     t.strip()
     for t in os.environ.get("AGENT_CC_TOOLS", _DEFAULT_CC_TOOLS).split(",")
     if t.strip()
 ]
+# Survey queries: server-side DDG search injected into context (reliable).
+SURVEY_PREFETCH = os.environ.get("AGENT_SURVEY_PREFETCH", "1").lower() not in (
+    "0",
+    "false",
+    "no",
+    "",
+)
 # Extra dirs for Read beyond knowledge/ (comma-separated absolute paths).
 CC_ADD_DIRS = [
     p.strip()
@@ -383,11 +391,11 @@ def _knowledge_map() -> str:
         f"- {KNOWLEDGE_DIR / 'taste.md'} — full taste skill (only if visitor asks detail)",
         f"- {KNOWLEDGE_DIR / 'papers'}/<arxiv-id>/INDEX.md — one paper at a time; ids: {', '.join(paper_ids)}",
         "Tools:",
-        "- Field survey / 调研 / landscape / SOTA → MUST call web_search first (do NOT Read all INDEX.md).",
-        "- Specific Hongyu paper by name → Read that paper's INDEX.md (or TeX) only.",
+        "- Field survey: use injected Web search results (or MCP web_search). Do NOT Read all INDEX.md.",
+        "- Specific Hongyu paper → Read that paper's INDEX.md only.",
         "- Taste detail → Read taste.md only when summary is not enough.",
-        "- URL → use Fetched pages or WebFetch/web_fetch.",
-        "- No Bash/Edit. Do not invent citations or paper results.",
+        "- URL → Fetched pages or MCP web_fetch.",
+        "- No Bash/Edit. Do not invent citations.",
     ]
     return "\n".join(lines)
 
@@ -405,31 +413,33 @@ def system_prompt(
             "你是 Hongyu Ding 个人主页 AI 助理「茜茜」。勿主动报名字；被问到才说。",
             "【强制精简】默认 2–4 句 / ≤80 汉字；先结论。禁止长文、多级分点、领域综述式铺陈。"
             "访客说「详细/展开」才可加长。最多 1 个 emoji。不编造。本轮简体中文。",
-            "【工具】调研/领域/SOTA/文献脉络 → 先 web_search（可 1–2 次），不要连读所有 papers/*/INDEX.md。"
-            "taste 默认用 taste.summary.md；仅当访客要完整 taste/写作审美/协作细节时 Read taste.md。"
-            "Hongyu 某篇论文细节 → 只 Read 对应一篇。URL → Fetched pages 或 WebFetch。"
-            "禁止说没有浏览器。不要把「领域调研」答成「只从 Hongyu 论文视角的长文」。",
+            "【工具】联网用 MCP web_search / web_fetch（不要用已禁用的原生 WebSearch）。"
+            "调研题若上下文已有「Web search results」段落，直接用它回答，不要说没有搜索工具，也不要乱读本地论文。"
+            "taste 默认 taste.summary.md；完整 taste 才 Read taste.md。"
+            "某篇 Hongyu 论文 → 只 Read 对应一篇。URL → Fetched pages 或 web_fetch。"
+            "禁止说没有浏览器。",
         ]
     else:
         lines = [
             "You are Cici (茜茜) on Hongyu Ding's homepage. Name yourself only if asked.",
             " conciseness mandatory: 2–4 short sentences / ~60 words default. Lead with the answer. "
             "No long essays or multi-level bullet dumps unless the visitor asks for detail. ≤1 emoji. English this turn.",
-            "TOOLS: field survey / landscape / SOTA / literature → call web_search first (1–2 times). "
-            "Do NOT Read every papers/*/INDEX.md. Taste: use taste.summary.md; Read taste.md only for deep detail. "
-            "Hongyu paper detail → Read that one paper only. URL → Fetched pages or WebFetch. "
-            "Never claim no browser. Do not answer open field surveys as a long Hongyu-papers-only essay.",
+            "TOOLS: use MCP web_search / web_fetch for the open web (native WebSearch is disabled). "
+            "If context has 'Web search results', use them — never claim search is unavailable. "
+            "Do not Read many local paper INDEX files for open field surveys. "
+            "Taste: taste.summary.md by default; full taste.md only when asked. "
+            "One Hongyu paper → Read that one only. URL → Fetched pages or web_fetch.",
         ]
     if survey:
         if lang == "zh":
             lines.append(
-                "【本轮=领域调研】必须先 web_search（或 WebSearch）查公开资料，再简短作答。"
-                "禁止连开多篇本地 INDEX/TeX。可用一句带过 Hongyu 相关工作，但主体应是领域视角。"
+                "【本轮=领域调研】上下文应已有 Web search results：据此用 2–4 句概括领域定义、近年趋势、1 个未解问题。"
+                "禁止再连读 profile/taste/多篇 INDEX。Hongyu 工作最多一句。"
             )
         else:
             lines.append(
-                "THIS TURN IS A FIELD SURVEY: call web_search (or WebSearch) first, then answer briefly. "
-                "Do not open many local INDEX/TeX files. At most one short mention of Hongyu's work."
+                "FIELD SURVEY: use the provided Web search results. Answer in 2–4 sentences: definition, trends, one open problem. "
+                "Do not Read profile/taste/many INDEX files. At most one short mention of Hongyu."
             )
     lines.append(_knowledge_map())
     if rag:
@@ -465,6 +475,72 @@ def _html_to_text(html: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def survey_search_context(message: str) -> Tuple[str, List[dict]]:
+    """Server-side free web search for field-survey questions.
+
+    Returns (context_for_model, ui_tool_bubbles). Avoids broken native WebSearch.
+    """
+    if not SURVEY_PREFETCH or not _is_survey_query(message.lower()):
+        return "", []
+    # Build 1–2 English-friendly queries from the user message
+    q = re.sub(r"\s+", " ", message).strip()
+    # Prefer keeping domain English keywords
+    queries = [q]
+    if "mobile" in q.lower() or "manipulation" in q.lower() or "操控" in q or "操作" in q:
+        queries.append("mobile manipulation robot survey trends 2024 2025 2026")
+    queries = queries[:2]
+
+    # Import DDG from sibling module without MCP framing
+    try:
+        from mcp_websearch import ddg_search  # type: ignore
+    except Exception:
+        return "", []
+
+    blocks: List[str] = [
+        "# Web search results (server pre-search — use these sources; do not claim no WebSearch)"
+    ]
+    ui: List[dict] = []
+    seen_urls: set = set()
+    for query in queries:
+        ui.append(
+            {
+                "type": "tool_call",
+                "name": "WebSearch",
+                "text": f"WebSearch({query})",
+            }
+        )
+        hits = ddg_search(query, max_results=5)
+        ok_hits = [h for h in hits if h.get("url") and h.get("title") != "search_empty"]
+        if not ok_hits:
+            ui.append(
+                {
+                    "type": "tool_result",
+                    "name": "WebSearch",
+                    "text": "⎿  0 results",
+                }
+            )
+            continue
+        ui.append(
+            {
+                "type": "tool_result",
+                "name": "WebSearch",
+                "text": f"⎿  {len(ok_hits)} results",
+            }
+        )
+        blocks.append(f"## query: {query}")
+        for h in ok_hits:
+            u = h.get("url") or ""
+            if u in seen_urls:
+                continue
+            seen_urls.add(u)
+            blocks.append(
+                f"- {h.get('title')}\n  {u}\n  {h.get('snippet') or ''}"
+            )
+    if len(blocks) <= 1:
+        return "", ui
+    return "\n".join(blocks), ui
 
 
 async def prefetch_urls(message: str) -> Tuple[str, List[dict]]:
@@ -701,8 +777,6 @@ def _claude_isolated_settings() -> Tuple[str, str, Optional[str]]:
                 "Read(*)",
                 "Glob(*)",
                 "Grep(*)",
-                "WebSearch",
-                "WebFetch(*)",
                 "mcp__websearch__web_search",
                 "mcp__websearch__web_fetch",
                 "mcp__websearch__*",
@@ -770,9 +844,9 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
     env["CLAUDE_CONFIG_DIR"] = cfg_dir
     env["CLAUDE_CODE_SIMPLE"] = "1"
 
-    # Do NOT use --bare: it strips WebSearch/WebFetch from the tool list.
-    # Isolation comes from CLAUDE_CONFIG_DIR + --settings (DeepSeek, not local proxy).
-    tools = CC_TOOLS or ["Read", "Glob", "Grep", "WebSearch", "WebFetch"]
+    # Isolation via CLAUDE_CONFIG_DIR + --settings (DeepSeek, not local proxy).
+    # Native WebSearch/WebFetch omitted — use MCP web_search/web_fetch.
+    tools = CC_TOOLS or ["Read", "Glob", "Grep"]
     add_dirs: List[str] = [str(KNOWLEDGE_DIR.resolve())]
     code_root = Path("/home/nvme03/dhy/workspace/code")
     if code_root.exists():
@@ -1261,10 +1335,23 @@ async def chat(
     rag = select_rag(req.message)
     # Reliable URL access: server pre-fetches links in the question
     fetched, prefetch_ui = await prefetch_urls(req.message)
-    extra_bits = [x for x in (req.context, fetched) if x]
+    # Reliable field survey search (DDG) — avoids broken native WebSearch
+    survey_ctx, survey_ui = survey_search_context(req.message)
+    extra_bits = [x for x in (req.context, fetched, survey_ctx) if x]
     extra = "\n\n".join(extra_bits) if extra_bits else None
     sys_p = system_prompt(lang, rag, extra, survey=survey)
     prompt = user_prompt(req.message, req.history)
+    # UI: one bubble per unique call line (URL fetch + survey search)
+    ui_tool_items: List[dict] = []
+    seen_ui: set = set()
+    for item in list(prefetch_ui) + list(survey_ui):
+        if item.get("type") != "tool_call":
+            continue  # only show call bubbles in UI
+        key = (item.get("name"), item.get("text"))
+        if key in seen_ui:
+            continue
+        seen_ui.add(key)
+        ui_tool_items.append(item)
 
     async def gen():
         global _inflight
@@ -1272,11 +1359,10 @@ async def chat(
         reply_parts: List[str] = []
         status = "ok"
         try:
-            # Compact CC-style tool lines only (full HTML stays in system context)
-            for item in prefetch_ui:
+            for item in ui_tool_items:
                 frame, _ = _tool_msg(
-                    item["type"],
-                    item.get("name") or "WebFetch",
+                    "tool_call",
+                    item.get("name") or "WebSearch",
                     item.get("text") or "",
                 )
                 if frame:

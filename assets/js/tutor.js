@@ -579,12 +579,31 @@
   function pushToolTurn(role, name, text) {
     // Only keep call bubbles for the visitor (no result dumps)
     if (role === "tool_result") return;
+    const content = String(text || "").slice(0, 500);
+    // Deduplicate identical consecutive tool lines (stream double-fire)
+    const last = state.liveToolTurns[state.liveToolTurns.length - 1];
+    if (
+      last &&
+      last.role === "tool_call" &&
+      last.name === (name || "tool") &&
+      last.content === content
+    ) {
+      return;
+    }
+    // Also skip if same line already present this turn
+    if (
+      state.liveToolTurns.some(
+        (t) => t.name === (name || "tool") && t.content === content
+      )
+    ) {
+      return;
+    }
     state.liveToolTurns = [
       ...state.liveToolTurns,
       {
         role: "tool_call",
         name: name || "tool",
-        content: String(text || "").slice(0, 500),
+        content,
       },
     ];
   }
