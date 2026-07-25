@@ -163,36 +163,32 @@
 }
 
 /*
- * CRITICAL: flex-shrink must be 0.
- * Default shrink:1 crushed the column narrower than Chinese text width,
- * so "你是谁" wrapped onto 2 lines inside a too-narrow bubble.
+ * flex:0 0 auto — never shrink column (was crushing CJK into 2 lines).
+ * display:table on bubble — reliable shrink-wrap (avoids subpixel max-content wrap).
  */
 .agent-col {
   display: block;
-  flex: 0 0 auto; /* do not grow, do not shrink */
-  width: fit-content;
+  flex: 0 0 auto;
+  width: max-content;
   max-width: 85%;
-  min-width: 0;
 }
 
 .agent-row--user .agent-col {
   margin-left: auto;
 }
 
-/* Intermediate / streaming assistant segments between tools */
 .agent-bubble--streaming {
   opacity: 0.95;
   border-style: dashed;
 }
 
-/* Tool call: one short bubble — e.g. "🌐 WebSearch …" */
 .agent-bubble--tool,
 .agent-bubble--tool_call {
-  display: inline-block;
+  display: table; /* shrink-wrap */
   box-sizing: border-box;
   width: auto;
-  max-width: 100%;
-  padding: 0.32rem 0.6rem;
+  max-width: 22rem;
+  padding: 0.32rem 0.65rem;
   border: 1px solid color-mix(in srgb, #5b8def 35%, var(--color-line, #d9d2c5));
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--color-paper, #fffdf8) 85%, #e8f0ff);
@@ -311,16 +307,18 @@
 }
 
 .agent-bubble {
-  display: block;
+  /*
+   * display:table shrink-wraps to text more reliably than max-content
+   * (max-content + padding often undershoots by <1px → CJK wraps to 2 lines).
+   */
+  display: table;
   box-sizing: border-box;
-  /* Natural text width; absolute rem cap only (no % → no circular shrink) */
-  width: max-content;
+  width: auto;
   max-width: 22rem;
-  padding: 0.35rem 0.65rem;
+  padding: 0.35rem 0.7rem;
   border-radius: 0.75rem;
   font-size: 0.86rem;
   line-height: 1.35;
-  /* CJK: don't break between every character under pressure */
   word-break: keep-all;
   overflow-wrap: break-word;
   white-space: normal;
