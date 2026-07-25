@@ -36,7 +36,7 @@ _MAIL_UA = "HomepageAgent/1.2 (mailto:skyhyding@gmail.com; +https://hongyuding.s
 
 # Hard latency budget for multi_search (survey blocks on this).
 # Wall-clock: return whatever sources finished within budget.
-SEARCH_BUDGET_S = float(os.environ.get("AGENT_SEARCH_BUDGET_S", "2.5"))
+SEARCH_BUDGET_S = float(os.environ.get("AGENT_SEARCH_BUDGET_S", "3.0"))
 HTTP_TIMEOUT_S = float(os.environ.get("AGENT_SEARCH_HTTP_TIMEOUT_S", "2.8"))
 
 
@@ -461,10 +461,57 @@ def searxng_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     return out
 
 
-def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
-    """Merge academic + optional general web under a hard wall-clock budget.
+def free_web_search(query: str, max_results: int = 5) -> List[Dict[str, str]]:
+    """Free general web search via `ddgs` metasearch (no API key).
 
-    Default budget ~2.5s (AGENT_SEARCH_BUDGET_S). Slow sources are dropped
+    Prefer backends that actually return quality hits in practice:
+    auto → yahoo → brave → bing. Skip pure duckduckgo (often empty).
+    """
+    q = (query or "").strip()
+    if not q:
+        return []
+    max_results = max(1, min(int(max_results or 5), 8))
+    try:
+        from ddgs import DDGS  # type: ignore
+    except Exception:
+        try:
+            from duckduckgo_search import DDGS  # type: ignore
+        except Exception:
+            return []
+
+    backends = ("auto", "yahoo", "brave", "bing")
+    for backend in backends:
+        try:
+            out: List[Dict[str, str]] = []
+            with DDGS() as ddgs:
+                kwargs: Dict[str, Any] = {"max_results": max_results}
+                if backend != "auto":
+                    kwargs["backend"] = backend
+                for row in ddgs.text(q, **kwargs):
+                    title = str(row.get("title") or "")
+                    href = str(row.get("href") or row.get("link") or "")
+                    body = str(row.get("body") or row.get("snippet") or "")
+                    if not title and not href:
+                        continue
+                    out.append(
+                        {
+                            "title": title,
+                            "url": href,
+                            "snippet": _clean_snippet(body, 360),
+                            "source": f"web:{backend}",
+                        }
+                    )
+            if out:
+                return out
+        except Exception:
+            continue
+    return []
+
+
+def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
+    """Merge free web (ddgs) + academic sources under a wall-clock budget.
+
+    Default budget ~3.0s (AGENT_SEARCH_BUDGET_S). Slow sources are dropped
     rather than blocking the chat response.
     """
     import time as _time
@@ -473,34 +520,36 @@ def multi_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
     if not q:
         return []
     max_results = max(1, min(int(max_results or 6), 10))
-    budget = max(0.8, float(SEARCH_BUDGET_S))
+    # Slightly higher default so web metasearch can finish
+    budget = max(0.8, float(os.environ.get("AGENT_SEARCH_BUDGET_S", "3.0") or 3.0))
     t0 = _time.perf_counter()
 
-    # Always-on free academic stack. Optional sources only if configured
-    # (skip empty-key calls entirely — they were free but still scheduled).
+    # free_web first (best for paper titles / general web); academic for rigor
     jobs: Dict[str, Any] = {
-        "wiki": lambda: wiki_search(q, max_results=1),
+        "web": lambda: free_web_search(q, max_results=5),
         "arxiv": lambda: arxiv_search(q, max_results=3),
+        "wiki": lambda: wiki_search(q, max_results=1),
         "crossref": lambda: crossref_search(q, max_results=3, min_year=2018),
         "openalex": lambda: openalex_search(q, max_results=3, min_year=2018),
     }
     if (os.environ.get("BRAVE_API_KEY") or "").strip():
-        jobs["brave"] = lambda: brave_search(q, max_results=3)
+        jobs["brave_api"] = lambda: brave_search(q, max_results=3)
     if (os.environ.get("SERPER_API_KEY") or "").strip():
         jobs["serper"] = lambda: serper_search(q, max_results=3)
     if (os.environ.get("SEARXNG_URL") or "").strip():
         jobs["searxng"] = lambda: searxng_search(q, max_results=3)
 
     buckets: Dict[str, List[Dict[str, str]]] = {k: [] for k in jobs}
-    # Prefer fast sources first in merge order
+    # Prefer free web metasearch, then arxiv, then the rest
     order = tuple(
         k
         for k in (
-            "wiki",
+            "web",
             "arxiv",
+            "wiki",
             "crossref",
             "openalex",
-            "brave",
+            "brave_api",
             "serper",
             "searxng",
         )

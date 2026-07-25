@@ -541,14 +541,14 @@
   }
 
   function startDrain() {
+    // Poll only to detect streamDone while already caught up.
+    // Token display is live in the delta handler (no catch-up dump).
     stopDrain();
-    // Keep up with real token SSE: catch up quickly when behind, still smooth.
     drainTimer = setInterval(() => {
       if (shownLen < fullText.length) {
+        // Gentle continuous catch-up only if tiny lag (never jump whole buffer)
         const lag = fullText.length - shownLen;
-        // If far behind (network burst), jump closer so it feels live
-        const step =
-          lag > 80 ? Math.min(lag, 48) : lag > 24 ? 8 : Math.min(4, lag);
+        const step = Math.min(lag, lag > 12 ? 3 : 1);
         shownLen += step;
         state.streamShown = fullText.slice(0, shownLen);
         render();
@@ -556,7 +556,7 @@
         stopDrain();
         finishStream();
       }
-    }, 16);
+    }, 20);
   }
 
   /** Commit current streamed assistant text as its own bubble (between tools / at end). */
@@ -749,8 +749,12 @@
           continue;
         }
         if (ev.type === "delta" && typeof ev.text === "string") {
+          // Live token stream: append and paint immediately (continuous, no dump)
           fullText += ev.text;
+          shownLen = fullText.length;
+          state.streamShown = fullText;
           if (!drainTimer) startDrain();
+          render();
         } else if (ev.type === "text_break") {
           // Server signals end of an intermediate assistant segment
           flushAssistantText();

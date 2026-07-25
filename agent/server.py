@@ -1536,7 +1536,7 @@ _HTTP_TOOLS: List[dict] = [
         "function": {
             "name": "web_search",
             "description": (
-                "Search Wikipedia, arXiv, OpenAlex, Crossref (optional Brave/Serper). "
+                "Free web+academic search (ddgs metasearch + arXiv/OpenAlex/Crossref/Wikipedia). "
                 "Use for unknown papers, field facts, SOTA. Call freely, multiple times."
             ),
             "parameters": {
@@ -2186,7 +2186,11 @@ async def chat(
     return StreamingResponse(
         gen(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache"},
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",  # disable nginx/caddy response buffering
+            "Connection": "keep-alive",
+        },
     )
 
 
