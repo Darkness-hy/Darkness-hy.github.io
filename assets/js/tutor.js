@@ -31,7 +31,7 @@
       checking: "Checking…",
       topic: "Ask me anything",
       empty:
-        "Hi, I'm the AI assistant on Hongyu Ding's homepage. Ask me anything about research, papers, education, or collaboration.",
+        "Hi, I'm the AI assistant on Hongyu Ding's homepage. I can talk about research and papers, and also about taste and beliefs — how he judges ideas, evidence, writing, design, and what counts as good work. Ask me anything.",
       placeholder: "Ask me anything…",
       send: "send",
       stop: "stop",
@@ -40,7 +40,7 @@
       open: "Open AI assistant",
       suggestions: [
         "What does Hongyu work on?",
-        "Summarize Uni-LaViRA in one paragraph",
+        "What is Hongyu's research taste / beliefs?",
         "How can I contact Hongyu?",
       ],
       busy: "The assistant is busy — try again in a moment.",
@@ -53,7 +53,7 @@
       checking: "检测中…",
       topic: "Ask me anything",
       empty:
-        "你好，我是 Hongyu Ding 个人主页上的 AI 助理。关于研究、论文、教育经历或合作意向，都可以问我。",
+        "你好，我是 Hongyu Ding 个人主页上的 AI 助理。除了研究、论文与合作，也可以聊 taste 与信念：如何判断想法、证据、写作与设计，以及什么算好工作。有什么都可以问我。",
       placeholder: "Ask me anything…",
       send: "发送",
       stop: "停止",
@@ -62,7 +62,7 @@
       open: "打开 AI 助理",
       suggestions: [
         "Hongyu 目前研究什么？",
-        "用一段话概括 Uni-LaViRA",
+        "Hongyu 的 research taste / 信念是什么？",
         "如何联系 Hongyu？",
       ],
       busy: "助理正忙，请稍后再试。",
