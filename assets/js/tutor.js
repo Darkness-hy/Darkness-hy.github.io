@@ -432,12 +432,15 @@
       }
 
       if (role === "tool_call" || role === "tool_result") {
-        // Only show compact call bubbles: "🌐 WebFetch https://…"
-        // Skip result bubbles (content is for the model, not the visitor).
+        // Only show compact call bubbles: "🌐 WebSearch https://…"
         if (role === "tool_result") {
           return;
         }
-        const line = formatToolCallLine(turn.name || "", turn.content || "");
+        // content is already a display line when committed via pushToolTurn
+        const raw = turn.content || "";
+        const line = /^(🌐|📄|📁|🔎|🛠️)\s/.test(raw)
+          ? raw
+          : formatToolCallLine(turn.name || "", raw);
         if (!line) return;
         const bubble = document.createElement("div");
         bubble.className = "agent-bubble agent-bubble--tool agent-bubble--tool_call";
@@ -622,35 +625,53 @@
     ];
   }
 
-  /** One-line bubble text: "🌐 WebSearch https://momastage.github.io/" */
+  /** One-line bubble: "🌐 WebSearch https://momastage.github.io/" — never double-prefix. */
   function formatToolCallLine(name, content) {
+    let text = String(content || "").trim();
+    if (!text) text = "";
+    // Already a display line (emoji prefix) — use as-is (fix double prefix)
+    if (/^(🌐|📄|📁|🔎|🛠️)\s/.test(text)) {
+      text = text.replace(
+        /^(🌐|📄|📁|🔎|🛠️)\s+(WebSearch|Read|Glob|Grep|Tool)\s+\1\s+\2\s+/,
+        "$1 $2 "
+      );
+      // also "🌐 WebSearch 🌐 WebSearch foo"
+      text = text.replace(
+        /^(🌐|📄|📁|🔎|🛠️)\s+(WebSearch|Read|Glob|Grep|Tool)\s+(🌐|📄|📁|🔎|🛠️)\s+(WebSearch|Read|Glob|Grep|Tool)\s+/,
+        "$1 $2 "
+      );
+      return text;
+    }
+    if (text.startsWith("⎿")) return "";
+
     const raw = String(name || "tool");
     let short = raw.includes("__") ? raw.split("__").pop() : raw;
-    const text = String(content || "").trim();
 
     let arg = "";
-    const m = text.match(/^[A-Za-z_][\w]*\(([\s\S]*)\)$/);
+    // WebSearch(query) / Read(path)
+    const m = text.match(/^([A-Za-z_][\w]*)\(([\s\S]*)\)$/);
     if (m) {
-      arg = m[1].replace(/^['"]|['"]$/g, "").trim();
-      const head = text.slice(0, text.indexOf("("));
-      if (head) short = head;
-    } else if (text.startsWith("⎿")) {
-      return "";
+      short = m[1];
+      arg = m[2].replace(/^['"]|['"]$/g, "").trim();
     } else if (text) {
-      arg = text.replace(/^['"]|['"]$/g, "").trim();
+      // "WebSearch query" or bare query/path
+      const m2 = text.match(/^(WebSearch|WebFetch|Read|Glob|Grep)\s+(.+)$/i);
+      if (m2) {
+        short = m2[1];
+        arg = m2[2].trim();
+      } else {
+        arg = text.replace(/^['"]|['"]$/g, "").trim();
+      }
     }
 
     const lower = String(short || "").toLowerCase();
     let emoji = "🛠️";
     let label = short || "Tool";
 
-    if (/websearch|web_search/i.test(lower) || /websearch/i.test(text)) {
+    if (/websearch|web_search|webfetch|web_fetch|url_prefetch/i.test(lower)) {
       emoji = "🌐";
       label = "WebSearch";
-    } else if (/webfetch|web_fetch|url_prefetch/i.test(lower) || /webfetch/i.test(text)) {
-      emoji = "🌐";
-      label = "WebSearch";
-    } else if (/^read$/i.test(lower) || /^read\(/i.test(text)) {
+    } else if (/^read$/i.test(lower)) {
       emoji = "📄";
       label = "Read";
     } else if (/^glob$/i.test(lower)) {
@@ -663,8 +684,10 @@
 
     const urlMatch = arg.match(/https?:\/\/[^\s)'"]+/i);
     if (urlMatch) arg = urlMatch[0];
-    if (arg && !/^https?:\/\//i.test(arg) && arg.length > 64) {
-      arg = "…" + arg.slice(-60);
+    if (arg && !/^https?:\/\//i.test(arg) && arg.length > 72) {
+      // keep readable tail for paths
+      const base = arg.split("/").filter(Boolean).pop() || arg;
+      arg = "…/" + base;
     }
 
     return arg ? `${emoji} ${label} ${arg}` : `${emoji} ${label}`;

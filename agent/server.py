@@ -308,12 +308,8 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
     )
     full_taste = _want_full_taste(ql)
 
-    # Open survey: only tiny profile blurb — force web_search in system rules
+    # Open survey: no local RAG — web results are injected separately
     if survey and not want_papers:
-        for doc_id, text in docs:
-            if doc_id == "profile.md":
-                chunk = text.strip()[:900]
-                return f"### {doc_id}\n{chunk}\n"
         return ""
 
     ordered: List[Tuple[str, str, float]] = []
@@ -433,16 +429,21 @@ def system_prompt(
     if survey:
         if lang == "zh":
             lines.append(
-                "【本轮=领域调研】上下文应已有 Web search results：据此用 2–4 句概括领域定义、近年趋势、1 个未解问题。"
-                "禁止再连读 profile/taste/多篇 INDEX。Hongyu 工作最多一句。"
+                "【本轮=领域调研】上下文已有 Web search results：只根据这些结果用 2–4 句回答（定义、趋势、1 个开放问题）。"
+                "本轮禁止 Read 任何本地文件（profile/taste/INDEX 都不要读）。Hongyu 相关最多半句。"
             )
         else:
             lines.append(
-                "FIELD SURVEY: use the provided Web search results. Answer in 2–4 sentences: definition, trends, one open problem. "
-                "Do not Read profile/taste/many INDEX files. At most one short mention of Hongyu."
+                "FIELD SURVEY: Web search results are already in context. Answer in 2–4 sentences only. "
+                "Do NOT Read any local files this turn. At most half a sentence on Hongyu."
             )
-    lines.append(_knowledge_map())
-    if rag:
+        # Survey: skip heavy knowledge map to avoid encouraging Read spam
+        lines.append(
+            "Tools this turn: none required (results prefetched). Do not call Read/Glob/Grep."
+        )
+    else:
+        lines.append(_knowledge_map())
+    if rag and not survey:
         lines.append("Hint excerpts (truncated; Read only if needed):\n" + rag)
     if extra_context:
         lines.append(extra_context[: (URL_PREFETCH_CHARS * URL_PREFETCH_MAX + 2000)])
@@ -487,10 +488,19 @@ def survey_search_context(message: str) -> Tuple[str, List[dict]]:
     # Build 1–2 English-friendly queries from the user message
     q = re.sub(r"\s+", " ", message).strip()
     # Prefer keeping domain English keywords
-    queries = [q]
-    if "mobile" in q.lower() or "manipulation" in q.lower() or "操控" in q or "操作" in q:
-        queries.append("mobile manipulation robot survey trends 2024 2025 2026")
-    queries = queries[:2]
+    # One focused English query works better for DDG than the raw Chinese sentence
+    queries: List[str] = []
+    if re.search(r"[A-Za-z]{3,}", q):
+        # keep latin keywords from user message
+        latin = " ".join(re.findall(r"[A-Za-z][A-Za-z0-9\-_/]+", q))
+        if latin:
+            queries.append(f"{latin} robot survey trends 2024 2025 2026")
+    if "mobile" in q.lower() or "manipulation" in q.lower() or "操控" in q:
+        queries.append("mobile manipulation robotics survey")
+    if not queries:
+        queries.append(q)
+    # unique, max 1 bubble for UI clarity (still search best query)
+    queries = list(dict.fromkeys(queries))[:1]
 
     # Import DDG from sibling module without MCP framing
     try:
