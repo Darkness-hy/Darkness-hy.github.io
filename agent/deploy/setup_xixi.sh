@@ -91,6 +91,9 @@ AGENT_ALLOWED_ORIGINS=${AGENT_ALLOWED_ORIGINS:-https://darkness-hy.github.io,htt
 # BRAVE_API_KEY=
 # SERPER_API_KEY=
 # SEARXNG_URL=
+# HTTP_PROXY=http://127.0.0.1:7892
+# HTTPS_PROXY=http://127.0.0.1:7892
+# NO_PROXY=localhost,127.0.0.1
 EOF
 else
   echo "  ${ENV_DST} exists — leaving in place"
