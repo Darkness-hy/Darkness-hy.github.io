@@ -176,6 +176,12 @@
   word-break: break-word;
 }
 
+/* Intermediate / streaming assistant segments between tools */
+.agent-bubble--streaming {
+  opacity: 0.95;
+  border-style: dashed;
+}
+
 .agent-col {
   display: flex;
   flex-direction: column;

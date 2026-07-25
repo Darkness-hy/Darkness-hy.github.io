@@ -457,36 +457,32 @@
     state.turns.forEach((turn) => appendTurn(turn));
 
     if (state.busy) {
-      // Tool calls/results appear as their own rows while streaming
-      state.liveToolTurns.forEach((turn) => appendTurn(turn, { live: true }));
-
-      const row = document.createElement("div");
-      row.className = "agent-row agent-row--assistant";
-      const col = document.createElement("div");
-      col.className = "agent-col";
-      // Process panel only for non-status noise (thinking); skip "requesting" spam
-      const usefulProc = state.processLog.filter(
-        (e) =>
-          e.kind === "thinking" ||
-          (e.kind === "tool" && e.text) ||
-          (e.kind === "status" &&
-            e.text &&
-            !/^requesting$/i.test(e.text) &&
-            !/^Claude Code/i.test(e.text) &&
-            !/^DeepSeek/i.test(e.text))
-      );
-      if (usefulProc.length) {
-        const proc = renderProcessBlock(usefulProc, { open: false, live: true });
-        if (proc) col.appendChild(proc);
+      // Current in-progress assistant text (may be intermediate, then tools, then more text)
+      if (state.streamShown) {
+        const row = document.createElement("div");
+        row.className = "agent-row agent-row--assistant";
+        const col = document.createElement("div");
+        col.className = "agent-col";
+        const bubble = document.createElement("div");
+        bubble.className = "agent-bubble agent-bubble--assistant agent-bubble--streaming";
+        bubble.innerHTML = simpleMarkdown(state.streamShown);
+        col.appendChild(bubble);
+        row.appendChild(col);
+        bodyEl.appendChild(row);
+      } else {
+        // Waiting for next text / tools
+        const row = document.createElement("div");
+        row.className = "agent-row agent-row--assistant";
+        const col = document.createElement("div");
+        col.className = "agent-col";
+        const bubble = document.createElement("div");
+        bubble.className = "agent-bubble agent-bubble--assistant";
+        bubble.innerHTML =
+          '<span class="agent-typing" style="color:var(--color-muted)">…</span>';
+        col.appendChild(bubble);
+        row.appendChild(col);
+        bodyEl.appendChild(row);
       }
-      const bubble = document.createElement("div");
-      bubble.className = "agent-bubble agent-bubble--assistant";
-      bubble.innerHTML = state.streamShown
-        ? simpleMarkdown(state.streamShown)
-        : '<span class="agent-typing" style="color:var(--color-muted)">…</span>';
-      col.appendChild(bubble);
-      row.appendChild(col);
-      bodyEl.appendChild(row);
     }
     if (state.error) {
       const err = document.createElement("div");
@@ -551,18 +547,51 @@
     }, 30);
   }
 
+  /** Commit current streamed assistant text as its own bubble (between tools / at end). */
+  function flushAssistantText() {
+    stopDrain();
+    const content = fullText.trim();
+    fullText = "";
+    shownLen = 0;
+    state.streamShown = "";
+    if (!content) return;
+    const last = state.turns[state.turns.length - 1];
+    // avoid duplicate identical consecutive assistant lines
+    if (last && last.role === "assistant" && last.content === content) return;
+    state.turns = [...state.turns, { role: "assistant", content }];
+  }
+
   function finishStream() {
-    const content = fullText;
-    const process = state.processLog.slice();
-    const tools = state.liveToolTurns.slice();
-    // Commit tool turns first (each is its own message), then final assistant answer
-    const next = [...state.turns, ...tools];
-    if (content && content.trim()) {
-      next.push({ role: "assistant", content, process });
-    } else if (process.length && !tools.length) {
-      next.push({ role: "assistant", content: "_(no text reply)_", process });
+    // Final text segment after last tool (if any)
+    flushAssistantText();
+    // Any tool calls still buffered in liveToolTurns (legacy path)
+    if (state.liveToolTurns.length) {
+      state.turns = [...state.turns, ...state.liveToolTurns];
     }
-    state.turns = next;
+    const process = state.processLog.slice();
+    // Attach process log to last assistant turn if present
+    if (process.length) {
+      const turns = state.turns.slice();
+      for (let i = turns.length - 1; i >= 0; i--) {
+        if (turns[i].role === "assistant") {
+          turns[i] = { ...turns[i], process };
+          break;
+        }
+      }
+      state.turns = turns;
+    }
+    if (
+      state.turns.length === 0 ||
+      (state.turns[state.turns.length - 1].role === "user" && !state.liveToolTurns.length)
+    ) {
+      // no output at all
+      if (!state.turns.some((t) => t.role === "assistant" || t.role === "tool_call")) {
+        state.turns = [
+          ...state.turns,
+          { role: "assistant", content: "_(no text reply)_", process },
+        ];
+      }
+    }
     state.streamShown = "";
     state.processLog = [];
     state.liveToolTurns = [];
@@ -577,34 +606,19 @@
   }
 
   function pushToolTurn(role, name, text) {
-    // Only keep call bubbles for the visitor (no result dumps)
+    // Only show call bubbles (no result dumps)
     if (role === "tool_result") return;
+    // Flush any intermediate model text BEFORE the tool bubble
+    flushAssistantText();
     const content = String(text || "").slice(0, 500);
-    // Deduplicate identical consecutive tool lines (stream double-fire)
-    const last = state.liveToolTurns[state.liveToolTurns.length - 1];
-    if (
-      last &&
-      last.role === "tool_call" &&
-      last.name === (name || "tool") &&
-      last.content === content
-    ) {
-      return;
-    }
-    // Also skip if same line already present this turn
-    if (
-      state.liveToolTurns.some(
-        (t) => t.name === (name || "tool") && t.content === content
-      )
-    ) {
-      return;
-    }
-    state.liveToolTurns = [
-      ...state.liveToolTurns,
-      {
-        role: "tool_call",
-        name: name || "tool",
-        content,
-      },
+    const line = formatToolCallLine(name || "tool", content);
+    if (!line) return;
+    const last = state.turns[state.turns.length - 1];
+    if (last && last.role === "tool_call" && last.content === line) return;
+    // Commit tool immediately as its own chat message
+    state.turns = [
+      ...state.turns,
+      { role: "tool_call", name: name || "tool", content: line },
     ];
   }
 
@@ -696,6 +710,10 @@
         if (ev.type === "delta" && typeof ev.text === "string") {
           fullText += ev.text;
           if (!drainTimer) startDrain();
+        } else if (ev.type === "text_break") {
+          // Server signals end of an intermediate assistant segment
+          flushAssistantText();
+          render();
         } else if (ev.type === "tool_call" || ev.type === "tool_result") {
           pushToolTurn(
             ev.type,
@@ -703,10 +721,23 @@
             typeof ev.text === "string" ? ev.text : ""
           );
           render();
-        } else if (ev.type === "thinking" || ev.type === "tool" || ev.type === "status") {
-          const text = typeof ev.text === "string" ? ev.text : ev.message || "";
-          pushProcess(ev.type, text);
-          render();
+        } else if (ev.type === "thinking") {
+          // Show intermediate thinking/text as its own soft assistant bubble
+          const th = typeof ev.text === "string" ? ev.text : "";
+          if (th.trim()) {
+            flushAssistantText();
+            state.turns = [
+              ...state.turns,
+              {
+                role: "assistant",
+                content: th.trim(),
+                kind: "thinking",
+              },
+            ];
+            render();
+          }
+        } else if (ev.type === "tool" || ev.type === "status") {
+          // ignore noisy process lines (tools already have bubbles)
         } else if (ev.type === "error") {
           throw new Error(ev.message || t().network);
         } else if (ev.type === "done") {
@@ -777,16 +808,10 @@
     abortCtrl?.abort();
     stopDrain();
     state.busy = false;
-    const tools = state.liveToolTurns.slice();
-    const next = [...state.turns, ...tools];
-    if (fullText) {
-      next.push({
-        role: "assistant",
-        content: fullText,
-        process: state.processLog.slice(),
-      });
+    flushAssistantText();
+    if (state.liveToolTurns.length) {
+      state.turns = [...state.turns, ...state.liveToolTurns];
     }
-    state.turns = next;
     state.streamShown = "";
     state.processLog = [];
     state.liveToolTurns = [];

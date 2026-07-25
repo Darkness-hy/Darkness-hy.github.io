@@ -1025,6 +1025,8 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                         key = f"{name}|{raw_in[:200]}"
                         if key not in emitted_tool_calls:
                             emitted_tool_calls.add(key)
+                            # Close any in-progress assistant text segment before the tool bubble
+                            yield sse({"type": "text_break"}), ""
                             frame, _ = _proc("tool", summary, name=name, phase="use")
                             if frame:
                                 yield frame, ""
@@ -1108,6 +1110,7 @@ async def stream_claude(sys_prompt: str, prompt: str) -> AsyncIterator[Tuple[str
                             key = tid or f"{name}|{raw_in[:200]}"
                             if key not in emitted_tool_calls:
                                 emitted_tool_calls.add(key)
+                                yield sse({"type": "text_break"}), ""
                                 frame, _ = _proc("tool", summary, name=name, phase="use")
                                 if frame:
                                     yield frame, ""
