@@ -254,8 +254,61 @@ def _is_survey_query(ql: str) -> bool:
     return any(k in ql for k in _SURVEY_HINTS)
 
 
+def _is_taste_skill_query(message: str) -> bool:
+    """True for the homepage suggestion and clear taste/belief questions.
+
+    These must load the full hongyu-insight-taste skill (taste.md) before answering.
+    """
+    ql = (message or "").lower().strip()
+    if not ql:
+        return False
+    # Exact / near-exact homepage suggestion chips
+    suggestion_needles = (
+        "what is hongyu's research taste / beliefs?",
+        "what is hongyu's research taste/beliefs?",
+        "what is hongyu's research taste",
+        "research taste / beliefs",
+        "research taste/beliefs",
+        "hongyu 的 research taste / 信念是什么",
+        "hongyu 的 research taste/信念是什么",
+        "research taste / 信念",
+        "research taste /信念",
+    )
+    if any(n in ql for n in suggestion_needles):
+        return True
+    # Explicit skill file / full skill
+    if any(
+        k in ql
+        for k in (
+            "taste.md",
+            "taste skill",
+            "hongyu-insight-taste",
+            "hongyuding-skill",
+            "hongyu_insight_taste",
+            "insight & taste",
+            "insight and taste",
+        )
+    ):
+        return True
+    # "research taste" + beliefs/philosophy style
+    has_taste = any(k in ql for k in ("research taste", "taste", "品味", "insight"))
+    has_belief = any(
+        k in ql for k in ("belief", "beliefs", "信念", "philosophy", "原则", "观点", "value")
+    )
+    if has_taste and has_belief:
+        return True
+    # standalone strong ask
+    if re.search(r"\b(research\s+)?taste\b", ql) and any(
+        k in ql for k in ("what", "hongyu", "his", "是什么", "怎样", "如何")
+    ):
+        return True
+    return False
+
+
 def _want_full_taste(ql: str) -> bool:
-    """True only when visitor asks for deep/full taste skill, not a light mention."""
+    """True when visitor needs the full taste skill (not summary)."""
+    if _is_taste_skill_query(ql):
+        return True
     deep = (
         "taste.md",
         "full taste",
@@ -272,14 +325,52 @@ def _want_full_taste(ql: str) -> bool:
         "审美",
         "协作",
     )
-    if any(k in ql for k in deep):
-        return True
-    # "research taste / beliefs" → summary is enough unless "detailed"
-    return False
+    return any(k in ql for k in deep)
+
+
+def taste_skill_context(message: str) -> Tuple[str, List[dict]]:
+    """Server-side Read of full hongyu-insight-taste skill (knowledge/taste.md).
+
+    Used for the fixed suggestion and clear taste/beliefs questions so the
+    model always answers from the full skill, not taste.summary.md alone.
+    Returns (context_for_model, ui_tool_bubbles).
+    """
+    if not _is_taste_skill_query(message):
+        return "", []
+    path = KNOWLEDGE_DIR / "taste.md"
+    if not path.is_file():
+        return "", []
+    try:
+        body = path.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return "", []
+    # Cap very long skill files (~10k is fine; keep headroom)
+    max_chars = 14000
+    if len(body) > max_chars:
+        body = body[:max_chars] + "\n…[truncated]…"
+    # Prefer short display path in the UI bubble
+    try:
+        display = str(path.relative_to(ROOT))
+    except ValueError:
+        display = "knowledge/taste.md"
+    abs_path = str(path)
+    ui = [
+        {
+            "type": "tool_call",
+            "name": "Read",
+            "text": f"Read({display})",
+        }
+    ]
+    ctx = (
+        "# Full taste skill (server Read of hongyu-insight-taste / taste.md — "
+        "answer ONLY from this skill content; do not invent project names)\n"
+        f"## file: {abs_path}\n{body}\n"
+    )
+    return ctx, ui
 
 
 def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
-    """Compact RAG: profile + taste.summary; full taste/papers only when needed."""
+    """Compact RAG: profile + taste.summary; full taste via taste_skill_context."""
     docs = _load_docs()
     if not docs:
         return ""
@@ -287,11 +378,12 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
     q = _tokens(query)
     ql = query.lower()
     survey = _is_survey_query(ql)
+    taste_skill = _is_taste_skill_query(query)
     want_papers = (not survey) and (
         any(kw in ql for kw in _PAPER_NAME_HINTS)
         or any(t in q for t in ("paper", "arxiv", "lavira", "mfrs", "acorm", "dreamer"))
     )
-    want_taste = any(
+    want_taste = taste_skill or any(
         k in ql
         for k in (
             "taste",
@@ -311,6 +403,9 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
     # Open survey: no local RAG — web results are injected separately
     if survey and not want_papers:
         return ""
+    # Full skill path: skill body injected separately; skip summary RAG noise
+    if taste_skill:
+        return ""
 
     ordered: List[Tuple[str, str, float]] = []
     for doc_id, text in docs:
@@ -319,7 +414,7 @@ def select_rag(query: str, budget: int = RAG_BUDGET) -> str:
         elif doc_id == "taste.summary.md":
             score = 1e5 if want_taste else 80.0
         elif doc_id == "taste.md":
-            # Never inject full taste into RAG; Read on demand only
+            # Full skill only via taste_skill_context (Read bubble path)
             continue
         else:
             if not want_papers:
@@ -383,13 +478,14 @@ def _knowledge_map() -> str:
     lines = [
         "Local files (Read sparingly — do not open every paper):",
         f"- {KNOWLEDGE_DIR / 'profile.md'} — bio / paper list",
-        f"- {KNOWLEDGE_DIR / 'taste.summary.md'} — taste short summary (default)",
-        f"- {KNOWLEDGE_DIR / 'taste.md'} — full taste skill (only if visitor asks detail)",
+        f"- {KNOWLEDGE_DIR / 'taste.summary.md'} — taste short summary (default for light mentions)",
+        f"- {KNOWLEDGE_DIR / 'taste.md'} — full hongyu-insight-taste skill "
+        "(auto-Read for research taste / beliefs)",
         f"- {KNOWLEDGE_DIR / 'papers'}/<arxiv-id>/INDEX.md — one paper at a time; ids: {', '.join(paper_ids)}",
         "Tools:",
         "- Field survey: use injected Web search results (or MCP web_search). Do NOT Read all INDEX.md.",
         "- Specific Hongyu paper → Read that paper's INDEX.md only.",
-        "- Taste detail → Read taste.md only when summary is not enough.",
+        "- Research taste / beliefs → full taste.md is pre-Read into context.",
         "- URL → Fetched pages or MCP web_fetch.",
         "- No Bash/Edit. Do not invent citations.",
     ]
@@ -402,6 +498,7 @@ def system_prompt(
     extra_context: Optional[str],
     *,
     survey: bool = False,
+    taste_skill: bool = False,
 ) -> str:
     """Minimal persona + tool map; light RAG; survey uses web_search."""
     if lang == "zh":
@@ -411,22 +508,40 @@ def system_prompt(
             "访客说「详细/展开」才可加长。最多 1 个 emoji。不编造。本轮简体中文。",
             "【工具】联网用 MCP web_search / web_fetch（不要用已禁用的原生 WebSearch）。"
             "调研题若上下文已有「Web search results」段落，直接用它回答，不要说没有搜索工具，也不要乱读本地论文。"
-            "taste 默认 taste.summary.md；完整 taste 才 Read taste.md。"
+            "taste 默认 taste.summary.md；研究 taste/信念题会注入完整 taste.md skill。"
             "某篇 Hongyu 论文 → 只 Read 对应一篇。URL → Fetched pages 或 web_fetch。"
             "禁止说没有浏览器。",
         ]
     else:
         lines = [
             "You are Cici (茜茜) on Hongyu Ding's homepage. Name yourself only if asked.",
-            " conciseness mandatory: 2–4 short sentences / ~60 words default. Lead with the answer. "
+            "Conciseness mandatory: 2–4 short sentences / ~60 words default. Lead with the answer. "
             "No long essays or multi-level bullet dumps unless the visitor asks for detail. ≤1 emoji. English this turn.",
             "TOOLS: use MCP web_search / web_fetch for the open web (native WebSearch is disabled). "
             "If context has 'Web search results', use them — never claim search is unavailable. "
             "Do not Read many local paper INDEX files for open field surveys. "
-            "Taste: taste.summary.md by default; full taste.md only when asked. "
+            "Taste: taste.summary.md by default; research taste/beliefs loads full taste.md skill. "
             "One Hongyu paper → Read that one only. URL → Fetched pages or web_fetch.",
         ]
-    if survey:
+    if taste_skill:
+        if lang == "zh":
+            lines.append(
+                "【本轮=research taste / 信念】上下文已有完整 hongyu-insight-taste skill（taste.md）。"
+                "必须基于该 skill 回答：insight 标准、判断启发式、写作/叙事偏好；2–5 句，先结论。"
+                "禁止编造具体项目名/论文名/工具名（skill 本身也不写这些）。"
+                "本轮不要再 Read 其他本地文件；不要用 taste.summary。"
+            )
+        else:
+            lines.append(
+                "TASTE SKILL TURN: Full hongyu-insight-taste skill (taste.md) is already in context. "
+                "Answer from that skill only: insight standards, judgment heuristics, writing/narrative taste. "
+                "2–5 sentences; lead with the point. Do not invent project/paper/tool names. "
+                "Do not Read other local files; do not use the short summary."
+            )
+        lines.append(
+            "Tools this turn: none required (skill already Read). Do not call Read/Glob/Grep."
+        )
+    elif survey:
         if lang == "zh":
             lines.append(
                 "【本轮=领域调研】上下文已有 Web search results：只根据这些结果用 2–4 句回答（定义、趋势、1 个开放问题）。"
@@ -443,10 +558,12 @@ def system_prompt(
         )
     else:
         lines.append(_knowledge_map())
-    if rag and not survey:
+    if rag and not survey and not taste_skill:
         lines.append("Hint excerpts (truncated; Read only if needed):\n" + rag)
+    # taste skill body can be ~10k; allow more headroom than URL prefetch alone
+    extra_cap = URL_PREFETCH_CHARS * URL_PREFETCH_MAX + (16000 if taste_skill else 2000)
     if extra_context:
-        lines.append(extra_context[: (URL_PREFETCH_CHARS * URL_PREFETCH_MAX + 2000)])
+        lines.append(extra_context[:extra_cap])
     return "\n".join(lines)
 
 
@@ -479,77 +596,81 @@ def _html_to_text(html: str) -> str:
 
 
 def survey_search_context(message: str) -> Tuple[str, List[dict]]:
-    """Server-side free web search for field-survey questions.
+    """Server-side multi-source search for field-survey questions.
 
+    Sources: Wikipedia + arXiv + OpenAlex + DuckDuckGo (see mcp_websearch.multi_search).
     Returns (context_for_model, ui_tool_bubbles). Avoids broken native WebSearch.
     """
     if not SURVEY_PREFETCH or not _is_survey_query(message.lower()):
         return "", []
-    # Build 1–2 English-friendly queries from the user message
+    # Build one focused English-friendly query
     q = re.sub(r"\s+", " ", message).strip()
-    # Prefer keeping domain English keywords
-    # One focused English query works better for DDG than the raw Chinese sentence
-    queries: List[str] = []
+    query = q
     if re.search(r"[A-Za-z]{3,}", q):
-        # keep latin keywords from user message
         latin = " ".join(re.findall(r"[A-Za-z][A-Za-z0-9\-_/]+", q))
         if latin:
-            queries.append(f"{latin} robot survey trends 2024 2025 2026")
-    if "mobile" in q.lower() or "manipulation" in q.lower() or "操控" in q:
-        queries.append("mobile manipulation robotics survey")
-    if not queries:
-        queries.append(q)
-    # unique, max 1 bubble for UI clarity (still search best query)
-    queries = list(dict.fromkeys(queries))[:1]
+            # academic-oriented query improves arXiv / OpenAlex hit quality
+            query = f"{latin} robotics survey"
+    if "mobile" in q.lower() and "manipulation" in q.lower():
+        query = "mobile manipulation robotics"
+    elif "操控" in q and ("移动" in q or "mobile" in q.lower()):
+        query = "mobile manipulation robotics"
 
-    # Import DDG from sibling module without MCP framing
     try:
-        from mcp_websearch import ddg_search  # type: ignore
+        from mcp_websearch import multi_search  # type: ignore
     except Exception:
-        return "", []
+        try:
+            from mcp_websearch import ddg_search as multi_search  # type: ignore
+        except Exception:
+            return "", []
 
-    blocks: List[str] = [
-        "# Web search results (server pre-search — use these sources; do not claim no WebSearch)"
+    ui: List[dict] = [
+        {
+            "type": "tool_call",
+            "name": "WebSearch",
+            "text": f"WebSearch({query})",
+        }
     ]
-    ui: List[dict] = []
-    seen_urls: set = set()
-    for query in queries:
-        ui.append(
-            {
-                "type": "tool_call",
-                "name": "WebSearch",
-                "text": f"WebSearch({query})",
-            }
-        )
-        hits = ddg_search(query, max_results=5)
-        ok_hits = [h for h in hits if h.get("url") and h.get("title") != "search_empty"]
-        if not ok_hits:
-            ui.append(
-                {
-                    "type": "tool_result",
-                    "name": "WebSearch",
-                    "text": "⎿  0 results",
-                }
-            )
-            continue
+    hits = multi_search(query, max_results=7)
+    ok_hits = [
+        h
+        for h in hits
+        if h.get("title") != "search_empty" and (h.get("url") or h.get("snippet"))
+    ]
+    if not ok_hits:
         ui.append(
             {
                 "type": "tool_result",
                 "name": "WebSearch",
-                "text": f"⎿  {len(ok_hits)} results",
+                "text": "⎿  0 results",
             }
         )
-        blocks.append(f"## query: {query}")
-        for h in ok_hits:
-            u = h.get("url") or ""
-            if u in seen_urls:
-                continue
-            seen_urls.add(u)
-            blocks.append(
-                f"- {h.get('title')}\n  {u}\n  {h.get('snippet') or ''}"
-            )
-    if len(blocks) <= 1:
         return "", ui
+
+    sources = sorted({(h.get("source") or "?").split(":")[0] for h in ok_hits})
+    ui.append(
+        {
+            "type": "tool_result",
+            "name": "WebSearch",
+            "text": f"⎿  {len(ok_hits)} results ({'+'.join(sources)})",
+        }
+    )
+    blocks: List[str] = [
+        "# Web search results (multi-source: Wikipedia + arXiv + OpenAlex + DDG — "
+        "use these; do not claim no WebSearch)",
+        f"## query: {query}",
+    ]
+    seen_urls: set = set()
+    for h in ok_hits:
+        u = h.get("url") or ""
+        if u and u in seen_urls:
+            continue
+        if u:
+            seen_urls.add(u)
+        src = h.get("source") or ""
+        blocks.append(
+            f"- [{src}] {h.get('title')}\n  {u}\n  {h.get('snippet') or ''}"
+        )
     return "\n".join(blocks), ui
 
 
@@ -1345,19 +1466,29 @@ async def chat(
     lang = "zh" if req.lang.lower().startswith("zh") else "en"
     ql = req.message.lower()
     survey = _is_survey_query(ql)
+    taste_skill = _is_taste_skill_query(req.message)
+    # Taste skill and field survey are mutually exclusive paths
+    if taste_skill:
+        survey = False
     rag = select_rag(req.message)
     # Reliable URL access: server pre-fetches links in the question
     fetched, prefetch_ui = await prefetch_urls(req.message)
-    # Reliable field survey search (DDG) — avoids broken native WebSearch
-    survey_ctx, survey_ui = survey_search_context(req.message)
-    extra_bits = [x for x in (req.context, fetched, survey_ctx) if x]
+    # Full hongyu-insight-taste skill for research taste / beliefs suggestion
+    taste_ctx, taste_ui = taste_skill_context(req.message)
+    # Multi-source survey search — avoids broken native WebSearch
+    survey_ctx, survey_ui = (
+        ("", []) if taste_skill else survey_search_context(req.message)
+    )
+    extra_bits = [x for x in (req.context, fetched, taste_ctx, survey_ctx) if x]
     extra = "\n\n".join(extra_bits) if extra_bits else None
-    sys_p = system_prompt(lang, rag, extra, survey=survey)
+    sys_p = system_prompt(
+        lang, rag, extra, survey=survey, taste_skill=taste_skill
+    )
     prompt = user_prompt(req.message, req.history)
-    # UI: one bubble per unique call line (URL fetch + survey search)
+    # UI: one bubble per unique call line (Read skill / URL / survey search)
     ui_tool_items: List[dict] = []
     seen_ui: set = set()
-    for item in list(prefetch_ui) + list(survey_ui):
+    for item in list(taste_ui) + list(prefetch_ui) + list(survey_ui):
         if item.get("type") != "tool_call":
             continue  # only show call bubbles in UI
         key = (item.get("name"), item.get("text"))

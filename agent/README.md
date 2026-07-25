@@ -5,7 +5,7 @@ Claude Code headless harness (`claude -p --system-prompt …`, no default Claude
 `AGENT_HARNESS=claude-code` (current prod): headless Claude Code against DeepSeek Anthropic-compat, with tools:
 
 - **Read / Glob / Grep** — local `knowledge/` (profile, taste, paper TeX) and optional `AGENT_CC_ADD_DIRS`
-- **web_search (MCP)** — free DuckDuckGo search via `mcp_websearch.py` (no API key)
+- **web_search (MCP)** — multi-source free search via `mcp_websearch.py` (Wikipedia + arXiv + OpenAlex + DuckDuckGo; no API key)
 - **WebSearch / WebFetch** — Claude-native tools when the model backend supports them  
 - **No Bash/Edit** on the public homepage agent  
 
