@@ -39,11 +39,12 @@
       close: "Close",
       open: "Open AI assistant",
       suggestions: [
-        "What does Hongyu work on?",
         "What is Hongyu's research taste / beliefs?",
         "Summarize Uni-LaViRA in one paragraph",
+        "Leave a message for Hongyu",
       ],
       busy: "The assistant is busy — try again in a moment.",
+      rateLimit: "Usage limit reached — please try again later.",
       network: "Could not reach the assistant.",
       process: "Process",
       thinking: "Thinking",
@@ -67,11 +68,12 @@
       close: "收起",
       open: "打开 AI 助理",
       suggestions: [
-        "Hongyu 目前研究什么？",
         "Hongyu 的 research taste / 信念是什么？",
         "用一段话概括 Uni-LaViRA",
+        "给我留言",
       ],
       busy: "助理正忙，请稍后再试。",
+      rateLimit: "使用次数已达上限，请稍后再试。",
       network: "无法连接助理服务。",
       process: "过程",
       thinking: "思考",
@@ -210,26 +212,83 @@
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     // Strip trailing newlines that would pad bubble height
     const raw = String(text || "").replace(/^\s+|\s+$/g, "");
+    const hasMd =
+      /\*\*|__|\*[^*]+\*|_[^_]+_|`|\[.+\]\(https?:|^\s*[-*•]\s|^\s*\d+\.\s/m.test(
+        raw
+      );
     // One-liners without markdown: raw text only (no <p> → no 2-line chrome)
     const isPlainOneLine =
       raw.length > 0 &&
       raw.length < 120 &&
       !/\n/.test(raw) &&
-      !/\*\*|`|\[.+\]\(https?:/.test(raw);
+      !hasMd;
     if (isPlainOneLine) {
       return esc(raw);
     }
     let html = esc(raw);
     html = html.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code}</code></pre>`);
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Bold before italic so **x** is not partially eaten by *...*
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+    html = html.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+    html = html.replace(/_([^_\n]+)_/g, "<em>$1</em>");
     html = html.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+
+    // Turn consecutive - / * / 1. lines into <ul>/<ol>
+    const formatBlock = (block) => {
+      const lines = block.split("\n");
+      const out = [];
+      let listType = null; // "ul" | "ol"
+      let listItems = [];
+      const flushList = () => {
+        if (!listType || !listItems.length) return;
+        out.push(
+          `<${listType}>${listItems.map((li) => `<li>${li}</li>`).join("")}</${listType}>`
+        );
+        listType = null;
+        listItems = [];
+      };
+      for (const line of lines) {
+        const ul = line.match(/^\s*[-*•]\s+(.+)$/);
+        const ol = line.match(/^\s*\d+\.\s+(.+)$/);
+        if (ul) {
+          if (listType && listType !== "ul") flushList();
+          listType = "ul";
+          listItems.push(ul[1]);
+        } else if (ol) {
+          if (listType && listType !== "ol") flushList();
+          listType = "ol";
+          listItems.push(ol[1]);
+        } else {
+          flushList();
+          out.push(line);
+        }
+      }
+      flushList();
+      // Join non-list leftovers with <br>
+      return out
+        .map((part) =>
+          part.startsWith("<ul>") || part.startsWith("<ol>")
+            ? part
+            : part.replace(/\n/g, "<br>")
+        )
+        .join("<br>");
+    };
+
     // Prefer <br> over multi-<p> for soft newlines; only double-newline → paragraph
     const blocks = html.split(/\n{2,}/).filter((b) => b.length);
     if (blocks.length <= 1) {
-      return blocks[0] ? blocks[0].replace(/\n/g, "<br>") : "";
+      return blocks[0] ? formatBlock(blocks[0]) : "";
     }
-    return blocks.map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+    return blocks
+      .map((p) => {
+        const inner = formatBlock(p);
+        // Lists already block-level; wrap plain text in <p>
+        if (inner.startsWith("<ul>") || inner.startsWith("<ol>")) return inner;
+        return `<p>${inner}</p>`;
+      })
+      .join("");
   }
 
   function processLabel(kind) {
@@ -425,7 +484,15 @@
         b.type = "button";
         b.className = "agent-suggestion";
         b.textContent = s;
-        b.addEventListener("click", () => send(s));
+        // mousedown + preventDefault: avoid input blur → render() destroying
+        // this button before click fires (needed two clicks otherwise).
+        b.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+        });
+        b.addEventListener("click", (e) => {
+          e.preventDefault();
+          send(s);
+        });
         empty.appendChild(b);
       });
       bodyEl.appendChild(empty);
@@ -781,7 +848,23 @@
         stream: true,
       }),
     });
-    if (res.status === 429 || res.status === 503) throw new Error(t().busy);
+    if (res.status === 429 || res.status === 503) {
+      let detail = "";
+      try {
+        const body = await res.json();
+        detail = (body && (body.detail || body.message)) || "";
+        if (Array.isArray(detail)) {
+          detail = detail.map((d) => d.msg || d).join(" ");
+        }
+      } catch {
+        /* ignore non-json */
+      }
+      const reason = res.headers.get("X-RateLimit-Reason") || "";
+      if (reason === "busy" || res.status === 503) {
+        throw new Error(detail || t().busy);
+      }
+      throw new Error(detail || t().rateLimit);
+    }
     if (!res.ok || !res.body) throw new Error(`${t().network} (${res.status})`);
 
     const reader = res.body.getReader();
@@ -951,19 +1034,32 @@
     }
   });
 
+  /** Update avatar/mode chrome only — never rebuild message body (preserves clicks). */
+  function paintMode() {
+    const mode = currentMode();
+    fabAvatar.setMode(mode);
+    headerAvatar.setMode(mode);
+    if (mode === "idle" || mode === "listening") headerAvatar.startBlink();
+    else headerAvatar.stopBlink();
+    sendBtn.disabled = state.busy ? false : !state.input.trim();
+  }
+
   inputEl.addEventListener("input", () => {
     state.input = inputEl.value;
     inputEl.style.height = "auto";
     inputEl.style.height = `${Math.min(inputEl.scrollHeight, 112)}px`;
-    render();
+    // Do not full-render on every keystroke — keeps suggestion buttons stable
+    // and avoids wiping the transcript for mode/send-button updates only.
+    paintMode();
   });
   inputEl.addEventListener("focus", () => {
     state.inputFocused = true;
-    render();
+    paintMode();
   });
   inputEl.addEventListener("blur", () => {
     state.inputFocused = false;
-    render();
+    // Defer so a click on a suggestion can fire before any potential re-render
+    requestAnimationFrame(() => paintMode());
   });
   inputEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
