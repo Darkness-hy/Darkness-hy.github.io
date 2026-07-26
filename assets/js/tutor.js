@@ -40,8 +40,8 @@
       open: "Open AI assistant",
       suggestions: [
         "What is Hongyu's research taste / beliefs?",
-        "Summarize Uni-LaViRA in one paragraph",
-        "Leave a message for Hongyu",
+        "Summarize Uni-LaViRA in one paragraph.",
+        "Leave a message for Hongyu.",
       ],
       busy: "The assistant is busy — try again in a moment.",
       rateLimit: "Usage limit reached — please try again later.",
@@ -69,8 +69,8 @@
       open: "打开 AI 助理",
       suggestions: [
         "Hongyu 的 research taste / 信念是什么？",
-        "用一段话概括 Uni-LaViRA",
-        "给我留言",
+        "用一段话概括 Uni-LaViRA。",
+        "给我留言。",
       ],
       busy: "助理正忙，请稍后再试。",
       rateLimit: "使用次数已达上限，请稍后再试。",
