@@ -26,8 +26,8 @@
   const COPY = {
     en: {
       title: "AI Assistant",
-      available: "Available",
-      unavailable: "Unavailable",
+      available: "online",
+      unavailable: "offline",
       checking: "Checking…",
       topic: "Ask me anything",
       empty:
@@ -55,8 +55,8 @@
     },
     zh: {
       title: "AI 助理",
-      available: "可用",
-      unavailable: "暂不可用",
+      available: "online",
+      unavailable: "offline",
       checking: "检测中…",
       topic: "Ask me anything",
       empty:
