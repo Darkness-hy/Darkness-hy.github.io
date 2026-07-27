@@ -23,8 +23,8 @@
       zh: `Hi！我是<a href="https://www.nju.edu.cn/en/">南京大学</a>与<a href="https://english.ia.cas.cn/">中国科学院自动化研究所</a>联合培养的计算机科学与技术专业二年级博士研究生，由<a href="https://cs.nju.edu.cn/huojing/">霍静</a>和<a href="https://people.ucas.ac.cn/~yifanzhang">张一帆</a>共同指导。我在南京大学获得控制科学与工程专业硕士学位，导师为<a href="https://heyuanmingong.github.io/">王志</a>和<a href="https://ra.nju.edu.cn/szll/zzjs/20251120/i352846.html">陈春林</a>。`,
     },
     "bio-2": {
-      en: `My current research focuses on embodied navigation and mobile manipulation. I am open to academic discussions and collaborations. Feel free to email me at <a href="mailto:skyhyding@gmail.com">skyhyding@gmail.com</a>.`,
-      zh: `我目前的研究聚焦于具身导航和移动操作。欢迎学术交流与合作，您可以通过 <a href="mailto:skyhyding@gmail.com">skyhyding@gmail.com</a> 联系我。`,
+      en: `My current research focuses on embodied navigation and mobile manipulation. I closely collaborate with <a href="mailto:isjieqi@nju.edu.cn">Jieqi Shi</a> and <a href="mailto:chenzx@nju.edu.cn">Zixuan Chen</a> on embodied AI. I am open to academic discussions and collaborations. Feel free to email me at <a href="mailto:skyhyding@gmail.com">skyhyding@gmail.com</a>.`,
+      zh: `我目前的研究聚焦于具身导航和移动操作。在具身智能方向，我与 <a href="mailto:isjieqi@nju.edu.cn">石杰奇</a>、<a href="mailto:chenzx@nju.edu.cn">陈子轩</a> 保持密切合作。欢迎学术交流与合作，您可以通过 <a href="mailto:skyhyding@gmail.com">skyhyding@gmail.com</a> 联系我。`,
     },
     "contact-email": {
       en: "Email",
