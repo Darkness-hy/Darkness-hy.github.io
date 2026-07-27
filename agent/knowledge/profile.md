@@ -17,6 +17,7 @@
 - Embodied AI, robotics, reinforcement learning.
 - Current focus: embodied navigation and mobile manipulation.
 - Long-term goal: build a simple and general-purpose agent for home robots.
+- Close collaborators on embodied AI: Jieqi Shi (isjieqi@nju.edu.cn) and Zixuan Chen (chenzx@nju.edu.cn).
 
 ## Selected publications (on the homepage)
 1. Uni-LaViRA (arXiv:2605.27582, 2026) — unified training-free embodied navigation (VLN-CE, ObjectNav, EQA, Aerial-VLN). Equal contribution first author. Corresponding: Jieqi Shi, Yifan Zhang, Jing Huo. Project: https://xetroubadour.github.io/Uni-LaViRA/
