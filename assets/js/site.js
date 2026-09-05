@@ -6,6 +6,10 @@
       en: "Skip to content",
       zh: "跳至正文",
     },
+    "mbti": {
+      en: `<a href="https://www.16personalities.com/intj-personality">MBTI · INTJ-A</a>`,
+      zh: `<a href="https://www.16personalities.com/intj-personality">MBTI · INTJ-A</a>`,
+    },
     "thesis-1": {
       en: "I am a PhD student at NJU &amp; CASIA.",
       zh: "我是南京大学与中国科学院自动化研究所联合培养的博士研究生。",

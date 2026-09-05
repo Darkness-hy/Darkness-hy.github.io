@@ -7,6 +7,7 @@
 - Homepage: https://darkness-hy.github.io/
 
 ## Identity
+- MBTI: INTJ-A (Architect, Assertive).
 - Second-year Ph.D. student in Computer Science and Engineering at Nanjing University (NJU) and Institute of Automation, Chinese Academy of Sciences (CASIA).
 - Jointly supervised by Assoc. Prof. Jing Huo (NJU) and Prof. Yifan Zhang (CASIA).
 - M.Eng. in Control Science and Engineering, Nanjing University (2021–2024), advised by Assoc. Prof. Zhi Wang and Prof. Chunlin Chen.
