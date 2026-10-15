@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-10-12T12:17:36Z",
+  "source": "assets/skills",
+  "count": 2,
+  "skills": [
+    {
+      "id": "habitat-navmesh",
+      "name": "habitat-navmesh",
+      "title": "Habitat-sim 场景转 NavMesh",
+      "description": "Use when converting a 3D scene mesh (glTF/GLB, e.g. Sketchfab downloads) into a Habitat-sim NavMesh — build, debug disconnected islands, tune recast params (cell_size / agent_max_climb / agent_max_slope), validate floor connectivity with snap_point / find_path, save the .navmesh sidecar, and wire it into examples/viewer.py. Trigger on habitat、navmesh、导航网格、recompute_navmesh、Detour、recast、防穿模、楼梯上不去、sketchfab 场景.",
+      "keywords": [
+        "habitat",
+        "habitat-sim",
+        "navmesh",
+        "导航网格",
+        "recast",
+        "detour",
+        "gltf",
+        "glb",
+        "sketchfab",
+        "穿模",
+        "楼梯"
+      ],
+      "packageType": "instruction-skill",
+      "instructionOnly": true,
+      "version": "1.0.0",
+      "href": "library/habitat-navmesh/SKILL.md"
+    },
+    {
+      "id": "hongyu-insight-taste",
+      "name": "hongyu-insight-taste",
+      "title": "Hongyu Ding Insight & Taste Skill",
+      "description": "High-level personal collaboration skill for Hongyu Ding. Use when an assistant should reflect Hongyu's long-term insight, taste, judgment, preferences, reusable thinking patterns, writing standards, visual aesthetics, and collaboration style. This skill intentionally avoids low-level project names, specific research subfields, tools, hardware, accounts, and transient context. Trigger on insight、taste、判断标准、写作标准、视觉审美、协作风格、different bet、/hongyu-insight-taste.",
+      "keywords": [
+        "insight",
+        "taste",
+        "judgment",
+        "writing",
+        "visual",
+        "collaboration",
+        "different bet",
+        "判断标准",
+        "写作标准",
+        "视觉审美"
+      ],
+      "packageType": "instruction-skill",
+      "instructionOnly": true,
+      "version": "1.0.0",
+      "href": "library/hongyu-insight-taste/SKILL.md"
+    }
+  ]
+}

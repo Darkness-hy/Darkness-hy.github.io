@@ -6,10 +6,6 @@
       en: "Skip to content",
       zh: "跳至正文",
     },
-    "mbti": {
-      en: `<a href="https://www.16personalities.com/intj-personality">MBTI · INTJ-A</a>`,
-      zh: `<a href="https://www.16personalities.com/intj-personality">MBTI · INTJ-A</a>`,
-    },
     "thesis-1": {
       en: "I am a PhD student at NJU &amp; CASIA.",
       zh: "我是南京大学与中国科学院自动化研究所联合培养的博士研究生。",
@@ -37,6 +33,22 @@
     "contact-scholar": {
       en: "Google Scholar",
       zh: "谷歌学术",
+    },
+    "contact-skills": {
+      en: "Skills",
+      zh: "技能",
+    },
+    "skills-home": {
+      en: "Hongyu Ding",
+      zh: "丁泓宇",
+    },
+    "skills-title": {
+      en: "Skills",
+      zh: "技能",
+    },
+    "skills-lede": {
+      en: "Instruction skills I keep for research, engineering, and writing. Each page is the SKILL.md I actually use.",
+      zh: "我在研究、工程和写作中实际使用的 instruction skill。每一页都是对应的 SKILL.md。",
     },
     "heading-activities": {
       en: "Recent Activities",

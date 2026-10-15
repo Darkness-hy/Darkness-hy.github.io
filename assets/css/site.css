@@ -212,26 +212,6 @@ h1 {
   margin-bottom: 1.15rem;
 }
 
-.identity-meta {
-  margin: 0.55rem 0 0;
-}
-
-.identity-meta a {
-  color: var(--color-muted);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-decoration: none;
-}
-
-.identity-meta a:hover {
-  color: var(--color-ink);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.22em;
-}
-
 .name-chinese {
   display: inline-block;
   color: inherit;

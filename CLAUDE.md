@@ -19,13 +19,17 @@ There is no lint, typecheck, or unit-test suite in this production tree. Validat
 
 ## Architecture
 
-Single-page static site:
+Static site (homepage + `/skills/` catalog):
 
 | Path | Role |
 |------|------|
 | `index.html` | All page structure and English default copy (semantic sections: hero, news, publications, education, internships) |
+| `skills/index.html` | Skills catalog UI (`/skills/`); loads `skills/catalog.json` and renders each `SKILL.md` |
+| `skills/sync.py` | Copies `../assets/skills/*/SKILL.md` into `skills/library/` and regenerates `catalog.json` |
 | `assets/css/site.css` | Full visual system (layout, type, light/dark theme tokens, print/reduced-motion) |
+| `assets/css/skills.css` | Skills catalog and reader layout, using the same theme tokens |
 | `assets/js/site.js` | Language (en/zh) and theme toggles; bilingual strings live in a `TRANSLATIONS` map keyed by `data-i18n` attributes |
+| `assets/js/skills.js` | Catalog fetch, search, hash routing, and SKILL.md rendering |
 | `assets/fonts/` | Self-hosted Newsreader + IBM Plex Sans (woff2) and licenses |
 | `assets/images/` | Portrait (`profile-hongyu-ding.webp`), site icon, institution logos, paper teasers (webp; some animated, with `prefers-reduced-motion` posters) |
 | `assets/tutor/` + `assets/css/tutor.css` + `assets/js/tutor.js` | Homepage AI assistant UI (茜茜): chat FAB/panel, status light, avatar modes |
@@ -43,6 +47,7 @@ Single-page static site:
 ### Content model
 
 - **Identity and structure** are authored in `index.html`.
+- **Skills catalog** is generated from `../assets/skills/` via `python3 skills/sync.py`. Do not edit `skills/library/` or `skills/catalog.json` by hand.
 - **Chinese strings and control chrome** are authored in `assets/js/site.js` (`TRANSLATIONS` + theme/language toggle wiring). When changing public copy, update both the HTML default and the matching `en`/`zh` entries in JS, including any nested HTML (links, emphasis).
 - Interactive elements: `#language-toggle`, `#theme-toggle`; preferences are stored in `localStorage`.
 - Prefer local media under `assets/`. Do not introduce runtime CDN CSS/fonts/scripts for core styling; external `https://` links are fine for papers, Scholar, project pages, etc.

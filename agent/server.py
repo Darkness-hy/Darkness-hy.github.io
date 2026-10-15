@@ -541,6 +541,109 @@ def _is_survey_query(ql: str) -> bool:
     return any(k in ql for k in _SURVEY_HINTS)
 
 
+_LEAVE_MESSAGE_CHIPS = (
+    "给我留言",
+    "给我留言。",
+    "leave a message for hongyu",
+    "leave a message for hongyu.",
+    "leave a message",
+    "leave a message.",
+)
+
+
+def _is_leave_message_chip(message: str) -> bool:
+    """True for the homepage suggestion chip texts only."""
+    ql = re.sub(r"\s+", " ", (message or "").strip().lower())
+    ql = ql.rstrip("。.!?！？")
+    normalized = {c.rstrip("。.!?！？") for c in _LEAVE_MESSAGE_CHIPS}
+    return ql in normalized
+
+
+def _is_leave_message_query(message: str) -> bool:
+    """True when the visitor wants to leave a note / message for Hongyu."""
+    ql = (message or "").lower().strip()
+    if not ql:
+        return False
+    if _is_leave_message_chip(message):
+        return True
+    needles = (
+        "给我留言",
+        "给 hongyu 留言",
+        "给hongyu留言",
+        "给 hongyu ding 留言",
+        "给丁泓宇留言",
+        "留言给",
+        "leave a message for hongyu",
+        "leave a message",
+        "leave hongyu a message",
+        "leave a note for hongyu",
+        "message for hongyu",
+        "write to hongyu",
+        "contact hongyu",
+    )
+    if any(n in ql for n in needles):
+        return True
+    if "留言" in ql and any(k in ql for k in ("hongyu", "丁泓宇", "给", "我想")):
+        return True
+    return False
+
+
+def _leave_message_in_history(history: Optional[List[Turn]]) -> bool:
+    """True if a recent user turn started a leave-message flow."""
+    if not history:
+        return False
+    for t in (history or [])[-8:]:
+        if getattr(t, "role", None) == "user" and _is_leave_message_query(
+            getattr(t, "content", "") or ""
+        ):
+            return True
+    return False
+
+
+def _is_guestbook_body(message: str, history: Optional[List[Turn]]) -> bool:
+    """True when this turn is the visitor's actual note (not just the chip).
+
+    Active when current message is leave-intent with substance, or a follow-up
+    after the leave-message chip with non-trivial content.
+    """
+    msg = (message or "").strip()
+    if not msg:
+        return False
+    if _is_leave_message_chip(msg):
+        return False
+    in_flow = _is_leave_message_query(msg) or _leave_message_in_history(history)
+    if not in_flow:
+        return False
+    # Drop pure intent phrases with no note body
+    ql = msg.lower().strip()
+    if ql in _LEAVE_MESSAGE_CHIPS or ql in (
+        "我想留言",
+        "留言",
+        "i want to leave a message",
+    ):
+        return False
+    # Need some substance: length, email, or multi-sentence
+    if len(msg) >= 12:
+        return True
+    if re.search(r"[\w.+-]+@[\w.-]+\.\w+", msg):
+        return True
+    if "\n" in msg and len(msg) >= 6:
+        return True
+    return False
+
+
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.\w+")
+
+
+def _extract_emails(text: str) -> List[str]:
+    found: List[str] = []
+    for m in _EMAIL_RE.finditer(text or ""):
+        e = m.group(0)
+        if e.lower() not in {x.lower() for x in found}:
+            found.append(e)
+    return found[:5]
+
+
 def _is_taste_skill_query(message: str) -> bool:
     """True for the homepage suggestion and clear taste/belief questions.
 
@@ -915,6 +1018,8 @@ def system_prompt(
     survey: bool = False,
     taste_skill: bool = False,
     paper_read: bool = False,
+    leave_message: bool = False,
+    guestbook: bool = False,
 ) -> str:
     """Minimal persona + tool map; light RAG; survey uses web_search."""
     if lang == "zh":
@@ -963,7 +1068,44 @@ def system_prompt(
             "No local filesystem tools — Hongyu paper/taste files are server-injected only when relevant. "
             "Never claim search is unavailable.",
         ]
-    if taste_skill:
+    if leave_message:
+        if guestbook:
+            if lang == "zh":
+                lines.append(
+                    "【本轮=留言正文已收到】访客本轮消息就是给 Hongyu 的留言正文。"
+                    "不要再索要内容。立刻：① 确认已记录；② 整理成可复制邮件草稿（建议主题 + 正文）；"
+                    "③ 给出 mailto：`mailto:skyhyding@gmail.com?subject=...&body=...`（URL 编码）。"
+                    "唯一邮箱 skyhyding@gmail.com；不要 web_search；不要声称已代发。"
+                )
+            else:
+                lines.append(
+                    "GUESTBOOK BODY RECEIVED: this user message IS the note for Hongyu. "
+                    "Do NOT ask for more content. Immediately: (1) acknowledge, "
+                    "(2) polish a short email draft (subject + body), "
+                    "(3) give mailto:skyhyding@gmail.com?subject=...&body=... (URL-encoded). "
+                    "Only that email. No web_search. Never claim you sent it."
+                )
+        elif lang == "zh":
+            lines.append(
+                "【本轮=给 Hongyu 留言】你不能代替用户发信，只能引导。"
+                "唯一官方邮箱：**skyhyding@gmail.com**（不要编造其他联系方式）。"
+                "流程：① 若对方还没写内容，请他用 1–3 句说明来意/合作点/问题，并可选留下称呼与回信邮箱；"
+                "② 对方给出正文后，整理成一封简短可复制草稿（含主题建议 + 正文），并给出可点击的 "
+                "mailto 链接：`mailto:skyhyding@gmail.com?subject=...&body=...`（对 subject/body 做 URL 编码）。"
+                "语气简洁友好；不要 web_search；不要自称代为投递成功。"
+            )
+        else:
+            lines.append(
+                "LEAVE-A-MESSAGE TURN: You cannot send email for the visitor — only guide them. "
+                "Official contact only: **skyhyding@gmail.com** (never invent other channels). "
+                "Flow: (1) if they have not written content yet, ask for 1–3 sentences on purpose / "
+                "collaboration interest / question, plus optional name and reply email; "
+                "(2) once they provide the note, polish a short copy-ready draft (suggested subject + body) "
+                "and a clickable mailto link: "
+                "`mailto:skyhyding@gmail.com?subject=...&body=...` (URL-encode subject/body). "
+                "Keep it brief and friendly. No web_search. Never claim you delivered the message."
+            )
+    elif taste_skill:
         if lang == "zh":
             lines.append(
                 "【本轮=research taste / 信念】已注入完整 taste.md。"
@@ -1265,8 +1407,26 @@ def log_turn(rec: dict) -> None:
     try:
         Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        line = json.dumps(safe, ensure_ascii=False) + "\n"
         with open(Path(LOG_DIR) / f"chat-{day}.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps(safe, ensure_ascii=False) + "\n")
+            f.write(line)
+        # Dedicated guestbook feed for admin "留言" tab
+        if safe.get("guestbook"):
+            gb = {
+                "ts": safe.get("ts"),
+                "ip": safe.get("ip"),
+                "lang": safe.get("lang"),
+                "status": safe.get("status"),
+                "message": safe.get("message"),
+                "reply": safe.get("reply"),
+                "emails": safe.get("emails") or [],
+                "leave_message": True,
+                "guestbook": True,
+            }
+            with open(
+                Path(LOG_DIR) / f"guestbook-{day}.jsonl", "a", encoding="utf-8"
+            ) as f:
+                f.write(json.dumps(gb, ensure_ascii=False) + "\n")
     except OSError:
         pass
 
@@ -1379,7 +1539,199 @@ def _iter_chat_logs(
     return rows[start:end], total
 
 
-def _ip_summary(days: int = 14) -> List[dict]:
+_IP_GEO_MEM: Dict[str, dict] = {}
+_IP_GEO_FILE = Path(LOG_DIR) / "ip_geo_cache.json"
+# Manual campus / infra labels (override or supplement GeoIP).
+_IP_GEO_RULES: List[Tuple[str, dict]] = [
+    ("127.0.0.1/32", {"location": "本机", "isp": "loopback", "tags": ["本机"]}),
+    ("::1/128", {"location": "本机", "isp": "loopback", "tags": ["本机"]}),
+    ("10.0.0.0/8", {"location": "内网", "isp": "private", "tags": ["内网"]}),
+    ("172.16.0.0/12", {"location": "内网", "isp": "private", "tags": ["内网"]}),
+    ("192.168.0.0/16", {"location": "内网", "isp": "private", "tags": ["内网"]}),
+    # NJU CERNET classic allocations
+    (
+        "202.119.45.0/24",
+        {
+            "location": "中国 江苏省 南京市",
+            "isp": "教育网",
+            "org": "Nanjing University",
+            "tags": ["南京大学鼓楼校区", "教育网"],
+        },
+    ),
+    (
+        "202.119.0.0/16",
+        {
+            "location": "中国 江苏省 南京市",
+            "isp": "教育网",
+            "org": "Nanjing University / CERNET",
+            "tags": ["南京大学", "教育网"],
+        },
+    ),
+    # This host's public address often appears as XFF when mis-proxied
+    (
+        "123.184.7.196/32",
+        {
+            "location": "中国 辽宁省 沈阳市",
+            "isp": "Chinanet",
+            "tags": ["服务器公网出口"],
+        },
+    ),
+]
+
+
+def _ip_in_cidr(ip: str, cidr: str) -> bool:
+    try:
+        import ipaddress
+
+        return ipaddress.ip_address(ip) in ipaddress.ip_network(cidr, strict=False)
+    except Exception:
+        return False
+
+
+def _load_ip_geo_cache() -> Dict[str, dict]:
+    global _IP_GEO_MEM
+    if _IP_GEO_MEM:
+        return _IP_GEO_MEM
+    try:
+        if _IP_GEO_FILE.is_file():
+            data = json.loads(_IP_GEO_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                _IP_GEO_MEM = {str(k): v for k, v in data.items() if isinstance(v, dict)}
+    except Exception:
+        _IP_GEO_MEM = {}
+    return _IP_GEO_MEM
+
+
+def _save_ip_geo_cache() -> None:
+    try:
+        Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
+        tmp = _IP_GEO_FILE.with_suffix(".tmp")
+        tmp.write_text(
+            json.dumps(_IP_GEO_MEM, ensure_ascii=False, indent=0),
+            encoding="utf-8",
+        )
+        tmp.replace(_IP_GEO_FILE)
+    except OSError:
+        pass
+
+
+def _rule_geo(ip: str) -> Optional[dict]:
+    for cidr, meta in _IP_GEO_RULES:
+        if _ip_in_cidr(ip, cidr):
+            out = dict(meta)
+            out["source"] = "rule"
+            return out
+    return None
+
+
+def _lookup_ip_geo_remote(ip: str) -> Optional[dict]:
+    """Best-effort GeoIP via ip-api.com (free, no key)."""
+    try:
+        import ipaddress
+
+        addr = ipaddress.ip_address(ip)
+        if addr.is_private or addr.is_loopback or addr.is_reserved:
+            return None
+    except Exception:
+        return None
+    url = (
+        f"http://ip-api.com/json/{ip}"
+        f"?lang=zh-CN&fields=status,message,country,regionName,city,isp,org,as,query"
+    )
+    try:
+        with httpx.Client(timeout=httpx.Timeout(4.0, connect=2.0)) as client:
+            r = client.get(url)
+            if r.status_code != 200:
+                return None
+            data = r.json()
+    except Exception as e:
+        logger.debug("ip-api failed for %s: %s", ip, e)
+        return None
+    if not isinstance(data, dict) or data.get("status") != "success":
+        return None
+    parts = [
+        str(data.get("country") or "").strip(),
+        str(data.get("regionName") or "").strip(),
+        str(data.get("city") or "").strip(),
+    ]
+    # Dedup adjacent equal tokens (e.g. 北京 北京)
+    loc_parts: List[str] = []
+    for p in parts:
+        if p and (not loc_parts or loc_parts[-1] != p):
+            loc_parts.append(p)
+    location = " ".join(loc_parts) or "未知"
+    isp = str(data.get("isp") or data.get("org") or "").strip() or "未知"
+    org = str(data.get("org") or "").strip()
+    asn = str(data.get("as") or "").strip()
+    tags: List[str] = []
+    blob = f"{isp} {org} {asn}".lower()
+    if any(k in blob for k in ("cernet", "education", "edu", "教育", "nju", "nanjing university")):
+        tags.append("教育网")
+    if "nju" in blob or "nanjing university" in blob or "南京大学" in blob:
+        tags.append("南京大学")
+    return {
+        "location": location,
+        "isp": isp,
+        "org": org,
+        "as": asn,
+        "tags": tags,
+        "source": "ip-api",
+    }
+
+
+def _enrich_ip_geo(ip: str, *, allow_remote: bool = True) -> dict:
+    """Return {location, isp, tags, ...} for admin display."""
+    ip = (ip or "").strip()
+    if not ip or ip == "unknown":
+        return {"location": "未知", "isp": "", "tags": [], "source": "none"}
+
+    cache = _load_ip_geo_cache()
+    if ip in cache and cache[ip].get("location"):
+        # Rules always re-applied for tags/location overrides on known campuses
+        rule = _rule_geo(ip)
+        if rule:
+            merged = dict(cache[ip])
+            for k in ("location", "isp", "org", "tags"):
+                if rule.get(k):
+                    merged[k] = rule[k]
+            merged["source"] = "rule+cache"
+            return merged
+        return cache[ip]
+
+    rule = _rule_geo(ip)
+    if rule and rule.get("tags") and any(
+        t in (rule.get("tags") or []) for t in ("本机", "内网", "南京大学鼓楼校区", "南京大学")
+    ):
+        # Strong local/campus rule — no need to call remote
+        _IP_GEO_MEM[ip] = rule
+        _save_ip_geo_cache()
+        return rule
+
+    remote = _lookup_ip_geo_remote(ip) if allow_remote else None
+    if rule and remote:
+        # Prefer rule tags/location when more specific
+        tags = list(dict.fromkeys((remote.get("tags") or []) + (rule.get("tags") or [])))
+        out = {
+            "location": rule.get("location") or remote.get("location") or "未知",
+            "isp": rule.get("isp") or remote.get("isp") or "",
+            "org": rule.get("org") or remote.get("org") or "",
+            "as": remote.get("as") or "",
+            "tags": tags,
+            "source": "rule+ip-api",
+        }
+    elif rule:
+        out = rule
+    elif remote:
+        out = remote
+    else:
+        out = {"location": "查询失败", "isp": "", "tags": [], "source": "miss"}
+
+    _IP_GEO_MEM[ip] = out
+    _save_ip_geo_cache()
+    return out
+
+
+def _ip_summary(days: int = 14, *, with_geo: bool = True) -> List[dict]:
     """Aggregate turns per IP across recent log days."""
     from collections import Counter, defaultdict
 
@@ -1418,17 +1770,80 @@ def _ip_summary(days: int = 14) -> List[dict]:
 
     out = []
     for ip, n in counts.most_common():
-        out.append(
-            {
-                "ip": ip,
-                "turns": n,
-                "first_ts": first_ts.get(ip),
-                "last_ts": last_ts.get(ip),
-                "last_message": msg_preview.get(ip, ""),
-                "status": dict(status_c.get(ip) or {}),
+        row = {
+            "ip": ip,
+            "turns": n,
+            "first_ts": first_ts.get(ip),
+            "last_ts": last_ts.get(ip),
+            "last_message": msg_preview.get(ip, ""),
+            "status": dict(status_c.get(ip) or {}),
+        }
+        if with_geo:
+            geo = _enrich_ip_geo(ip, allow_remote=True)
+            row["geo"] = {
+                "location": geo.get("location") or "",
+                "isp": geo.get("isp") or "",
+                "org": geo.get("org") or "",
+                "as": geo.get("as") or "",
+                "tags": geo.get("tags") or [],
             }
-        )
+            # Flat fields for simpler UI templates
+            row["location"] = row["geo"]["location"]
+            row["isp"] = row["geo"]["isp"]
+            row["tags"] = row["geo"]["tags"]
+        out.append(row)
     return out
+
+
+def _guestbook_list(days: int = 30, limit: int = 200, offset: int = 0) -> Tuple[List[dict], int]:
+    """List guestbook notes for admin (newest first).
+
+    Prefers dedicated guestbook-*.jsonl; falls back to chat logs with guestbook=true.
+    """
+    root = Path(LOG_DIR)
+    rows: List[dict] = []
+    if root.is_dir():
+        gb_paths = sorted(root.glob("guestbook-*.jsonl"), reverse=True)
+        if days and days > 0:
+            gb_paths = gb_paths[: max(1, days)]
+        for path in gb_paths:
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for line in text.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(rec, dict):
+                    rec.setdefault("guestbook", True)
+                    rows.append(rec)
+        # Fallback: older chat logs marked guestbook
+        if not rows:
+            for path in _chat_log_paths(days=max(1, days)):
+                try:
+                    text = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                for line in text.splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(rec, dict) and rec.get("guestbook"):
+                        rows.append(rec)
+    rows.sort(key=lambda r: str(r.get("ts") or ""), reverse=True)
+    total = len(rows)
+    start = max(0, int(offset))
+    end = start + max(1, min(int(limit), 500))
+    return rows[start:end], total
 
 
 def _proc(kind: str, text: str, **extra) -> Tuple[str, str]:
@@ -2555,6 +2970,10 @@ _ADMIN_HTML = """<!DOCTYPE html>
     background:transparent; color:inherit; border-radius:0; cursor:pointer; }
   .ip:hover, .ip.active { background:color-mix(in srgb,var(--accent) 12%,transparent); }
   .ip .meta { color:var(--muted); font-size:.72rem; margin-top:.15rem; }
+  .ip .geo { color:var(--muted); font-size:.72rem; margin-top:.2rem; line-height:1.35; }
+  .ip .geo .tag { display:inline-block; margin:0 .2rem .15rem 0; padding:.05rem .3rem;
+    border-radius:.25rem; background:color-mix(in srgb,var(--accent) 16%,transparent);
+    color:var(--accent); font-size:.68rem; font-weight:600; }
   .ip .preview { color:var(--muted); font-size:.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   section { padding:1rem; overflow:auto; max-height:calc(100vh - 52px); }
   .empty { color:var(--muted); padding:2rem 0; }
@@ -2569,11 +2988,20 @@ _ADMIN_HTML = """<!DOCTYPE html>
   .login input { width:100%; margin-bottom:.55rem; }
   .errbox { color:#8b1515; font-size:.82rem; margin-top:.4rem; }
   #pager { display:flex; gap:.4rem; align-items:center; margin-top:.5rem; color:var(--muted); font-size:.8rem; }
+  .tabs { display:flex; gap:.35rem; }
+  .tab { background:transparent; color:var(--muted); border:1px solid var(--line); }
+  .tab.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .note { margin:0 0 .75rem; padding:.75rem .9rem; border:1px solid var(--line); border-radius:.65rem; background:var(--paper); }
+  .note .bar { display:flex; flex-wrap:wrap; gap:.5rem; color:var(--muted); font-size:.72rem; margin-bottom:.4rem; }
+  .note .body { white-space:pre-wrap; word-break:break-word; font-size:.92rem; }
+  .note .reply { margin-top:.45rem; color:var(--muted); font-size:.82rem; white-space:pre-wrap; word-break:break-word; }
+  main.messages-mode { grid-template-columns: 1fr; }
+  main.messages-mode aside { display:none; }
 </style>
 </head>
 <body>
 <div id="login" class="login" hidden>
-  <h2>Admin · 对话记录</h2>
+  <h2>Admin · 对话与留言</h2>
   <form id="loginForm">
     <input id="pw" type="password" placeholder="密码" autocomplete="current-password" required/>
     <button id="go" type="submit">登录</button>
@@ -2582,7 +3010,13 @@ _ADMIN_HTML = """<!DOCTYPE html>
 </div>
 <div id="app" hidden>
   <header>
-    <h1>AI Assistant · 对话审计</h1>
+    <div class="row">
+      <h1>AI Assistant · Admin</h1>
+      <div class="tabs">
+        <button type="button" class="tab active" id="tabChats" data-view="chats">对话</button>
+        <button type="button" class="tab" id="tabMessages" data-view="messages">留言</button>
+      </div>
+    </div>
     <div class="row">
       <label>最近 <select id="days">
         <option value="3">3 天</option>
@@ -2596,11 +3030,12 @@ _ADMIN_HTML = """<!DOCTYPE html>
       <button type="button" class="ghost" id="logout">退出</button>
     </div>
   </header>
-  <main>
+  <main id="mainLayout">
     <aside id="ipList"><div class="empty">加载中…</div></aside>
     <section>
       <div id="head" class="empty">选择左侧 IP 查看全部交互</div>
       <div id="turns"></div>
+      <div id="messages" hidden></div>
       <div id="pager" hidden>
         <button type="button" class="ghost" id="prev">上一页</button>
         <span id="pageInfo"></span>
@@ -2612,6 +3047,7 @@ _ADMIN_HTML = """<!DOCTYPE html>
 <script>
 let selectedIp = '';
 let offset = 0;
+let view = 'chats'; // chats | messages
 const LIMIT = 50;
 
 async function api(path, opts) {
@@ -2632,7 +3068,22 @@ function showApp() {
   document.getElementById('app').hidden = false;
 }
 
+function setView(v) {
+  view = v;
+  offset = 0;
+  document.getElementById('tabChats').classList.toggle('active', v === 'chats');
+  document.getElementById('tabMessages').classList.toggle('active', v === 'messages');
+  document.getElementById('mainLayout').classList.toggle('messages-mode', v === 'messages');
+  document.getElementById('filterIp').hidden = v === 'messages';
+  document.getElementById('turns').hidden = v === 'messages';
+  document.getElementById('messages').hidden = v !== 'messages';
+  document.getElementById('ipList').hidden = v === 'messages';
+  if (v === 'messages') loadMessages();
+  else { loadIps(); if (selectedIp) loadTurns(); else document.getElementById('head').className = 'empty'; document.getElementById('head').textContent = '选择左侧 IP 查看全部交互'; }
+}
+
 async function loadIps() {
+  if (view !== 'chats') return;
   const days = document.getElementById('days').value;
   const data = await api('/admin/api/ips?days=' + days);
   const q = (document.getElementById('filterIp').value || '').trim();
@@ -2640,12 +3091,23 @@ async function loadIps() {
   const el = document.getElementById('ipList');
   if (!ips.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
   el.innerHTML = ips.map(x => {
-    const last = (x.last_ts || '').replace('T',' ').slice(0,19);
+    const last = fmtShanghai(x.last_ts);
     const prev = (x.last_message || '').replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
     const active = x.ip === selectedIp ? ' active' : '';
+    const loc = esc(x.location || (x.geo && x.geo.location) || '');
+    const isp = esc(x.isp || (x.geo && x.geo.isp) || '');
+    const tags = (x.tags || (x.geo && x.geo.tags) || []).map(t =>
+      `<span class="tag">${esc(t)}</span>`).join('');
+    const geoBits = [];
+    if (loc) geoBits.push(`归属地 ${loc}`);
+    if (isp) geoBits.push(`运营商 ${isp}`);
+    const geoLine = (geoBits.length || tags)
+      ? `<div class="geo">${geoBits.join(' · ')}${tags ? '<br/>' + tags : ''}</div>`
+      : '';
     return `<button type="button" class="ip${active}" data-ip="${x.ip}">
       <div><strong>${x.ip}</strong> · ${x.turns} 条</div>
       <div class="meta">${last || ''}</div>
+      ${geoLine}
       <div class="preview">${prev}</div>
     </button>`;
   }).join('');
@@ -2658,13 +3120,35 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+/** ISO/UTC log timestamps → Asia/Shanghai display (YYYY-MM-DD HH:mm:ss). */
+function fmtShanghai(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) {
+    return String(ts).replace('T', ' ').replace(/Z$/, '').slice(0, 19);
+  }
+  try {
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).format(d).replace('T', ' ');
+  } catch (_) {
+    // Fallback: UTC+8 fixed offset
+    const x = new Date(d.getTime() + 8 * 3600 * 1000);
+    return x.toISOString().replace('T', ' ').slice(0, 19);
+  }
+}
+
 async function loadTurns() {
-  if (!selectedIp) return;
+  if (view !== 'chats' || !selectedIp) return;
   const days = document.getElementById('days').value;
   const data = await api('/admin/api/turns?ip=' + encodeURIComponent(selectedIp)
     + '&days=' + days + '&limit=' + LIMIT + '&offset=' + offset);
   document.getElementById('head').innerHTML =
     `<strong>${esc(selectedIp)}</strong> · 共 ${data.total} 条交互`;
+  document.getElementById('head').className = '';
   const turns = data.turns || [];
   const box = document.getElementById('turns');
   if (!turns.length) { box.innerHTML = '<div class="empty">无消息正文（可能是旧日志仅元数据）</div>'; }
@@ -2672,16 +3156,18 @@ async function loadTurns() {
     box.innerHTML = turns.map(t => {
       const st = String(t.status||'');
       const bad = st !== 'ok';
-      const ts = (t.ts||'').replace('T',' ').slice(0,19);
+      const ts = fmtShanghai(t.ts);
       return `<article class="turn">
         <div class="bar">
-          <span>${esc(ts)} UTC</span>
+          <span>${esc(ts)} CST</span>
           <span class="badge${bad?' err':''}">${esc(st)}</span>
           <span>${esc(t.lang||'')}</span>
           <span>${t.ms||0} ms</span>
           ${t.survey?'<span class="badge">survey</span>':''}
           ${t.taste_skill?'<span class="badge">taste</span>':''}
           ${t.paper_read?'<span class="badge">paper</span>':''}
+          ${t.guestbook?'<span class="badge">留言</span>':''}
+          ${t.leave_message && !t.guestbook?'<span class="badge">留言引导</span>':''}
         </div>
         <div class="msg"><b>用户</b>${esc(t.message || '(无正文)')}</div>
         <div class="msg"><b>助手</b>${esc(t.reply || '(无回复)')}</div>
@@ -2695,6 +3181,44 @@ async function loadTurns() {
   document.getElementById('prev').disabled = offset <= 0;
   document.getElementById('next').disabled = offset + LIMIT >= data.total;
 }
+
+async function loadMessages() {
+  if (view !== 'messages') return;
+  const days = document.getElementById('days').value;
+  const data = await api('/admin/api/messages?days=' + days + '&limit=' + LIMIT + '&offset=' + offset);
+  document.getElementById('head').className = '';
+  document.getElementById('head').innerHTML =
+    `<strong>访客留言</strong> · 共 ${data.total} 条（仅含实质留言正文，不含「给我留言」引导轮）`;
+  const notes = data.messages || [];
+  const box = document.getElementById('messages');
+  if (!notes.length) {
+    box.innerHTML = '<div class="empty">暂无留言。访客点击「给我留言」并提交正文后会显示在这里。</div>';
+  } else {
+    box.innerHTML = notes.map(t => {
+      const ts = fmtShanghai(t.ts);
+      const emails = (t.emails || []).join(', ');
+      return `<article class="note">
+        <div class="bar">
+          <span>${esc(ts)} CST</span>
+          <span class="badge">${esc(t.ip||'')}</span>
+          <span>${esc(t.lang||'')}</span>
+          ${emails ? `<span class="badge">邮箱 ${esc(emails)}</span>` : ''}
+        </div>
+        <div class="body">${esc(t.message || '(空)')}</div>
+        ${t.reply ? `<div class="reply"><b>助手回复</b><br/>${esc(t.reply)}</div>` : ''}
+      </article>`;
+    }).join('');
+  }
+  const pager = document.getElementById('pager');
+  pager.hidden = data.total <= LIMIT;
+  document.getElementById('pageInfo').textContent =
+    `${offset+1}–${Math.min(offset+LIMIT, data.total)} / ${data.total}`;
+  document.getElementById('prev').disabled = offset <= 0;
+  document.getElementById('next').disabled = offset + LIMIT >= data.total;
+}
+
+document.getElementById('tabChats').onclick = () => setView('chats');
+document.getElementById('tabMessages').onclick = () => setView('messages');
 
 document.getElementById('loginForm').onsubmit = async (e) => {
   e.preventDefault();
@@ -2712,7 +3236,7 @@ document.getElementById('loginForm').onsubmit = async (e) => {
     }
     document.getElementById('pw').value = '';
     showApp();
-    loadIps();
+    setView('chats');
   } catch (err) {
     showLogin('网络错误');
   }
@@ -2724,17 +3248,30 @@ document.getElementById('logout').onclick = async () => {
   selectedIp = '';
   showLogin('');
 };
-document.getElementById('refresh').onclick = () => { loadIps(); if (selectedIp) loadTurns(); };
-document.getElementById('days').onchange = () => { offset=0; loadIps(); if (selectedIp) loadTurns(); };
+document.getElementById('refresh').onclick = () => {
+  if (view === 'messages') loadMessages();
+  else { loadIps(); if (selectedIp) loadTurns(); }
+};
+document.getElementById('days').onchange = () => {
+  offset = 0;
+  if (view === 'messages') loadMessages();
+  else { loadIps(); if (selectedIp) loadTurns(); }
+};
 document.getElementById('filterIp').oninput = () => loadIps();
-document.getElementById('prev').onclick = () => { offset = Math.max(0, offset-LIMIT); loadTurns(); };
-document.getElementById('next').onclick = () => { offset += LIMIT; loadTurns(); };
+document.getElementById('prev').onclick = () => {
+  offset = Math.max(0, offset - LIMIT);
+  if (view === 'messages') loadMessages(); else loadTurns();
+};
+document.getElementById('next').onclick = () => {
+  offset += LIMIT;
+  if (view === 'messages') loadMessages(); else loadTurns();
+};
 
 (async () => {
   try {
     await api('/admin/api/me');
     showApp();
-    loadIps();
+    setView('chats');
   } catch {
     showLogin('');
   }
@@ -2853,6 +3390,30 @@ async def admin_days(request: Request):
     return {"days": days}
 
 
+@app.get("/admin/api/messages")
+async def admin_messages(
+    request: Request,
+    days: int = 30,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """Guestbook notes only — who left a message and the note body."""
+    _require_admin(request)
+    days_n = max(1, min(int(days or 30), LOG_RETENTION_DAYS or 90))
+    limit = max(1, min(int(limit or 50), 200))
+    offset = max(0, int(offset or 0))
+    rows, total = await asyncio.to_thread(
+        _guestbook_list, days_n, limit, offset
+    )
+    return {
+        "days": days_n,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "messages": rows,
+    }
+
+
 @app.get("/health")
 async def health():
     ready, reason = readiness()
@@ -2951,13 +3512,21 @@ async def chat(
     ql = req.message.lower()
     # Every user message goes through the model API — no canned policy replies.
 
-    survey = _is_survey_query(ql)
-    taste_skill = _is_taste_skill_query(req.message)
-    # Paths are mutually exclusive priority: taste > paper > survey
+    leave_message = _is_leave_message_query(req.message) or _leave_message_in_history(
+        req.history
+    )
+    guestbook = _is_guestbook_body(req.message, req.history)
+    if guestbook:
+        leave_message = True
+    survey = _is_survey_query(ql) and not leave_message
+    taste_skill = _is_taste_skill_query(req.message) and not leave_message
+    # Paths are mutually exclusive priority: leave_message > taste > paper > survey
     if taste_skill:
         survey = False
     paper_ctx, paper_ui = (
-        ("", []) if taste_skill else paper_read_context(req.message)
+        ("", [])
+        if (taste_skill or leave_message)
+        else paper_read_context(req.message)
     )
     paper_read = bool(paper_ui)
     if paper_read:
@@ -2965,7 +3534,13 @@ async def chat(
 
     # Kick off multi_search immediately so it overlaps local RAG / URL work.
     # Default OFF (SURVEY_PREFETCH=0): model must live web_search — no prebaked inject.
-    need_survey = bool(SURVEY_PREFETCH and survey and not taste_skill and not paper_read)
+    need_survey = bool(
+        SURVEY_PREFETCH
+        and survey
+        and not taste_skill
+        and not paper_read
+        and not leave_message
+    )
     survey_task: Optional[asyncio.Task] = None
     survey_q = _survey_query(req.message) if need_survey else ""
     if need_survey:
@@ -2977,7 +3552,9 @@ async def chat(
     # Reliable URL access: server pre-fetches links in the question
     fetched, prefetch_ui = await prefetch_urls(req.message)
     # Full taste.md via Read bubble (system only has taste.summary)
-    taste_ctx, taste_ui = taste_skill_context(req.message)
+    taste_ctx, taste_ui = (
+        ("", []) if leave_message else taste_skill_context(req.message)
+    )
 
     # Base extra without survey (survey injected after wait in gen)
     base_extra_bits = [x for x in (req.context, fetched, taste_ctx, paper_ctx) if x]
@@ -3056,6 +3633,8 @@ async def chat(
                 survey=survey,
                 taste_skill=taste_skill,
                 paper_read=paper_read,
+                leave_message=leave_message,
+                guestbook=guestbook,
             )
 
             # 3) Model stream
@@ -3072,6 +3651,7 @@ async def chat(
             _inflight -= 1
             # Metadata-only by default (no full prompt/tools/secrets).
             reply_text = "".join(reply_parts)
+            emails = _extract_emails(req.message or "")
             rec = {
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "ip": ip,
@@ -3086,6 +3666,9 @@ async def chat(
                 "taste_skill": taste_skill,
                 "paper_read": paper_read,
                 "survey": survey,
+                "leave_message": leave_message,
+                "guestbook": guestbook,
+                "emails": emails,
                 "survey_ms": survey_ms,
                 # Full interaction body for admin (stripped/capped in log_turn)
                 "message": req.message or "",
