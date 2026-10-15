@@ -11,6 +11,11 @@
     deriveHealth(ENDPOINT);
   const TOKEN = window.HOMEPAGE_AGENT_TOKEN || window.TUTOR_TOKEN || "";
   const AVATAR_BASE = "assets/tutor";
+  // Optional page brief sent with each chat request (server caps it at 8000 chars).
+  const PAGE_CONTEXT =
+    typeof window.HOMEPAGE_AGENT_CONTEXT === "string" && window.HOMEPAGE_AGENT_CONTEXT.trim()
+      ? window.HOMEPAGE_AGENT_CONTEXT.slice(0, 8000)
+      : null;
 
   const MODE_TEX = {
     sleeping: "sleeping",
@@ -83,6 +88,21 @@
       toolResult: "工具返回",
     },
   };
+
+  // Optional page-level overrides for embeds on other sites (e.g. a project page):
+  //   window.HOMEPAGE_AGENT_COPY = { en: { empty, topic, ... }, zh: { ... } }
+  //   window.HOMEPAGE_AGENT_SUGGESTIONS = { en: [...], zh: [...] }  (or one array for both)
+  //   window.HOMEPAGE_AGENT_CONTEXT = "page brief"  (see PAGE_CONTEXT)
+  (function applyPageOverrides() {
+    const copy = window.HOMEPAGE_AGENT_COPY;
+    const sugg = window.HOMEPAGE_AGENT_SUGGESTIONS;
+    Object.keys(COPY).forEach((k) => {
+      if (copy && typeof copy[k] === "object") Object.assign(COPY[k], copy[k]);
+      const s = Array.isArray(sugg) ? sugg : sugg && sugg[k];
+      if (Array.isArray(s) && s.length) COPY[k].suggestions = s.slice();
+    });
+  })();
+
   function deriveHealth(chatUrl) {
     try {
       const url = new URL(chatUrl, window.location.href);
@@ -843,7 +863,7 @@
       body: JSON.stringify({
         message,
         history,
-        context: null,
+        context: PAGE_CONTEXT,
         lang: lang(),
         stream: true,
       }),
