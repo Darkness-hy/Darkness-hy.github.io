@@ -107,8 +107,8 @@
       zh: "arXiv · 2026",
     },
     "summary-hm3d-m3": {
-      en: "A multi-agent, multi-modal, multi-object goal navigation benchmark on HM3D, with 1,000 validation episodes, two complementary baselines (HiGA and LaViRA-M³), and a real-world three-robot deployment.",
-      zh: "基于 HM3D 的多智能体、多模态、多目标导航基准，包含 1,000 个验证回合、两个互补基线（HiGA 与 LaViRA-M³），以及三机器人真实场景部署。",
+      en: "A multi-agent, multi-modal, multi-object goal navigation benchmark on HM3D, with 1,000 validation episodes, two complementary baselines, and a real-world three-robot deployment.",
+      zh: "基于 HM3D 的多智能体、多模态、多目标导航基准，包含 1,000 个验证回合、两个互补基线，以及三机器人真实场景部署。",
     },
     "status-uni-lavira": {
       en: "arXiv · 2026",
@@ -161,10 +161,6 @@
     "resource-code": {
       en: "Code",
       zh: "代码",
-    },
-    "resource-data": {
-      en: "Data",
-      zh: "数据",
     },
     "resource-dataset": {
       en: "Dataset",
