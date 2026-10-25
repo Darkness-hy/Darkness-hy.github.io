@@ -122,10 +122,6 @@
       en: "ICRA · 2026",
       zh: "ICRA · 2026",
     },
-    "status-acorm": {
-      en: "ICLR · 2024",
-      zh: "ICLR · 2024",
-    },
     "status-mfrs": {
       en: "IEEE/CAA JAS · 2023 (CAS Zone 1, Top Journal, IF: 18.3)",
       zh: "IEEE/CAA JAS · 2023（中科院一区 TOP，影响因子：18.3）",
@@ -141,10 +137,6 @@
     "summary-lavira": {
       en: "A zero-shot VLN framework that decomposes navigation into language, vision, and robot actions for stronger generalization in continuous environments.",
       zh: "一个将导航分解为语言、视觉和机器人动作的零样本 VLN 框架，增强连续环境中的泛化能力。",
-    },
-    "summary-acorm": {
-      en: "Attention-guided contrastive role representations for heterogeneous behavior and coordination in multi-agent reinforcement learning.",
-      zh: "面向多智能体强化学习异质行为与协作的注意力引导对比式角色表征方法。",
     },
     "summary-mfrs": {
       en: "A magnetic-field-based reward shaping method for efficient exploration and goal-reaching in goal-conditioned reinforcement learning.",

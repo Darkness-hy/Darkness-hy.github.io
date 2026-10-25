@@ -21,12 +21,11 @@
 - Close collaborators: Jieqi Shi (史桀绮, https://jayceeshi.github.io/) and Zixuan Chen (陈子璇, https://chenzixuan99.github.io/homepage/).
 
 ## Selected publications (on the homepage)
-1. HM3D-M³ (arXiv:2610.20121, 2026) — multi-agent, multi-modal, multi-object goal navigation benchmark on HM3D (1,000 val episodes; baselines HiGA + LaViRA-M³; real-world 3-robot deployment). Equal contribution first author. Corresponding: Jieqi Shi, Jing Huo, Yifan Zhang. Project: https://robo-lavira.github.io/hm3d-m3/ · Code: https://github.com/NJU-R-L-Group-Embodied-Lab/hm3d-m3-code · Data: https://github.com/NJU-R-L-Group-Embodied-Lab/hm3d-m3-code/releases/tag/v1.0.0 · Dataset: https://huggingface.co/datasets/skyhyding/HM3D-M3
+1. HM3D-M³ (arXiv:2610.20121, 2026) — multi-agent, multi-modal, multi-object goal navigation benchmark on HM3D (1,000 val episodes; two complementary baselines; real-world 3-robot deployment). Equal contribution first author. Corresponding: Jieqi Shi, Jing Huo, Yifan Zhang. Project: https://robo-lavira.github.io/hm3d-m3/ · Code: https://github.com/NJU-R-L-Group-Embodied-Lab/hm3d-m3-code · Data: https://github.com/NJU-R-L-Group-Embodied-Lab/hm3d-m3-code/releases/tag/v1.0.0 · Dataset: https://huggingface.co/datasets/skyhyding/HM3D-M3
 2. Uni-LaViRA (arXiv:2605.27582, 2026) — unified training-free embodied navigation (VLN-CE, ObjectNav, EQA, Aerial-VLN). Equal contribution first author. Corresponding: Jieqi Shi, Yifan Zhang, Jing Huo. Project: https://xetroubadour.github.io/Uni-LaViRA/
 3. V-Dreamer (arXiv:2603.18811) — automating robotic simulation and trajectory synthesis via video generation priors. ICRA 2026 Workshop Best Paper Award. Corresponding: Jieqi Shi, Jing Huo. Project: https://jia-handsome.github.io/v-Dreamer/
 4. LaViRA (arXiv:2510.19655, ICRA 2026) — zero-shot VLN via Language-Vision-Robot Actions translation. Equal contribution first author. Corresponding: Jieqi Shi, Jing Huo. Project: https://robo-lavira.github.io/lavira-zs-vln/
-5. ACORM (arXiv:2312.04819, ICLR 2024) — attention-guided contrastive role representations for multi-agent RL. Corresponding: Zhi Wang.
-6. MFRS (IEEE/CAA JAS 2023, DOI 10.1109/JAS.2023.123477 / arXiv:2307.08033) — magnetic field-based reward shaping for goal-conditioned RL. First author. Corresponding: Zhi Wang. Project: https://hongyuding.wixsite.com/mfrs
+5. MFRS (IEEE/CAA JAS 2023, DOI 10.1109/JAS.2023.123477 / arXiv:2307.08033) — magnetic field-based reward shaping for goal-conditioned RL. First author. Corresponding: Zhi Wang. Project: https://hongyuding.wixsite.com/mfrs
 
 ## Contact guidance for the assistant
 - For collaboration / academic discussion: point visitors to skyhyding@gmail.com.
