@@ -59,40 +59,56 @@
       zh: "近期动态",
     },
     "date-news-1": {
+      en: "Oct 14, 2026",
+      zh: "2026年10月14日",
+    },
+    "news-1": {
+      en: `Our multi-agent multi-modal multi-object navigation benchmark, <strong><a href="https://robo-lavira.github.io/hm3d-m3/">HM3D-M³</a></strong>, was released and open-sourced.`,
+      zh: `我们的多智能体、多模态、多目标导航基准 <strong><a href="https://robo-lavira.github.io/hm3d-m3/">HM3D-M³</a></strong> 已发布并开源。`,
+    },
+    "date-news-2": {
       en: "Jun 1, 2026",
       zh: "2026年6月1日",
     },
-    "date-news-2": {
+    "date-news-3": {
       en: "May 26, 2026",
       zh: "2026年5月26日",
     },
-    "date-news-3": {
+    "date-news-4": {
       en: "Jan 31, 2026",
       zh: "2026年1月31日",
     },
-    "date-news-4": {
+    "date-news-5": {
       en: "Oct 22, 2025",
       zh: "2025年10月22日",
     },
-    "news-1": {
+    "news-2": {
       en: `<strong><a href="https://jia-handsome.github.io/v-Dreamer/">V-Dreamer</a></strong> received the <strong>Best Paper Award</strong> at the <a href="https://awesomedigitaltwin.github.io/2026_ICRA.html">ICRA 2026 Workshop on Generative Digital Twins for Real2Sim and Sim2Real Transfer</a>! Congrats to Songjia!`,
       zh: `<strong><a href="https://jia-handsome.github.io/v-Dreamer/">V-Dreamer</a></strong> 获得 <a href="https://awesomedigitaltwin.github.io/2026_ICRA.html">ICRA 2026 Workshop on Generative Digital Twins for Real2Sim and Sim2Real Transfer</a> <strong>最佳论文奖</strong>！祝贺 Songjia！`,
     },
-    "news-2": {
+    "news-3": {
       en: `Our latest work on unified embodied navigation, <strong><a href="https://xetroubadour.github.io/Uni-LaViRA/">Uni-LaViRA</a></strong>, was released and open-sourced.`,
       zh: `我们关于统一具身导航的最新工作 <strong><a href="https://xetroubadour.github.io/Uni-LaViRA/">Uni-LaViRA</a></strong> 已发布并开源。`,
     },
-    "news-3": {
+    "news-4": {
       en: `<strong><a href="https://robo-lavira.github.io/lavira-zs-vln/">LaViRA</a></strong> was accepted to <strong>ICRA 2026</strong>! Congrats to Team LaViRA!`,
       zh: `<strong><a href="https://robo-lavira.github.io/lavira-zs-vln/">LaViRA</a></strong> 已被 <strong>ICRA 2026</strong> 接收！祝贺 LaViRA 团队！`,
     },
-    "news-4": {
+    "news-5": {
       en: `Our zero-shot vision-language navigation work, <strong><a href="https://robo-lavira.github.io/lavira-zs-vln/">LaViRA</a></strong>, was released and open-sourced.`,
       zh: `我们的零样本视觉语言导航工作 <strong><a href="https://robo-lavira.github.io/lavira-zs-vln/">LaViRA</a></strong> 已发布并开源。`,
     },
     "heading-publications": {
       en: "Selected Publications",
       zh: "代表性论文",
+    },
+    "status-hm3d-m3": {
+      en: "arXiv · 2026",
+      zh: "arXiv · 2026",
+    },
+    "summary-hm3d-m3": {
+      en: "A multi-agent, multi-modal, multi-object goal navigation benchmark on HM3D, with 1,000 validation episodes, two complementary baselines (HiGA and LaViRA-M³), and a real-world three-robot deployment.",
+      zh: "基于 HM3D 的多智能体、多模态、多目标导航基准，包含 1,000 个验证回合、两个互补基线（HiGA 与 LaViRA-M³），以及三机器人真实场景部署。",
     },
     "status-uni-lavira": {
       en: "arXiv · 2026",
@@ -146,6 +162,15 @@
       en: "Code",
       zh: "代码",
     },
+    "resource-data": {
+      en: "Data",
+      zh: "数据",
+    },
+    "resource-dataset": {
+      en: "Dataset",
+      zh: "数据集",
+    },
+
     "heading-education": {
       en: "Education",
       zh: "教育经历",
