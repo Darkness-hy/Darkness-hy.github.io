@@ -377,7 +377,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
       <div class="stat" role="listitem"><div class="v">4<small>种</small></div><div class="l">真机：人形、四足、无人机、轮式</div></div>
       <div class="stat" role="listitem"><div class="v">6<small>项</small></div><div class="l">导航评测，均高于对比基线</div></div>
       <div class="stat" role="listitem"><div class="v">41.0<small>%</small></div><div class="l">HM3D-M³ 多机协同成功率</div></div>
-      <div class="stat" role="listitem"><div class="v">78.7<small>%</small></div><div class="l">LIBERO-PRO 仿真操作成功率</div></div>
+      <div class="stat" role="listitem"><div class="v">67.7<small>%</small></div><div class="l">LIBERO-PRO 仿真操作，π0.5 为 10.8%</div></div>
       <div class="stat" role="listitem"><div class="v">0<small>次</small></div><div class="l">权重更新</div></div>
     </div>
   </div>
@@ -420,25 +420,25 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     <div class="panel" role="tabpanel" id="p-multi" aria-labelledby="t-multi" tabindex="0" hidden>
       <div class="grid g3">
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo1.jpg" aria-label="三台机器人同时找三个目标"><source src="media/d_m3_demo1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 1 · 三个目标</span><span class="task">目标用图片、类别和一句描述给出：黄色行李箱、打印机、咖啡吧旁的绿色椅子</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo2.jpg" aria-label="三台机器人分头找 10 个目标"><source src="media/d_m3_demo2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 2 · 10 个目标</span><span class="task">6 分钟内找到 10 个目标中的 7 个，全部本地运行</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo2.jpg" aria-label="三台机器人分头找 10 个目标"><source src="media/d_m3_demo2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 2 · 10 个目标</span><span class="task">6 分钟内找到画面所列 10 个目标中的 7 个</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo3.jpg" aria-label="三台机器人再跑一轮 10 个目标"><source src="media/d_m3_demo3.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 3 · 10 个目标</span><span class="task">同一层楼、同样的目标，再跑一轮</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
       </div>
       <dl class="kv">
         <dt>机器人</dt><dd>Cobot Magic、Go1、Go2</dd>
-        <dt>模型</dt><dd>Qwen3.5-27B 4-bit，国产模型</dd>
-        <dt>算力</dt><dd>Cobot 板载 RTX 4090，全部本地运行</dd>
-        <dt>云端调用</dt><dd class="num">0</dd>
+        <dt>决策模型</dt><dd>DeepSeek、通义千问，全部国产</dd>
+        <dt>地图共享</dt><dd>三台机器人经 Wi-Fi 交换体素地图</dd>
+        <dt>演示性质</dt><dd>单次定性演示，非统计结果</dd>
         <dt>项目主页</dt><dd><a href="https://robo-lavira.github.io/hm3d-m3/" target="_blank" rel="noopener">robo-lavira.github.io/hm3d-m3 ↗</a></dd>
       </dl>
     </div>
 
     <div class="panel" role="tabpanel" id="p-man" aria-labelledby="t-man" tabindex="0" hidden>
       <div class="feature">
-        <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_pour.jpg" aria-label="双臂真机从取试管到倒进烧杯，全程自主" width="720" height="810"><source src="media/d_pour.mp4" type="video/mp4"></video></div>
+        <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_pour.jpg" aria-label="双臂真机从取试管到倒进烧杯，动作由程序自己规划执行" width="720" height="810"><source src="media/d_pour.mp4" type="video/mp4"></video></div>
         <div>
           <p class="kicker">Long horizon</p>
-          <h3>从取试管到倒进烧杯，全程自主</h3>
-          <p>取试管、换手、对准烧杯、倾倒、放回，中间没有人干预。</p>
+          <h3>从取试管到倒进烧杯，动作由程序自己规划执行</h3>
+          <p>取试管、换手、对准烧杯、倾倒、放回。每一步都由程序根据相机画面规划、执行，没有人遥控；按安全规程，有人在急停旁值守。视频约 20 倍速。</p>
         </div>
       </div>
       <div class="grid g3" style="margin-top:18px">
@@ -497,14 +497,14 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
               <tr><td class="bm"><b>R2R-CE</b><span>指令导航</span></td><td><div class="bars"><div class="bar"><span class="who">LaViRA（团队前作，零样本）</span><div class="track"><div class="fill" style="width:38.3%"></div></div><span class="num">38.3</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:60.7%"></div></div><span class="num">60.7</span></div></div></td><td class="delta">+22.4</td></tr>
               <tr><td class="bm"><b>RxR-CE</b><span>多语种指令</span></td><td><div class="bars"><div class="bar"><span class="who">GC-VLN（免训练）</span><div class="track"><div class="fill" style="width:33.8%"></div></div><span class="num">33.8</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:51.3%"></div></div><span class="num">51.3</span></div></div></td><td class="delta">+17.5</td></tr>
               <tr><td class="bm"><b>HM3D-OVON<span class="star">★</span></b><span>开放词汇导航</span></td><td><div class="bars"><div class="bar"><span class="who">VLFM（免训练）</span><div class="track"><div class="fill" style="width:38.5%"></div></div><span class="num">38.5</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:60%"></div></div><span class="num">60.0</span></div></div></td><td class="delta">+21.5</td></tr>
-              <tr><td class="bm"><b>HM3D-v2<span class="star">★</span></b><span>目标导航</span></td><td><div class="bars"><div class="bar"><span class="who">VLFM</span><div class="track"><div class="fill" style="width:62.6%"></div></div><span class="num">62.6</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:77.7%"></div></div><span class="num">77.7</span></div></div></td><td class="delta">+15.1</td></tr>
-              <tr><td class="bm"><b>MP3D-EQA<span class="star">★</span></b><span>具身问答</span></td><td><div class="bars"><div class="bar"><span class="who">训练过的 EQA 基线</span><div class="track"><div class="fill" style="width:43%"></div></div><span class="num">43.0</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:54.7%"></div></div><span class="num">54.7</span></div></div></td><td class="delta">+11.7</td></tr>
-              <tr><td class="bm"><b>OpenUAV<span class="star">★</span></b><span>无人机导航</span></td><td><div class="bars"><div class="bar"><span class="who">NavFoM（训练过）</span><div class="track"><div class="fill" style="width:6.3%"></div></div><span class="num">6.3</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:40%"></div></div><span class="num">40.0</span></div></div></td><td class="delta">+33.7</td></tr>
+              <tr><td class="bm"><b>HM3D-v2<span class="star">★</span></b><span>目标导航</span></td><td><div class="bars"><div class="bar"><span class="who">ApexNav（免训练）</span><div class="track"><div class="fill" style="width:76.2%"></div></div><span class="num">76.2</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:77.7%"></div></div><span class="num">77.7</span></div></div></td><td class="delta">+1.5</td></tr>
+              <tr><td class="bm"><b>MP3D-EQA<span class="star">★</span></b><span>具身问答</span></td><td><div class="bars"><div class="bar"><span class="who">Uni-NaVid（训练过）</span><div class="track"><div class="fill" style="width:47.3%"></div></div><span class="num">47.3</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:54.7%"></div></div><span class="num">54.7</span></div></div></td><td class="delta">+7.4</td></tr>
+              <tr><td class="bm"><b>OpenUAV<span class="star">★</span></b><span>无人机导航</span></td><td><div class="bars"><div class="bar"><span class="who">AerialVLA（训练过）</span><div class="track"><div class="fill" style="width:37.6%"></div></div><span class="num">37.6</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:40%"></div></div><span class="num">40.0</span></div></div></td><td class="delta">+2.4</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="fine">★ 表示同时高于最强的训练型基础模型。R2R-CE 上 60.7 与 JanusVLN 的 60.5 持平，低于 OmniNav 的 69.5。前五项为 100 条任务 × 3 个随机种子。主干包含闭源大模型；换成本地 27B 模型，仿真中约低 10 个点。来源：<a href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">arXiv 2605.27582</a>。</p>
-        <p class="fine">LaViRA（ICRA 2026）的 R2R-CE 零样本成功率 38.3%，发表时是零样本方法中最高的。NavFoM 的预训练用了 56 张 H100，跑了数天，用了 1270 万条样本。</p>
+        <p class="fine">灰条是同表最强对手。★ 表示与最强的训练型方法持平或领先。R2R-CE 上 60.7 与 JanusVLN 的 60.5 持平，低于 OmniNav 的 69.5。六项均为 100 条任务 × 3 个随机种子。语言层用闭源 Gemini-3.1-Pro，视觉层用 Qwen3.5-27B，开源骨干仍有差距，第 12 个月公开全国产对比。来源：<a href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">arXiv 2605.27582</a>。</p>
+        <p class="fine">LaViRA（ICRA 2026）的 R2R-CE 零样本成功率 38.3%，发表时是零样本方法中最高的。NavFoM 的训练用了 56 张 H100、约 72 小时（4,032 GPU·时），训练样本 1270 万条（其中导航 802 万）。</p>
       </div>
     </div>
 
@@ -518,13 +518,13 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
           <table class="lb">
             <thead><tr><th>#</th><th>方法</th><th>成功率</th><th>差值</th></tr></thead>
             <tbody>
-              <tr class="ours-row"><td><span class="rk">1</span></td><td class="bm"><b>Uni-LaViRA 多机</b><span>免训练</span></td><td><div class="bars"><div class="bar ours"><div class="track"><div class="fill" style="width:41%"></div></div><span class="num">41.0</span></div></div></td><td class="delta">+14.4</td></tr>
+              <tr class="ours-row"><td><span class="rk">1</span></td><td class="bm"><b>LaViRA-M³</b><span>免训练</span></td><td><div class="bars"><div class="bar ours"><div class="track"><div class="fill" style="width:41%"></div></div><span class="num">41.0</span></div></div></td><td class="delta">+14.4</td></tr>
               <tr><td><span class="rk">2</span></td><td class="bm"><b>最强适配基线</b><span>对比方法</span></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:26.6%"></div></div><span class="num">26.6</span></div></div></td><td class="delta"></td></tr>
             </tbody>
           </table>
         </div>
-        <p class="fine">SPL 约为其他方法的 2 倍。数据集含 16,000 条训练任务、1,000 条验证任务，3,926 个物体，379 个开放词汇类别；目标可以用类别、图像或文字给出。</p>
-        <p class="fine">真机实录：Cobot Magic、Go1、Go2 三台机器人，Qwen3.5-27B 4-bit 跑在 Cobot 板载 RTX 4090 上，6 分钟找到 7/10 个目标，0 次云端调用。同一台 4090 上 81 次实测，语言层中位时延约 2 s，视觉层约 5 s。G1 和 Go1 在板载 Orin NX 上运行 Qwen3.5-9B。</p>
+        <p class="fine">SPL 约为适配基线的 2 倍；本方法相机视场更宽，同为 42° 视场时成功率 29.6%，仍领先 3 个百分点。验证集 1,000 回合，3,926 个目标，379 个开放词汇类别，训练侧 10 万条观测–分配样本；目标可以用类别、图像或文字给出。仿真用的是国产开源 Qwen3.5-27B。</p>
+        <p class="fine">真机实录：Cobot Magic、Go1、Go2 三台机器人，6 分钟内找到画面所列 10 个目标中的 7 个（单次演示）。四场演示共 560 次决策调用，全部来自国产大模型（DeepSeek、通义千问 API）；语言层中位时延 2.1–5.8 s，视觉层 1.0–5.2 s。单机实验中，Cobot 板载 RTX 4090 本地运行 Qwen3.5-27B，G1 和 Go1 板载 Orin NX 本地运行 Qwen3.5-9B（Uni-LaViRA 论文）。</p>
       </div>
     </div>
 
@@ -538,14 +538,14 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
           <table class="lb">
             <thead><tr><th>#</th><th>方法</th><th>LIBERO-PRO 成功率</th></tr></thead>
             <tbody>
-              <tr class="ours-row"><td><span class="rk">1</span></td><td class="bm"><b>Ultra-LaViRA</b><span>免训练</span></td><td><div class="bars"><div class="bar ours"><div class="track"><div class="fill" style="width:78.7%"></div></div><span class="num">78.7</span></div></div></td></tr>
+              <tr class="ours-row"><td><span class="rk">1</span></td><td class="bm"><b>Ultra-LaViRA</b><span>免训练</span></td><td><div class="bars"><div class="bar ours"><div class="track"><div class="fill" style="width:67.7%"></div></div><span class="num">67.7</span></div></div></td></tr>
               <tr><td><span class="rk">2</span></td><td class="bm"><b>π0.5</b></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:10.8%"></div></div><span class="num">10.8</span></div></div></td></tr>
               <tr><td><span class="rk">3</span></td><td class="bm"><b>OpenVLA</b></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:0"></div></div><span class="num">0</span></div></div></td></tr>
               <tr><td><span class="rk">3</span></td><td class="bm"><b>π0</b></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:0"></div></div><span class="num">0</span></div></div></td></tr>
             </tbody>
           </table>
         </div>
-        <p class="fine">RoboSuite 上成功率 98.3%。RSI 改写 open_drawer 技能代码后，LIBERO-10 留出的 80 条任务上成功率从 44% 升到 86%，模型权重没有改动。第 6 个月的目标是让改进器改进自身，同时旧技能退化不超过 10%。</p>
+        <p class="fine">LIBERO-PRO 为官方步数下八项平均。RoboSuite 上成功率 98.3%，是同任务开发的方法中最好的。编程智能体改写开抽屉技能代码后，单技能测试（80 个样例）成功率从 44% 升到 86%，模型权重没有改动。第 6 个月的目标是让改进器改进自身，同时旧技能退化不超过 10%。</p>
       </div>
     </div>
   </div>
@@ -558,7 +558,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
       <h2 id="news-t">动态</h2>
     </div>
     <ol class="log">
-      <li><span class="d">最新</span><div><h3>Ultra-LaViRA 在双臂真机上做操作任务<span class="chip">NEW</span></h3><p>取试管、分拣、摆 “NJU”，以及全自主倒试管的长程任务。</p></div></li>
+      <li><span class="d">最新</span><div><h3>Ultra-LaViRA 在双臂真机上做操作任务<span class="chip">NEW</span></h3><p>取试管、分拣、摆 “NJU”，以及倒试管的长程任务，动作都由程序自己规划执行。</p></div></li>
       <li><span class="d">最新</span><div><h3>人形机器人全身动作模仿<span class="chip">NEW</span></h3><p>复现 SuperMimic，真机跳完闪身步 Pro。</p></div></li>
       <li><time datetime="2026-06-02">2026-06-02</time><div><h3>宝马南京官方公众号发布 Uni-LaViRA 联合成果</h3></div></li>
       <li><time datetime="2026-03">2026-03</time><div><h3>有关单位出具无 GPS 导航应用证明</h3><p>四足语义建图与目标导航，“符合项目预期使用要求”。</p></div></li>
@@ -581,7 +581,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
       </article>
       <article class="paper">
         <picture><source media="(prefers-reduced-motion: reduce)" srcset="media/paper_v_dreamer_poster.webp"><img src="media/paper_v_dreamer.webp" alt="V-Dreamer 机械臂轨迹动图" loading="lazy" width="640" height="360"></picture>
-        <div class="pb"><span class="venue hot">ICRA 2026 Workshop 最佳论文奖</span><h3>V-Dreamer</h3><p>一个利用视频生成先验，将语言指令自动转化为可用仿真场景和可执行机器人轨迹的框架。</p><div class="links"><a class="pill" href="https://jia-handsome.github.io/v-Dreamer/" target="_blank" rel="noopener">项目主页 ↗</a><a class="pill" href="https://arxiv.org/abs/2603.18811" target="_blank" rel="noopener">论文 ↗</a></div></div>
+        <div class="pb"><span class="venue hot">ICRA 2026 生成式数字孪生 Workshop 最佳论文奖</span><h3>V-Dreamer</h3><p>一个利用视频生成先验，将语言指令自动转化为可用仿真场景和可执行机器人轨迹的框架。</p><div class="links"><a class="pill" href="https://jia-handsome.github.io/v-Dreamer/" target="_blank" rel="noopener">项目主页 ↗</a><a class="pill" href="https://arxiv.org/abs/2603.18811" target="_blank" rel="noopener">论文 ↗</a></div></div>
       </article>
       <article class="paper">
         <picture><source media="(prefers-reduced-motion: reduce)" srcset="media/paper_uni_lavira_poster.webp"><img src="media/paper_uni_lavira.gif" alt="Uni-LaViRA 真机演示动图" loading="lazy" width="400" height="225"></picture>
@@ -595,7 +595,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     <div class="eco">
       <div><b>团队操作方向论文</b><p>AGiLe <span class="venue">CVPR 2026</span><br>GravMAD <span class="venue">ICLR 2025</span><br>ManiLong-Shot <span class="venue">AAAI 2026</span></p></div>
       <div><b>其他操作研究</b><p>RoTri-Diff、Wh0、DeCo、AdaClearGrasp</p></div>
-      <div><b>专利</b><p>导航发明专利 2 项，操作相关受理专利 6 项，计划从南京大学转入公司。</p></div>
+      <div><b>专利</b><p>发明专利已受理 7 项（导航 1 项、操作相关 6 项），计划从南京大学转入公司。</p></div>
     </div>
   </div>
 </section>
@@ -607,9 +607,9 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
       <h2 id="apps-t">应用场景</h2>
     </div>
     <div class="apps">
-      <div><h3>无 GPS 巡检</h3><p>楼宇内部、城市街区这类卫星信号不可靠的地方。四足建图与导航已拿到应用证明。据智研咨询，2026 年中国智能巡检机器人市场约 31.85 亿元、约 9,722 台。</p></div>
-      <div><h3>车企与工业</h3><p>与宝马（南京）合作人形机器人语义能力与交互研究，导航模块已分阶段交付。</p></div>
-      <div><h3>国防异构无人系统</h3><p>人形、四足、无人机和轮式平台都已接入这套决策软件。三机协同实测时，国产模型全程在本地运行，云端调用 0 次。</p></div>
+      <div><h3>无 GPS 巡检</h3><p>楼宇内部、城市街区这类卫星信号不可靠的地方。四足建图与导航已拿到应用证明。智研咨询预计 2026 年中国智能巡检机器人市场约 31.85 亿元、需求约 9,722 台，其中电力巡检约占 85%。</p></div>
+      <div><h3>车企与工业</h3><p>与宝马（南京）合作人形机器人语义能力与交互研究：语义建图已完成，23 类以上语义标注；导航稳定用例在推进中。</p></div>
+      <div><h3>国防异构无人系统</h3><p>人形、四足、无人机和轮式平台都已接入这套决策软件。三机协同演示的决策调用全部来自国产大模型。</p></div>
     </div>
     <p class="lic"><b>交付方式：</b>本地部署的决策软件和多机看板，按台按年授权，每台每年约 2 至 3 万元<span class="chip">估算</span>；车企、园区和集成商可另做定制项目。</p>
   </div>
