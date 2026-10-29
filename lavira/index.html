@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LaViRA × RSI</title>
-<meta name="description" content="LaViRA × RSI：给机器人装一个会想的大脑。进门就会找，上手就会做。">
+<meta name="description" content="LaViRA × RSI：免训练的具身决策软件，导航与操作共用一套程序，已在人形、四足、无人机、轮式四种机器人上运行。">
 <meta property="og:type" content="website">
-<meta property="og:title" content="LaViRA × RSI · 进门就会找，上手就会做">
-<meta property="og:description" content="一个不需要重新训练的具身大脑：人形、四足、无人机、轮式机器人真机演示、六项评测与团队。南京大学 · 中国科学院自动化研究所">
+<meta property="og:title" content="LaViRA × RSI">
+<meta property="og:description" content="免训练的具身决策软件：导航和操作共用一套程序，已在人形、四足、无人机、轮式四种机器人上跑通。南京大学 · 中国科学院自动化研究所">
 <meta property="og:image" content="https://hongyuding.site/lavira/media/hero_reel.jpg">
 <meta property="og:url" content="https://hongyuding.site/lavira/">
 <link rel="canonical" href="https://hongyuding.site/lavira/">
@@ -24,7 +24,7 @@
   --nav-bg:rgba(255,255,255,.8);--nav-shadow:0 6px 24px rgba(32,34,36,.08);
   --card-shadow:0 1px 2px rgba(32,34,36,.06),0 8px 28px rgba(32,34,36,.06);
   --media-bg:#0b0d12;--on-media:#ffffff;--on-media-muted:rgba(255,255,255,.82);
-  --scrim:linear-gradient(180deg,rgba(6,8,12,0) 30%,rgba(6,8,12,.55) 62%,rgba(6,8,12,.86) 100%);
+  --scrim:linear-gradient(180deg,rgba(6,8,12,0) 35%,rgba(6,8,12,.6) 70%,rgba(6,8,12,.86) 100%),radial-gradient(120% 90% at 0% 100%,rgba(6,8,12,.55),rgba(6,8,12,0) 60%);
   --glass:rgba(255,255,255,.16);--badge-bg:rgba(6,8,12,.55);--glass-line:rgba(255,255,255,.34);
   --btn-bg:#ffffff;--btn-fg:#1b1f24;
   --focus:#1a69c4;
@@ -78,7 +78,7 @@ p{margin:0}
 
 /* nav */
 .nav{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:0;right:0;z-index:20}
-.nav-pill{max-width:76rem;margin-inline:auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 18px;border-radius:999px;background:var(--nav-bg);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--line);box-shadow:var(--nav-shadow)}
+.nav-pill{max-width:min(1140px,100%);margin-inline:auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 18px;border-radius:999px;background:var(--nav-bg);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--line);box-shadow:var(--nav-shadow)}
 .brand{font-weight:700;color:var(--ink);white-space:nowrap;font-size:15px;letter-spacing:.01em}
 .brand b{color:var(--accent);font-weight:700}
 .brand:hover{text-decoration:none}
@@ -90,265 +90,203 @@ p{margin:0}
 .icon-btn:hover{color:var(--ink)}
 .icon-btn svg{width:16px;height:16px}
 
-/* hero */
+/* hero: cover card + peeking film card */
 .hero{padding-block:calc(env(safe-area-inset-top,0px) + 84px) 0}
-.cover{position:relative;width:min(76rem,100%);max-height:calc(100svh - 140px);margin-inline:auto;border-radius:clamp(22px,2.6vw,38px);overflow:hidden;background:var(--media-bg);aspect-ratio:16/9;min-height:520px;animation:coverIn .62s cubic-bezier(.16,1,.3,1) both}
+.cover{position:relative;width:min(76rem,100%);max-height:calc(100svh - 150px);margin-inline:auto;border-radius:clamp(22px,2.6vw,38px);overflow:hidden;background:var(--media-bg);aspect-ratio:16/9;min-height:480px;animation:coverIn .62s cubic-bezier(.16,1,.3,1) both}
 @keyframes coverIn{from{transform:scale(.96);opacity:.4}to{transform:none;opacity:1}}
 .cover video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cover::after{content:"";position:absolute;inset:0;background:var(--scrim);pointer-events:none}
-.cover-body{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(22px,4vw,56px);max-width:52rem}
-.kicker{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
-.kicker.cn{font-family:var(--font);letter-spacing:.04em;font-size:13px}
-.cover .kicker{color:var(--on-media-muted)}
-.cover h1{color:var(--on-media);font-size:clamp(36px,6.4vw,80px);line-height:1.08;font-weight:800;letter-spacing:-.02em;margin-top:14px}
-.cover .sub{color:var(--on-media-muted);font-size:clamp(15px,1.6vw,19px);margin-top:16px;max-width:40rem}
-.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;font-size:15px;font-weight:600;border:1px solid transparent;cursor:pointer;font-family:var(--font);line-height:1.2}
+.cover-body{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(22px,4vw,56px);max-width:50rem}
+.kicker{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.cover .kicker{color:var(--on-media-muted);font-family:var(--font);letter-spacing:.06em}
+.cover h1{color:var(--on-media);font-size:clamp(44px,8vw,96px);line-height:1.02;font-weight:800;letter-spacing:-.025em;margin-top:12px}
+.cover h1 b{color:var(--on-media-muted);font-weight:500}
+.cover .sub{color:var(--on-media-muted);font-size:clamp(15px,1.6vw,19px);margin-top:16px;max-width:38rem}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;font-size:15px;font-weight:600;border:1px solid transparent;cursor:pointer;font-family:var(--font);line-height:1.2}
 .btn:hover{text-decoration:none}
 .btn-solid{background:var(--btn-bg);color:var(--btn-fg)}
 .btn-glass{background:var(--glass);color:var(--on-media);border-color:var(--glass-line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.cover .reel-tag{top:clamp(14px,2vw,24px);right:clamp(14px,2vw,24px);left:auto;z-index:3}
-.film{margin-top:clamp(22px,3vw,32px);border-radius:clamp(18px,2vw,28px);overflow:hidden;background:var(--media-bg);aspect-ratio:16/9;max-width:100%}
-.film video{display:block;width:100%;height:100%;object-fit:contain;background:var(--media-bg)}
+.badge{position:absolute;top:10px;left:10px;z-index:3;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;color:var(--on-media);background:var(--badge-bg);border:1px solid var(--glass-line);padding:3px 8px;border-radius:999px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.cover .badge{top:clamp(14px,2vw,24px);left:auto;right:clamp(14px,2vw,24px)}
+.peek{width:min(76rem,100%);margin:14px auto 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.2fr);gap:clamp(18px,3vw,40px);align-items:center;padding:clamp(16px,2.4vw,28px);border-radius:clamp(18px,2vw,30px);background:var(--surface);border:1px solid var(--line)}
+.peek>*{min-width:0}
+.peek h2{font-size:clamp(20px,2.2vw,26px);margin-top:8px}
+.peek p{color:var(--muted);font-size:14.5px;margin-top:8px}
+.film{border-radius:var(--r-media);overflow:hidden;background:var(--media-bg);aspect-ratio:16/9}
+.film video{width:100%;height:100%;object-fit:contain;background:var(--media-bg)}
 
 /* sections */
-section.sec{padding-block:clamp(72px,10vw,128px) 0}
+section.sec{padding-block:clamp(72px,9vw,120px) 0}
 .sec-head{max-width:46rem}
-.sec-head h2{font-size:clamp(28px,4.2vw,46px);line-height:1.18;margin-top:12px}
-.lead{color:var(--muted);font-size:clamp(16px,1.5vw,18px);margin-top:16px;max-width:42rem}
-.hair{border:0;border-top:1px solid var(--line);margin:0}
+.sec-head h2{font-size:clamp(28px,4vw,44px);line-height:1.2;margin-top:12px}
+.lead{color:var(--muted);font-size:clamp(16px,1.5vw,18px);margin-top:14px;max-width:44rem}
 
-/* hook */
-.hook{padding-top:clamp(40px,6vw,72px)}
-.hook q{display:block;quotes:none;font-size:clamp(24px,3.6vw,40px);line-height:1.35;font-weight:700;color:var(--ink);text-wrap:balance;margin-top:14px;max-width:48rem}
-.hook .answer{font-size:clamp(18px,2vw,22px);color:var(--muted);margin-top:22px;max-width:44rem}
-.hook .answer strong{color:var(--ink)}
-.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:56px}
-.stat{padding:22px 16px 20px;border-left:1px solid var(--line);min-width:0}
+/* overview */
+.ov{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);margin-top:36px;align-items:start}
+.ov>*{min-width:0}
+.abstract p{font-size:clamp(16px,1.45vw,17.5px);color:var(--fg);line-height:1.85}
+.abstract p+p{margin-top:14px;color:var(--muted)}
+.layers{border-top:1px solid var(--line)}
+.layer{display:grid;grid-template-columns:3.2rem minmax(0,1fr);gap:4px 14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.layer .tag{font-family:var(--mono);font-weight:600;font-size:18px;color:var(--accent);grid-row:span 2}
+.layer h3{font-size:16px}
+.layer p{color:var(--muted);font-size:14.5px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:48px}
+.stat{padding:20px 16px 18px;border-left:1px solid var(--line);min-width:0}
 .stat:first-child{border-left:0;padding-left:0}
-.stat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:clamp(26px,3vw,36px);font-weight:600;color:var(--ink);letter-spacing:-.02em;line-height:1.1}
+.stat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:clamp(24px,2.8vw,34px);font-weight:600;color:var(--ink);letter-spacing:-.02em;line-height:1.1}
 .stat .v small{font-size:.5em;font-weight:500;color:var(--muted);margin-left:2px}
 .stat .l{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.5}
 
-/* how */
-.layers{margin-top:48px;border-top:1px solid var(--line)}
-.layer{display:grid;grid-template-columns:7rem 11rem 1fr;gap:20px;padding:22px 0;border-bottom:1px solid var(--line);align-items:baseline}
-.layer>*{min-width:0}
-.layer .tag{font-family:var(--mono);font-weight:600;font-size:22px;color:var(--accent)}
-.layer h3{font-size:18px}
-.layer p{color:var(--muted)}
-.layer p b{color:var(--ink);font-weight:600}
-.motto{margin-top:36px;font-size:clamp(22px,3vw,32px);font-weight:700;color:var(--ink);text-wrap:balance}
-.motto span{color:var(--accent)}
-.why{color:var(--muted);margin-top:12px;max-width:44rem}
-.bet{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px}
-.bet>div{padding:28px;border-radius:var(--r-card);border:1px solid var(--line);min-width:0}
-.bet .them{background:var(--surface-2)}
-.bet .us{background:var(--surface);border-color:var(--line-2)}
-.bet h3{font-size:20px;margin-top:10px}
-.bet .big{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:clamp(32px,4vw,44px);font-weight:600;color:var(--ink);margin-top:18px;line-height:1.1}
-.bet .us .big{color:var(--accent)}
-.bet p{color:var(--muted);margin-top:8px;font-size:15px}
-.kicker.gray{color:var(--soft)}
-.breaks{margin-top:64px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
-.brk{padding:24px 22px 8px 0;min-width:0}
-.brk+.brk{padding-left:22px;border-left:1px solid var(--line)}
-.brk .idx{font-family:var(--mono);color:var(--soft);font-size:13px}
-.brk h3{font-size:19px;margin-top:8px}
-.brk .fig{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--accent);font-size:28px;font-weight:600;margin-top:14px}
-.brk p{color:var(--muted);font-size:15px;margin-top:6px}
-.rsi{margin-top:64px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:40px;align-items:start}
-.rsi h3{font-size:clamp(22px,2.6vw,28px);margin-top:10px}
-.rsi .lead{margin-top:12px}
-.loop{list-style:none;margin:0;padding:0;counter-reset:s;border-top:1px solid var(--line)}
-.loop li{counter-increment:s;display:grid;grid-template-columns:2.4rem 1fr;gap:10px;padding:14px 0;border-bottom:1px solid var(--line);color:var(--muted)}
-.loop li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);color:var(--accent);font-size:13px;padding-top:3px}
-.loop li b{color:var(--ink);font-weight:600}
-.rsi-fig{margin-top:22px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.rsi-fig .num{font-size:30px;font-weight:600;color:var(--ink)}
-.rsi-fig .num em{font-style:normal;color:var(--accent)}
-.rsi-fig span{color:var(--muted);font-size:14px}
-.safety{margin-top:40px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.safety div{padding:18px 0 0;border-top:2px solid var(--ink);min-width:0}
-.safety .num{font-size:22px;font-weight:600;color:var(--ink)}
-.safety p{color:var(--muted);font-size:14.5px;margin-top:4px}
+/* tabs */
+.tabs{display:inline-flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:4px;padding:4px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);margin-top:32px;max-width:100%}
+.tab{font-family:var(--font);font-size:14px;font-weight:600;color:var(--muted);background:transparent;border:0;border-radius:999px;padding:8px 16px;cursor:pointer;line-height:1.2;white-space:nowrap;flex:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--card-shadow)}
+.tab .n{font-family:var(--mono);font-size:12px;color:var(--soft);margin-left:6px;font-weight:500}
+.panel{margin-top:22px}
+.panel[hidden]{display:none}
 
-/* gallery */
-.chapter{margin-top:64px}
-.chapter-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line)}
-.chapter-head h3{font-size:clamp(24px,3vw,32px)}
-.chapter-head p{color:var(--muted);flex:1 1 20rem;min-width:0}
-.grid{display:grid;gap:18px;margin-top:22px}
-.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* explore cards */
+.grid{display:grid;gap:18px}
 .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
-.clip{margin:0;min-width:0}
-.clip .frame{position:relative;border-radius:var(--r-media);overflow:hidden;background:var(--media-bg);aspect-ratio:16/10}
-.clip .frame video{width:100%;height:100%;object-fit:cover}
-.clip.contain .frame video{object-fit:contain}
-.clip figcaption{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.55}
-.clip figcaption b{color:var(--ink);font-weight:600}
-.badge{position:absolute;top:10px;left:10px;z-index:1;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;color:var(--on-media);background:var(--badge-bg);border:1px solid var(--glass-line);padding:3px 8px;border-radius:999px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.payoff{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,22rem);gap:clamp(24px,5vw,64px);align-items:center;margin-top:28px;padding:clamp(22px,4vw,44px);border-radius:var(--r-card);background:var(--surface);border:1px solid var(--line)}
-.payoff .frame{aspect-ratio:720/810}
-.payoff blockquote{margin:0}
-.payoff .q{color:var(--soft);font-size:15px;margin-top:14px}
-.payoff .a{font-size:clamp(26px,3.6vw,42px);font-weight:800;line-height:1.22;color:var(--ink);margin-top:14px;text-wrap:balance}
-.payoff .a span{color:var(--accent)}
-.payoff p.note{color:var(--muted);margin-top:16px}
+.card{margin:0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column}
+.card .frame{position:relative;background:var(--media-bg);aspect-ratio:16/10}
+.card .frame video{width:100%;height:100%;object-fit:cover}
+.card.contain .frame video{object-fit:contain}
+.card figcaption{padding:14px 16px 16px;display:grid;gap:4px}
+.card .plat{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.card .task{font-size:16px;font-weight:600;color:var(--ink);line-height:1.45}
+.card .spec{font-family:var(--mono);font-size:12px;color:var(--soft)}
+.feature{display:grid;grid-template-columns:minmax(0,20rem) minmax(0,1fr);gap:clamp(20px,4vw,48px);align-items:center;margin-top:18px;padding:clamp(16px,2.6vw,28px);border-radius:var(--r-card);background:var(--surface);border:1px solid var(--line)}
+.feature>*{min-width:0}
+.feature .frame{position:relative;border-radius:var(--r-media);overflow:hidden;background:var(--media-bg)}
+.feature .frame video{width:100%;height:auto}
+.feature.wide{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+.feature h3{font-size:clamp(20px,2.4vw,26px);margin-top:8px}
+.feature p{color:var(--muted);margin-top:10px;font-size:15px}
+.kv{margin:16px 0 0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;font-size:14px}
+.kv dt{font-family:var(--mono);color:var(--soft);font-size:12.5px;padding-top:2px}
+.kv dd{margin:0;color:var(--fg);min-width:0}
 
 /* leaderboard */
-.board{margin-top:44px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
-.board-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 22px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.board{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
+.board-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
 .legend{display:flex;gap:16px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .legend .lb{background:var(--base-bar)}
 .legend .lo{background:var(--accent)}
+.hib{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--soft);text-transform:uppercase}
 .scroll{overflow-x:auto}
-table.lb{width:100%;border-collapse:collapse;min-width:560px}
+table.lb{width:100%;border-collapse:collapse;min-width:600px}
 table.lb th{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:600;text-align:left;padding:12px 22px;border-bottom:1px solid var(--line)}
-table.lb td{padding:16px 22px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.lb td{padding:15px 22px;border-bottom:1px solid var(--line);vertical-align:middle}
 table.lb tr:last-child td{border-bottom:0}
-.rk{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.rk{display:inline-grid;place-items:center;width:28px;height:28px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:999px}
 .bm b{display:block;color:var(--ink);font-weight:600}
 .bm span{font-size:13px;color:var(--muted)}
-.bm .star{color:var(--accent);margin-left:4px}
+.star{color:var(--accent);margin-left:4px}
 .bars{display:grid;gap:5px;min-width:220px}
 .bar{display:grid;grid-template-columns:1fr 3.4rem;align-items:center;gap:10px}
 .bar .track{height:9px;background:var(--surface-2);border-radius:99px;overflow:hidden}
-.bar .fill{height:100%;border-radius:99px;background:var(--base-bar)}
+.bar .fill{height:100%;border-radius:99px;background:var(--base-bar);min-width:2px}
 .bar.ours .fill{background:linear-gradient(90deg,var(--accent),var(--cyan))}
 .bar .num{font-size:13px;color:var(--muted);text-align:right}
 .bar.ours .num{color:var(--ink);font-weight:600}
 .bar .who{grid-column:1/-1;font-size:11.5px;color:var(--soft);margin-bottom:-3px}
 .delta{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;color:var(--ok);white-space:nowrap}
-.fine{font-size:12.5px;color:var(--soft);line-height:1.65;padding:14px 22px;border-top:1px solid var(--line);background:var(--surface-2)}
-.minis{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
-.mini{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:24px;min-width:0}
-.mini h3{font-size:18px;margin-top:8px}
-.mini .sub{font-size:13.5px;color:var(--muted);margin-top:4px}
-.hbars{display:grid;gap:12px;margin-top:20px}
-.hb{display:grid;grid-template-columns:6.5rem 1fr 3.6rem;gap:12px;align-items:center;font-size:14px}
-.hb>*{min-width:0}
-.hb .n{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hb.ours .n{color:var(--ink);font-weight:600}
-.hb .track{height:12px;background:var(--surface-2);border-radius:99px;overflow:hidden}
-.hb .fill{height:100%;background:var(--base-bar);border-radius:99px;min-width:2px}
-.hb.ours .fill{background:linear-gradient(90deg,var(--accent),var(--cyan))}
-.hb .num{text-align:right;color:var(--muted)}
-.hb.ours .num{color:var(--ink);font-weight:600}
-.mini .foot{font-size:12.5px;color:var(--soft);margin-top:16px;line-height:1.6}
-.hib{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--soft);text-transform:uppercase}
+.fine{font-size:12.5px;color:var(--soft);line-height:1.7;padding:14px 22px;border-top:1px solid var(--line);background:var(--surface-2)}
+.fine+.fine{border-top:0;padding-top:0}
+tr.ours-row td{background:var(--accent-soft)}
+tr.ours-row .bm b{color:var(--accent-ink)}
+tr.ours-row .rk{background:var(--accent);color:var(--surface)}
 
 /* news */
-.log{list-style:none;margin:40px 0 0;padding:0;border-top:1px solid var(--line)}
-.log li{display:grid;grid-template-columns:9rem 1fr;gap:20px;padding:20px 0;border-bottom:1px solid var(--line)}
+.log{list-style:none;max-width:60rem;margin:32px 0 0;padding:0;border-top:1px solid var(--line)}
+.log li{display:grid;grid-template-columns:8rem minmax(0,1fr);gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}
 .log li>*{min-width:0}
-.log time,.log .d{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;color:var(--accent);font-weight:600;padding-top:2px}
-.log h3{font-size:17px;font-weight:600}
+.log time,.log .d{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;color:var(--accent);font-weight:600;padding-top:1px}
+.log h3{font-size:16.5px;font-weight:600}
 .log p{color:var(--muted);font-size:15px;margin-top:4px}
 .chip{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent-ink);margin-left:8px;vertical-align:2px}
 
 /* papers */
-.papers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:44px}
+.papers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:36px}
 .paper{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column;min-width:0}
-.paper img{aspect-ratio:16/9;object-fit:cover;width:100%;background:var(--media-bg)}
-.paper .pb{padding:18px 20px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.paper img{aspect-ratio:16/10;object-fit:cover;width:100%;background:var(--media-bg)}
+.paper .pb{padding:16px 18px 18px;display:flex;flex-direction:column;gap:8px;flex:1}
 .venue{align-self:flex-start;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.04em;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
 .venue.hot{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent}
-.paper h3{font-size:20px}
+.paper h3{font-size:19px}
 .paper p{color:var(--muted);font-size:14.5px}
-.paper .links{margin-top:auto;padding-top:8px;display:flex;gap:8px;flex-wrap:wrap}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink)}
-.pill{background:transparent;cursor:pointer;font-family:var(--font)}
-.btn-ink{background:var(--ink);color:var(--bg)}
+.paper .au{font-size:13px;color:var(--soft)}
+.paper .links{margin-top:auto;padding-top:6px;display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink);background:transparent;cursor:pointer;font-family:var(--font)}
 .pill:hover{text-decoration:none;border-color:var(--accent);color:var(--accent)}
-.eco{margin-top:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pill[aria-disabled="true"]{color:var(--soft);cursor:default}
+.pill[aria-disabled="true"]:hover{border-color:var(--line-2);color:var(--soft)}
+.eco{margin-top:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .eco>div{padding:18px 18px 18px 0;min-width:0}
 .eco>div+div{padding-left:18px;border-left:1px solid var(--line)}
 .eco b{color:var(--ink);font-weight:600}
-.eco p{color:var(--muted);font-size:14.5px;margin-top:4px}
+.eco p{color:var(--muted);font-size:14.5px;margin-top:6px;line-height:1.9}
+.eco .venue{display:inline-block;margin-left:4px}
 
-/* business */
-.statement{font-size:clamp(28px,4.6vw,52px);font-weight:800;line-height:1.15;color:var(--ink);text-wrap:balance;margin-top:12px;max-width:50rem;letter-spacing:-.02em}
-.statement span{color:var(--accent)}
-.biz{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:44px}
-.biz>div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:24px;min-width:0}
-.biz .num{font-size:clamp(24px,2.6vw,30px);font-weight:600;color:var(--ink);margin-top:12px;line-height:1.2}
-.biz h3{font-size:17px;margin-top:6px}
-.biz p{color:var(--muted);font-size:14.5px;margin-top:6px}
-.tagf{font-family:var(--mono);font-size:11px;color:var(--soft);letter-spacing:.04em}
-.miles{margin-top:48px}
-.miles h3{font-size:20px}
-.mrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:18px;border-top:2px solid var(--ink)}
-.mrow>div{padding:16px 14px 0 0;min-width:0}
-.mrow>div+div{padding-left:14px;border-left:1px solid var(--line)}
-.mrow .m{font-family:var(--mono);font-weight:600;color:var(--accent);font-size:15px}
-.mrow p{color:var(--muted);font-size:14px;margin-top:6px;line-height:1.6}
-.fund{margin-top:48px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:32px;padding:28px;border-radius:var(--r-card);background:var(--surface-2);border:1px solid var(--line)}
-.fund .num.big{font-size:clamp(34px,4.4vw,48px);font-weight:600;color:var(--ink);line-height:1.1;margin-top:10px}
-.fund p{color:var(--muted);font-size:15px;margin-top:8px}
-.split{display:flex;height:14px;border-radius:99px;overflow:hidden;margin-top:14px;gap:3px}
-.split i{display:block;height:100%}
-.split .s1{flex:40;background:var(--accent)}
-.split .s2{flex:35;background:var(--cyan)}
-.split .s3{flex:25;background:var(--base-bar)}
-.splitl{display:grid;gap:8px;margin-top:14px;font-size:14px;color:var(--muted)}
-.splitl div{display:flex;gap:10px;align-items:baseline}
-.splitl .num{color:var(--ink);font-weight:600;min-width:3rem}
-.fc{margin-top:16px;font-size:13px;color:var(--soft)}
+/* applications */
+.apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:32px;border-top:2px solid var(--ink)}
+.apps>div{padding:18px 20px 0 0;min-width:0}
+.apps>div+div{padding-left:20px;border-left:1px solid var(--line)}
+.apps h3{font-size:18px}
+.apps p{color:var(--muted);font-size:14.5px;margin-top:6px}
+.lic{margin-top:28px;font-size:15px;color:var(--muted);max-width:52rem}
+.lic b{color:var(--ink);font-weight:600}
 
 /* team */
-.team{margin-top:44px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px}
-.member{padding:20px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:6.5rem 1fr;gap:16px;min-width:0}
+.affil{margin-top:28px;color:var(--muted);font-size:14.5px}
+.team{margin-top:32px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px}
+.member{padding:16px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:5.5rem minmax(0,1fr);gap:16px;min-width:0}
 .member>*{min-width:0}
-.member b{font-size:18px;color:var(--ink);font-weight:700}
+.member b{font-size:17px;color:var(--ink);font-weight:700}
 .member p{color:var(--muted);font-size:14.5px}
 .member .role{color:var(--accent);font-weight:600}
 
-/* closing */
-.closing{padding-block:clamp(88px,12vw,148px) clamp(56px,8vw,96px)}
-.belief{font-size:clamp(26px,4vw,46px);font-weight:800;line-height:1.3;color:var(--ink);text-wrap:balance;max-width:52rem;letter-spacing:-.015em;margin-top:16px}
-.belief span{color:var(--accent)}
-.contact{margin-top:44px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 22px;border-radius:var(--r-card);background:var(--surface);border:1px solid var(--line);max-width:40rem}
+/* contact */
+.closing{padding-block:clamp(72px,9vw,120px) clamp(56px,8vw,96px)}
+.contact{margin-top:28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 22px;border-radius:var(--r-card);background:var(--surface);border:1px solid var(--line);max-width:40rem}
 .contact .who{color:var(--muted);font-size:14px;width:100%}
 .contact .mail{font-family:var(--mono);font-size:clamp(14px,1.8vw,17px);color:var(--ink);user-select:all;-webkit-user-select:all;overflow-wrap:anywhere;min-width:0;flex:1 1 16rem}
 .copied{font-size:13px;color:var(--ok);min-width:3.5em}
 footer{border-top:1px solid var(--line);padding-block:28px 40px;color:var(--soft);font-size:13px}
 footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
-@media (max-width:980px){
+@media (max-width:1040px){
+  .papers{grid-template-columns:repeat(2,minmax(0,1fr))}
   .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
   .stat:nth-child(4){border-left:0;padding-left:0}
   .stat:nth-child(n+4){border-top:1px solid var(--line)}
-  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .papers,.biz{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .mrow{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .mrow>div:nth-child(4){border-left:0;padding-left:0}
 }
 @media (max-width:760px){
   .nav-pill{padding-left:14px}
-  .cover{aspect-ratio:auto;min-height:620px}
+  .cover{aspect-ratio:auto;min-height:560px;max-height:none}
+  .peek,.ov,.g3,.g2,.feature,.feature.wide,.team,.eco,.apps,.papers{grid-template-columns:minmax(0,1fr)}
+  .feature .frame{max-width:20rem}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .stat:nth-child(n){border-left:0;padding-left:0;border-top:1px solid var(--line)}
   .stat:nth-child(1),.stat:nth-child(2){border-top:0}
   .stat:nth-child(even){padding-left:16px;border-left:1px solid var(--line)}
-  .layer{grid-template-columns:4.5rem 1fr;gap:8px 16px}
-  .layer p{grid-column:2}
-  .bet,.rsi,.minis,.payoff,.fund,.team,.g21,.g3,.g2,.papers,.biz,.breaks,.eco,.safety{grid-template-columns:minmax(0,1fr)}
-  .brk+.brk,.eco>div+div{padding-left:0;border-left:0;border-top:1px solid var(--line)}
-  .payoff .frame{max-width:22rem}
-  .mrow{grid-template-columns:minmax(0,1fr)}
-  .mrow>div,.mrow>div+div{padding:14px 0;border-left:0;border-bottom:1px solid var(--line)}
+  .eco>div+div,.apps>div+div{padding-left:0;border-left:0;border-top:1px solid var(--line)}
+  .apps>div{padding-bottom:16px}
   .log li{grid-template-columns:minmax(0,1fr);gap:4px}
-  .member{grid-template-columns:minmax(0,1fr);gap:4px}
+  .member{grid-template-columns:minmax(0,1fr);gap:2px}
 }
 @media (max-width:520px){
-  .g4{grid-template-columns:minmax(0,1fr)}
   .nav-links a{padding:7px 9px;font-size:13.5px}
   .brand{font-size:14px}
   .nav-links{-webkit-mask-image:linear-gradient(90deg,#000 80%,transparent);mask-image:linear-gradient(90deg,#000 80%,transparent)}
+  .tab{padding:8px 12px}
 }
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -358,16 +296,17 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
 </head>
 <body>
 
+<noscript><style>.panel[hidden]{display:block}.tabs{display:none}</style></noscript>
 
 <header class="nav wrap">
   <nav class="nav-pill" aria-label="主导航">
     <a class="brand" href="#top">LaViRA <b>×</b> RSI</a>
     <div class="nav-links">
-      <a href="#how">能力</a>
-      <a href="#robots">真机</a>
+      <a href="#overview">概览</a>
+      <a href="#explore">演示</a>
       <a href="#bench">评测</a>
+      <a href="#news">动态</a>
       <a href="#papers">论文</a>
-      <a href="#news">进展</a>
       <a href="#team">团队</a>
       <a href="#contact">联系</a>
     </div>
@@ -379,353 +318,286 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
 
 <main id="top">
 
-<!-- HERO -->
 <section class="hero wrap" aria-label="首屏">
   <div class="cover">
-    <video id="heroVid" autoplay muted loop playsinline preload="metadata" poster="media/hero_reel.jpg" aria-label="真机实拍合集：人形、四足、轮式机器人导航，双臂取试管、倒试管、摆字，人形模仿舞蹈"><source src="media/hero_reel.mp4" type="video/mp4"></video>
-    <span class="badge reel-tag">REAL ROBOTS · 真机实拍</span>
+    <video id="heroVid" autoplay muted loop playsinline preload="metadata" poster="media/hero_reel.jpg" aria-label="18 秒真机合集：人形、四足、轮式机器人导航，双臂取试管、倒试管、摆字，人形模仿舞蹈"><source src="media/hero_reel.mp4" type="video/mp4"></video>
+    <span class="badge">REAL ROBOTS</span>
     <div class="cover-body">
       <p class="kicker">南京大学 · 中国科学院自动化研究所</p>
-      <h1>进门就会找，<br>上手就会做。</h1>
-      <p class="sub">一个大脑，接上人形、四足、无人机和轮式机器人。不采机器人数据，也不重新训练。</p>
+      <h1>LaViRA <b>×</b> RSI</h1>
+      <p class="sub">一套免训练的具身决策软件，导航和操作用同一套程序，已在人形、四足、无人机和轮式四种机器人上跑通。</p>
       <div class="btns">
-        <a class="btn btn-solid" href="#robots">看真机演示</a>
-        <a class="btn btn-glass" href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">论文 arXiv ↗</a>
+        <a class="btn btn-solid" href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">论文 arXiv ↗</a>
+        <a class="btn btn-glass" href="#explore">看演示</a>
       </div>
     </div>
   </div>
+
+  <div class="peek">
+    <div>
+      <p class="kicker">Film · 33 s</p>
+      <h2>项目短片</h2>
+      <p>33 秒，默认静音播放。想听原声，点“开启声音”。</p>
+      <div class="btns"><button class="pill" id="soundBtn" type="button" aria-pressed="false">开启声音</button></div>
+    </div>
+    <div class="film"><video id="promoVid" autoplay muted loop playsinline preload="metadata" poster="media/hero_promo.jpg" aria-label="LaViRA × RSI 33 秒项目短片，有声"><source src="media/hero_promo.mp4" type="video/mp4"></video></div>
+  </div>
 </section>
 
-<!-- HOOK -->
-<section class="sec hook wrap" aria-labelledby="hook-t">
+<section class="sec wrap" id="overview" aria-labelledby="ov-t">
   <div class="col-wide">
-    <p class="kicker" id="hook-t">The question</p>
-    <q>为什么机器人能在发布会上翻跟头、跳舞，却很难走进一间陌生的屋子，帮你拿起一支试管？</q>
-    <p class="answer"><strong>因为它学会的是动作，不是脑子。</strong>换一个房间、换一个杯子，就得从头再教。我们做的，是给机器人装一个会想的大脑。</p>
-    <div class="bet">
-      <div class="them">
-        <p class="kicker gray">行业押注 · Data scaling</p>
-        <h3>建数据工厂，一台一台地教</h3>
-        <div class="big num">56× H100</div>
-        <p>NavFoM 预训练用了 56 张 H100、连跑数天、1270 万条样本。数据路线换一台机器，就要重新采、重新训。</p>
+    <div class="sec-head">
+      <p class="kicker">Overview</p>
+      <h2 id="ov-t">进门就会找，上手就会做</h2>
+    </div>
+    <div class="ov">
+      <div class="abstract">
+        <p>LaViRA 把机器人的决策拆成三层，每层只让大模型输出它在预训练里见得最多的东西：文字、图像中的位置和代码。关节力矩和连续轨迹交给局部规划与控制，所以整套系统不用机器人训练数据，模型权重也不更新。导航和双臂操作共用这套流程。</p>
+        <p>RSI 负责自我改进。编码智能体改写技能代码，评测成功率提高才保留，回归测试检查旧技能，改动可以回滚。大模型只给子目标，局部控制每步不到 10 毫秒；每次决策都留有文字记录，可以回放。四种机器人的接入合计约 40 人时（科研环境）。</p>
       </div>
-      <div class="us">
-        <p class="kicker">我们押注 · Model progress</p>
-        <h3>大模型每一代都在变聪明</h3>
-        <div class="big num">0 次训练</div>
-        <p>它每进化一次，我们的机器人就跟着聪明一次，无需重新训练。换机器只改接口，四种机器人在科研环境下合计约 40 人时完成接入。</p>
+      <div class="layers">
+        <div class="layer"><span class="tag">LA</span><h3>语言层</h3><p>把一句指令拆成待办事项。</p></div>
+        <div class="layer"><span class="tag">VA</span><h3>视觉层</h3><p>在相机画面里框出目标。</p></div>
+        <div class="layer"><span class="tag">RA</span><h3>动作层</h3><p>控制运动。做操作任务时，这一层是一段能读懂的技能代码。</p></div>
       </div>
     </div>
-
     <div class="stats" role="list">
-      <div class="stat" role="listitem"><div class="v">4<small>种</small></div><div class="l">真机跑通：人形、四足、无人机、轮式</div></div>
-      <div class="stat" role="listitem"><div class="v">≈40<small>人时</small></div><div class="l">四种机器人接入合计（科研环境）</div></div>
-      <div class="stat" role="listitem"><div class="v">6<small>项</small></div><div class="l">公开评测全面超过对比基线</div></div>
-      <div class="stat" role="listitem"><div class="v">41.0<small>%</small></div><div class="l">多机协同搜索成功率 HM3D-M³</div></div>
+      <div class="stat" role="listitem"><div class="v">4<small>种</small></div><div class="l">真机：人形、四足、无人机、轮式</div></div>
+      <div class="stat" role="listitem"><div class="v">6<small>项</small></div><div class="l">导航评测，均高于对比基线</div></div>
+      <div class="stat" role="listitem"><div class="v">41.0<small>%</small></div><div class="l">HM3D-M³ 多机协同成功率</div></div>
       <div class="stat" role="listitem"><div class="v">78.7<small>%</small></div><div class="l">LIBERO-PRO 仿真操作成功率</div></div>
-      <div class="stat" role="listitem"><div class="v">8<small>项</small></div><div class="l">专利：导航发明 2 项，操作相关受理 6 项</div></div>
+      <div class="stat" role="listitem"><div class="v">0<small>次</small></div><div class="l">权重更新</div></div>
     </div>
   </div>
 </section>
 
-<!-- FILM -->
-<section class="sec wrap" id="film" aria-labelledby="film-t">
+<section class="sec wrap" id="explore" aria-labelledby="ex-t">
   <div class="col-wide">
     <div class="sec-head">
-      <p class="kicker">Film · 33 秒</p>
-      <h2 id="film-t">33 秒看懂：四台机器人，同一个大脑。</h2>
-      <p class="lead">换一台机器，我们只改接口。听一句话，它自己去找、自己去做。点开有声音。</p>
-    </div>
-    <div class="film"><video controls playsinline preload="metadata" poster="media/hero_promo.jpg" aria-label="LaViRA × RSI 33 秒宣传片（有声）"><source src="media/hero_promo.mp4" type="video/mp4"></video></div>
-  </div>
-</section>
-
-<!-- HOW -->
-<section class="sec wrap" id="how" aria-labelledby="how-t">
-  <div class="col-wide">
-    <div class="sec-head">
-      <p class="kicker">How it works · LA / VA / RA</p>
-      <h2 id="how-t">不训练机器人，让现成的大模型直接当它的大脑。</h2>
-      <p class="lead">我们只让大模型做三件最拿手的事：把一句话拆成步骤，在画面里框出目标，把动作写成代码。会找路，也会动手。</p>
+      <p class="kicker">Explore</p>
+      <h2 id="ex-t">真机视频</h2>
+      <p class="lead">按任务分成四组。每张卡片标了平台和任务，加速播放的片段标了倍速。</p>
     </div>
 
-    <div class="layers">
-      <div class="layer"><span class="tag">LA</span><h3>语言层</h3><p>把一句指令<b>拆成待办</b>，一步一步往下推。</p></div>
-      <div class="layer"><span class="tag">VA</span><h3>视觉层</h3><p>在相机画面里<b>框出目标</b>，告诉机器人该往哪儿去、该拿哪一个。</p></div>
-      <div class="layer"><span class="tag">RA</span><h3>动作层</h3><p>负责运动；在操作任务里，它就是<b>一段可读的技能代码</b>。</p></div>
-    </div>
-    <p class="motto">思考交给大模型，<span>电机交给代码。</span></p>
-    <p class="why">文字、图像里的位置、代码，正是大模型在预训练里见得最多的输出；真正需要机器人数据的，是关节力矩和连续轨迹。所以我们不需要机器人数据，而且每一步都看得见、查得到。</p>
-
-    <div class="breaks">
-      <div class="brk">
-        <span class="idx">突破 01</span>
-        <h3>换机器，不重训</h3>
-        <div class="fig">38.3%</div>
-        <p>LaViRA 发表于 ICRA 2026，R2R-CE 零样本成功率 38.3%，发表时为零样本方法最佳。</p>
-      </div>
-      <div class="brk">
-        <span class="idx">突破 02</span>
-        <h3>让机器人组队</h3>
-        <div class="fig">41.0% <small class="mono" style="font-size:.5em;color:var(--muted)">vs 26.6</small></div>
-        <p>首个多机、多模态、多目标协同评测 HM3D-M³；三台真机全程本地跑国产模型，0 次云端调用。</p>
-      </div>
-      <div class="brk">
-        <span class="idx">突破 03</span>
-        <h3>把动作写成代码</h3>
-        <div class="fig">78.7% <small class="mono" style="font-size:.5em;color:var(--muted)">vs π0.5 10.8</small></div>
-        <p>Ultra-LaViRA：代码能改、能回滚。LIBERO-PRO 仿真 78.7%，RoboSuite 98.3%。</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ROBOTS -->
-<section class="sec wrap" id="robots" aria-labelledby="robots-t">
-  <div class="col-wide">
-    <div class="sec-head">
-      <p class="kicker">Real robots · 全部真机实拍</p>
-      <h2 id="robots-t">四台机器人，同一个大脑。</h2>
-      <p class="lead">换一台机器，我们只改接口。听一句话，它自己去找、自己去做。</p>
+    <div class="tabs" role="tablist" aria-label="演示分类">
+      <button class="tab" role="tab" id="t-nav" aria-controls="p-nav" aria-selected="true" type="button">导航<span class="n">5</span></button>
+      <button class="tab" role="tab" id="t-man" aria-controls="p-man" aria-selected="false" tabindex="-1" type="button">操作<span class="n">4</span></button>
+      <button class="tab" role="tab" id="t-hum" aria-controls="p-hum" aria-selected="false" tabindex="-1" type="button">人形<span class="n">3</span></button>
+      <button class="tab" role="tab" id="t-multi" aria-controls="p-multi" aria-selected="false" tabindex="-1" type="button">多机<span class="n">1</span></button>
     </div>
 
-    <div class="chapter">
-      <div class="chapter-head"><h3>会找</h3><p>四种平台，同一套指令导航；多台机器还能组队搜。</p></div>
-      <div class="grid g4">
-        <figure class="clip"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_humanoid.jpg" aria-label="人形 Unitree G1 室外园区指令导航"><source src="media/nav_humanoid.mp4" type="video/mp4"></video></div><figcaption><b>人形 · Unitree G1</b><br>室外园区指令导航</figcaption></figure>
-        <figure class="clip"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_quadruped.jpg" aria-label="四足 Unitree Go1 室内目标搜索，找花"><source src="media/nav_quadruped.mp4" type="video/mp4"></video></div><figcaption><b>四足 · Unitree Go1</b><br>室内目标搜索（找花）</figcaption></figure>
-        <figure class="clip"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_drone.jpg" aria-label="自研无人机走廊与大厅指令导航"><source src="media/nav_drone.mp4" type="video/mp4"></video></div><figcaption><b>无人机 · 自研</b><br>走廊 / 大厅指令导航</figcaption></figure>
-        <figure class="clip"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_wheeled.jpg" aria-label="轮式双臂 AgileX Cobot 室外导航"><source src="media/nav_wheeled.mp4" type="video/mp4"></video></div><figcaption><b>轮式双臂 · AgileX Cobot</b><br>室外导航</figcaption></figure>
-      </div>
-      <div class="grid g21">
-        <figure class="clip"><div class="frame"><span class="badge">3 ROBOTS · LOCAL</span><video autoplay muted loop playsinline preload="metadata" poster="media/multi_robot.jpg" aria-label="三机协同搜索真机实录，画面含实时地图与计时"><source src="media/multi_robot.mp4" type="video/mp4"></video></div><figcaption><b>三机协同搜索 · Cobot Magic + Go1 + Go2</b><br>6 分钟找到 10 个目标里的 7 个，全程本地国产模型，0 次云端调用</figcaption></figure>
-        <figure class="clip"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_quad_outdoor.jpg" aria-label="四足室外园区听指令找目标"><source src="media/nav_quad_outdoor.mp4" type="video/mp4"></video></div><figcaption><b>四足 · 室外</b><br>园区里听指令找目标</figcaption></figure>
-      </div>
-    </div>
-
-    <div class="chapter">
-      <div class="chapter-head"><h3>会做</h3><p>双臂真机：取放交接、分拣、摆字。</p></div>
+    <div class="panel" role="tabpanel" id="p-nav" aria-labelledby="t-nav" tabindex="0">
       <div class="grid g3">
-        <figure class="clip"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="metadata" poster="media/manip_tube.jpg" aria-label="双臂真机实验台取试管并交接，5倍速"><source src="media/manip_tube.mp4" type="video/mp4"></video></div><figcaption><b>取试管 · 交接</b><br>实验台取试管与交接（5× 速）</figcaption></figure>
-        <figure class="clip"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="metadata" poster="media/manip_classify.jpg" aria-label="双臂真机桌面物体分拣，5倍速"><source src="media/manip_classify.mp4" type="video/mp4"></video></div><figcaption><b>桌面分拣</b><br>按类放进收纳筐（5× 速）</figcaption></figure>
-        <figure class="clip contain"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="metadata" poster="media/manip_nju.jpg" aria-label="真机用积木摆出 NJU，5倍速"><source src="media/manip_nju.mp4" type="video/mp4"></video></div><figcaption><b>积木摆字</b><br>摆出 “NJU”（5× 速）</figcaption></figure>
-      </div>
-
-      <div class="payoff">
-        <figure class="clip contain" style="margin:0"><div class="frame"><span class="badge">10×</span><video autoplay muted loop playsinline preload="metadata" poster="media/manip_pour.jpg" aria-label="双臂真机试管倾倒长程任务，纯自主，10倍速"><source src="media/manip_pour.mp4" type="video/mp4"></video></div></figure>
-        <blockquote>
-          <p class="kicker">The answer</p>
-          <p class="q">机器人能不能走进陌生的屋子，拿起一支试管？</p>
-          <p class="a">拿起试管，完成倾倒，<span>全程自主。</span></p>
-          <p class="note">双臂真机试管倾倒长程任务，一步接一步，纯自主完成。视频为 10× 速。</p>
-        </blockquote>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_humanoid.jpg" aria-label="人形 Unitree G1 室外园区指令导航"><source src="media/nav_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · Unitree G1</span><span class="task">室外园区，按指令导航</span><span class="spec">真机 · 7 s</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_quadruped.jpg" aria-label="四足 Unitree Go1 室内目标搜索，找花"><source src="media/nav_quadruped.mp4" type="video/mp4"></video></div><figcaption><span class="plat">四足 · Unitree Go1</span><span class="task">室内找一盆花</span><span class="spec">真机 · 7 s</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_drone.jpg" aria-label="自研无人机在走廊和大厅按指令导航"><source src="media/nav_drone.mp4" type="video/mp4"></video></div><figcaption><span class="plat">无人机 · 自研</span><span class="task">走廊和大厅里按指令飞行</span><span class="spec">真机 · 4.6 s</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_wheeled.jpg" aria-label="轮式双臂 AgileX Cobot 室外导航"><source src="media/nav_wheeled.mp4" type="video/mp4"></video></div><figcaption><span class="plat">轮式双臂 · AgileX Cobot</span><span class="task">室外导航</span><span class="spec">真机 · 4.3 s</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_quad_outdoor.jpg" aria-label="四足机器人在室外园区听指令找目标"><source src="media/nav_quad_outdoor.mp4" type="video/mp4"></video></div><figcaption><span class="plat">四足 · 室外</span><span class="task">园区里听指令找目标</span><span class="spec">真机 · 7 s</span></figcaption></figure>
       </div>
     </div>
 
-    <div class="chapter">
-      <div class="chapter-head"><h3>会学</h3><p>人形全身动作模仿：复现 SuperMimic，左为人类示范、右为真机。</p></div>
-      <div class="grid g2">
-        <figure class="clip"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/humanoid_bear.jpg" aria-label="人形全身动作模仿，闪身步狗熊哆嗦毛片段，左人类示范右真机"><source src="media/humanoid_bear.mp4" type="video/mp4"></video></div><figcaption><b>闪身步 · “狗熊哆嗦毛”</b><br>左为人类示范、右为真机</figcaption></figure>
-        <figure class="clip contain"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/humanoid_pro.jpg" aria-label="人形全身动作模仿，闪身步 Pro 完整版，左人类示范右真机"><source src="media/humanoid_pro.mp4" type="video/mp4"></video></div><figcaption><b>闪身步 Pro · 完整版</b><br>左为人类示范、右为真机</figcaption></figure>
+    <div class="panel" role="tabpanel" id="p-man" aria-labelledby="t-man" tabindex="0" hidden>
+      <div class="grid g3">
+        <figure class="card"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_tube.jpg" aria-label="双臂真机在实验台取试管并交接，5 倍速"><source src="media/manip_tube.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">实验台取试管，两臂交接</span><span class="spec">真机 · 5× 速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_classify.jpg" aria-label="双臂真机桌面物体分拣，5 倍速"><source src="media/manip_classify.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">桌面物体按类放进收纳筐</span><span class="spec">真机 · 5× 速</span></figcaption></figure>
+        <figure class="card contain"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_nju.jpg" aria-label="真机用积木摆出 NJU，5 倍速"><source src="media/manip_nju.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">用积木摆出 “NJU”</span><span class="spec">真机 · 5× 速</span></figcaption></figure>
+      </div>
+      <div class="feature">
+        <div class="frame"><span class="badge">10×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_pour.jpg" aria-label="双臂真机试管倾倒长程任务，纯自主，10 倍速" width="720" height="810"><source src="media/manip_pour.mp4" type="video/mp4"></video></div>
+        <div>
+          <p class="kicker">Long horizon</p>
+          <h3>试管倾倒长程任务</h3>
+          <p>双臂真机从取试管到倾倒，全程自主完成。原片 49 秒，按 10 倍速播放；画面里的 LaViRA 标识和“纯自主，10倍速”字样是原片自带的。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-hum" aria-labelledby="t-hum" tabindex="0" hidden>
+      <div class="grid g3">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/humanoid_bear.jpg" aria-label="人形全身动作模仿，闪身步狗熊哆嗦毛片段，左为人类示范，右为真机"><source src="media/humanoid_bear.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步“狗熊哆嗦毛”片段，左为人类示范，右为真机</span><span class="spec">真机 · 8.5 s</span></figcaption></figure>
+        <figure class="card contain"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/humanoid_pro.jpg" aria-label="人形全身动作模仿，闪身步 Pro 完整版，左为人类示范，右为真机"><source src="media/humanoid_pro.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步 Pro 完整版，左为人类示范，右为真机</span><span class="spec">真机 · 14.9 s</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/nav_humanoid.jpg" aria-label="人形 Unitree G1 室外园区指令导航"><source src="media/nav_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · Unitree G1</span><span class="task">室外园区，按指令导航</span><span class="spec">真机 · 7 s</span></figcaption></figure>
+      </div>
+      <p class="lead">动作模仿部分复现了 SuperMimic。</p>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-multi" aria-labelledby="t-multi" tabindex="0" hidden>
+      <div class="feature wide">
+        <div class="frame"><span class="badge">3 ROBOTS · LOCAL</span><video autoplay muted loop playsinline preload="none" poster="media/multi_robot.jpg" aria-label="三机协同搜索真机实录，画面含实时地图与计时" width="720" height="406"><source src="media/multi_robot.mp4" type="video/mp4"></video></div>
+        <div>
+          <p class="kicker">Multi-robot · HM3D-M³</p>
+          <h3>三台机器人分头找东西</h3>
+          <p>画面里有实时地图和计时。6 分钟内找到 10 个目标中的 7 个。</p>
+          <dl class="kv">
+            <dt>机器人</dt><dd>Cobot Magic、Go1、Go2</dd>
+            <dt>模型</dt><dd>Qwen3.5-27B 4-bit，国产模型</dd>
+            <dt>算力</dt><dd>Cobot 板载 RTX 4090，全部本地运行</dd>
+            <dt>云端调用</dt><dd class="num">0</dd>
+          </dl>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- BENCHMARK -->
 <section class="sec wrap" id="bench" aria-labelledby="bench-t">
   <div class="col-wide">
     <div class="sec-head">
-      <p class="kicker">Leaderboard · Uni-LaViRA</p>
-      <h2 id="bench-t">六项公开评测，全面超过对比基线。</h2>
-      <p class="lead">其中四项（★）连训练过的最强基础模型也被超过。覆盖指令导航、目标导航、开放词汇导航、具身问答、无人机导航。</p>
+      <p class="kicker">Leaderboard</p>
+      <h2 id="bench-t">评测结果</h2>
+      <p class="lead">我们的数字全部是免训练结果。每一行列出该评测上的对比方法，单位为成功率 %。</p>
     </div>
 
-    <div class="board">
-      <div class="board-top">
-        <div class="legend"><span><i class="lb"></i>对比基线</span><span><i class="lo"></i>Uni-LaViRA（免训练）</span></div>
-        <span class="hib">成功率 % · Higher is better</span>
-      </div>
-      <div class="scroll">
-        <table class="lb">
-          <thead><tr><th>评测</th><th>基线 → 我们</th><th>提升</th></tr></thead>
-          <tbody>
-            <tr><td class="bm"><b>R2R-CE</b><span>指令导航</span></td><td><div class="bars"><div class="bar"><span class="who">LaViRA（零样本）</span><div class="track"><div class="fill" style="width:38.3%"></div></div><span class="num">38.3</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:60.7%"></div></div><span class="num">60.7</span></div></div></td><td class="delta">+22.4</td></tr>
-            <tr><td class="bm"><b>RxR-CE</b><span>多语种指令</span></td><td><div class="bars"><div class="bar"><span class="who">GC-VLN（免训练）</span><div class="track"><div class="fill" style="width:33.8%"></div></div><span class="num">33.8</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:51.3%"></div></div><span class="num">51.3</span></div></div></td><td class="delta">+17.5</td></tr>
-            <tr><td class="bm"><b>HM3D-OVON<span class="star">★</span></b><span>开放词汇导航</span></td><td><div class="bars"><div class="bar"><span class="who">VLFM（免训练）</span><div class="track"><div class="fill" style="width:38.5%"></div></div><span class="num">38.5</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:60%"></div></div><span class="num">60.0</span></div></div></td><td class="delta">+21.5</td></tr>
-            <tr><td class="bm"><b>HM3D-v2<span class="star">★</span></b><span>目标导航</span></td><td><div class="bars"><div class="bar"><span class="who">VLFM</span><div class="track"><div class="fill" style="width:62.6%"></div></div><span class="num">62.6</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:77.7%"></div></div><span class="num">77.7</span></div></div></td><td class="delta">+15.1</td></tr>
-            <tr><td class="bm"><b>MP3D-EQA<span class="star">★</span></b><span>具身问答</span></td><td><div class="bars"><div class="bar"><span class="who">训练过的 EQA 基线</span><div class="track"><div class="fill" style="width:43%"></div></div><span class="num">43.0</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:54.7%"></div></div><span class="num">54.7</span></div></div></td><td class="delta">+11.7</td></tr>
-            <tr><td class="bm"><b>OpenUAV<span class="star">★</span></b><span>无人机导航</span></td><td><div class="bars"><div class="bar"><span class="who">NavFoM（训练过）</span><div class="track"><div class="fill" style="width:6.3%"></div></div><span class="num">6.3</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:40%"></div></div><span class="num">40.0</span></div></div></td><td class="delta">+33.7</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="fine">★ = 同时超过最强的训练型基础模型。R2R-CE 60.7 与 JanusVLN 60.5 持平，低于 OmniNav 69.5。前五项为 100 条任务 × 3 个随机种子。主干包含闭源大模型；换成本地 27B 模型，仿真中约低 10 个点。来源：<a href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">arXiv 2605.27582</a>。</p>
+    <div class="tabs" role="tablist" aria-label="评测分类">
+      <button class="tab" role="tab" id="t-b1" aria-controls="p-b1" aria-selected="true" type="button">导航</button>
+      <button class="tab" role="tab" id="t-b2" aria-controls="p-b2" aria-selected="false" tabindex="-1" type="button">多机 HM3D-M³</button>
+      <button class="tab" role="tab" id="t-b3" aria-controls="p-b3" aria-selected="false" tabindex="-1" type="button">操作 LIBERO-PRO</button>
     </div>
 
-    <div class="minis">
-      <div class="mini">
-        <p class="kicker">Multi-robot · HM3D-M³</p>
-        <h3>多机协同，免训练</h3>
-        <p class="sub">首个多机、多模态、多目标导航评测 · <span class="hib">SR % · Higher is better</span></p>
-        <div class="hbars">
-          <div class="hb ours"><span class="n">我们 · 免训练</span><div class="track"><div class="fill" style="width:41%"></div></div><span class="num">41.0</span></div>
-          <div class="hb"><span class="n">最强适配基线</span><div class="track"><div class="fill" style="width:26.6%"></div></div><span class="num">26.6</span></div>
+    <div class="panel" role="tabpanel" id="p-b1" aria-labelledby="t-b1" tabindex="0">
+      <div class="board">
+        <div class="board-top">
+          <div class="legend"><span><i class="lb"></i>对比方法</span><span><i class="lo"></i>Uni-LaViRA（免训练）</span></div>
+          <span class="hib">SR % · Higher is better</span>
         </div>
-        <p class="foot">+14.4 个百分点，SPL 约为其他方法的 2 倍。16,000 训练 / 1,000 验证任务，3,926 个物体，379 个开放词汇类别；目标可用类别、图像或文字给出。ICRA 2027 在投。真机实录全程本地运行 Qwen3.5-27B 4-bit（Cobot 板载 RTX 4090）。</p>
-      </div>
-      <div class="mini">
-        <p class="kicker">Manipulation · LIBERO-PRO</p>
-        <h3>动作写成代码，0 次权重更新</h3>
-        <p class="sub">Ultra-LaViRA 仿真 · RGB-D 输入 · <span class="hib">SR % · Higher is better</span></p>
-        <div class="hbars">
-          <div class="hb ours"><span class="n">Ultra-LaViRA</span><div class="track"><div class="fill" style="width:78.7%"></div></div><span class="num">78.7</span></div>
-          <div class="hb"><span class="n">π0.5</span><div class="track"><div class="fill" style="width:10.8%"></div></div><span class="num">10.8</span></div>
-          <div class="hb"><span class="n">OpenVLA</span><div class="track"><div class="fill" style="width:0"></div></div><span class="num">0</span></div>
-          <div class="hb"><span class="n">π0</span><div class="track"><div class="fill" style="width:0"></div></div><span class="num">0</span></div>
+        <div class="scroll">
+          <table class="lb">
+            <thead><tr><th>评测</th><th>对比方法 / Uni-LaViRA</th><th>差值</th></tr></thead>
+            <tbody>
+              <tr><td class="bm"><b>R2R-CE</b><span>指令导航</span></td><td><div class="bars"><div class="bar"><span class="who">LaViRA（团队前作，零样本）</span><div class="track"><div class="fill" style="width:38.3%"></div></div><span class="num">38.3</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:60.7%"></div></div><span class="num">60.7</span></div></div></td><td class="delta">+22.4</td></tr>
+              <tr><td class="bm"><b>RxR-CE</b><span>多语种指令</span></td><td><div class="bars"><div class="bar"><span class="who">GC-VLN（免训练）</span><div class="track"><div class="fill" style="width:33.8%"></div></div><span class="num">33.8</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:51.3%"></div></div><span class="num">51.3</span></div></div></td><td class="delta">+17.5</td></tr>
+              <tr><td class="bm"><b>HM3D-OVON<span class="star">★</span></b><span>开放词汇导航</span></td><td><div class="bars"><div class="bar"><span class="who">VLFM（免训练）</span><div class="track"><div class="fill" style="width:38.5%"></div></div><span class="num">38.5</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:60%"></div></div><span class="num">60.0</span></div></div></td><td class="delta">+21.5</td></tr>
+              <tr><td class="bm"><b>HM3D-v2<span class="star">★</span></b><span>目标导航</span></td><td><div class="bars"><div class="bar"><span class="who">VLFM</span><div class="track"><div class="fill" style="width:62.6%"></div></div><span class="num">62.6</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:77.7%"></div></div><span class="num">77.7</span></div></div></td><td class="delta">+15.1</td></tr>
+              <tr><td class="bm"><b>MP3D-EQA<span class="star">★</span></b><span>具身问答</span></td><td><div class="bars"><div class="bar"><span class="who">训练过的 EQA 基线</span><div class="track"><div class="fill" style="width:43%"></div></div><span class="num">43.0</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:54.7%"></div></div><span class="num">54.7</span></div></div></td><td class="delta">+11.7</td></tr>
+              <tr><td class="bm"><b>OpenUAV<span class="star">★</span></b><span>无人机导航</span></td><td><div class="bars"><div class="bar"><span class="who">NavFoM（训练过）</span><div class="track"><div class="fill" style="width:6.3%"></div></div><span class="num">6.3</span></div><div class="bar ours"><div class="track"><div class="fill" style="width:40%"></div></div><span class="num">40.0</span></div></div></td><td class="delta">+33.7</td></tr>
+            </tbody>
+          </table>
         </div>
-        <p class="foot">RoboSuite 98.3%。代码自进化见下方 RSI。</p>
+        <p class="fine">★ 表示同时高于最强的训练型基础模型。R2R-CE 上 60.7 与 JanusVLN 的 60.5 持平，低于 OmniNav 的 69.5。前五项为 100 条任务 × 3 个随机种子。主干包含闭源大模型；换成本地 27B 模型，仿真中约低 10 个点。来源：<a href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">arXiv 2605.27582</a>。</p>
+        <p class="fine">LaViRA（ICRA 2026）的 R2R-CE 零样本成功率 38.3%，发表时是零样本方法中最高的。作为参照，NavFoM 预训练用了 56 张 H100、连跑数天、1270 万条样本。</p>
       </div>
     </div>
 
-    <div class="rsi">
-      <div>
-        <p class="kicker">RSI · 自进化</p>
-        <h3>它自己改代码，越用越会做。</h3>
-        <p class="lead">编码智能体改写技能代码，评测成功率提升才保留。模型权重一次都不动。</p>
-        <div class="rsi-fig"><span class="num">44% → <em>86%</em></span><span>open_drawer 技能代码改写后，LIBERO-10 留出 80 条</span></div>
-      </div>
-      <ol class="loop">
-        <li><span><b>改写</b>：编码智能体重写一段技能代码。</span></li>
-        <li><span><b>评测</b>：在评测集上跑，成功率提升才保留。</span></li>
-        <li><span><b>守住旧技能</b>：回归测试兜底，改动随时可回滚。</span></li>
-        <li><span><b>下一站</b>：第 6 个月，改进器自我改进，旧技能退化 ≤10%。</span></li>
-      </ol>
-    </div>
-
-    <div class="safety">
-      <div><span class="num">&lt;10 ms</span><p>大模型只给子目标；局部规划与控制，每步不到 10 毫秒。</p></div>
-      <div><span class="num">≈2 s / ≈5 s</span><p>语言层 / 视觉层中位时延（Cobot 板载 4090，81 次实测）。</p></div>
-      <div><span class="num">全程留痕</span><p>每次决策以文字记录，可回放；先过规则与几何校验再问大模型，上线前可加人工审核。</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- PAPERS -->
-<section class="sec wrap" id="papers" aria-labelledby="papers-t">
-  <div class="col-wide">
-    <div class="sec-head">
-      <p class="kicker">Papers &amp; Ecosystem</p>
-      <h2 id="papers-t">这个大脑，从我们自己的论文里长出来。</h2>
-    </div>
-    <div class="papers">
-      <article class="paper">
-        <img src="media/nav_humanoid.jpg" alt="LaViRA 人形机器人指令导航画面" loading="lazy" width="640" height="400">
-        <div class="pb"><span class="venue hot">ICRA 2026</span><h3>LaViRA</h3><p>零样本指令导航，R2R-CE 成功率 38.3%，发表时零样本方法最佳。系列的起点：换机器，不重训。</p></div>
-      </article>
-      <article class="paper">
-        <img src="media/nav_drone.jpg" alt="Uni-LaViRA 无人机导航画面" loading="lazy" width="640" height="426">
-        <div class="pb"><span class="venue">TPAMI 在审</span><h3>Uni-LaViRA</h3><p>一个框架覆盖五类任务：指令导航、目标导航、开放词汇导航、具身问答、无人机导航。六项评测全面超过对比基线。</p><div class="links"><a class="pill" href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">Paper · arXiv 2605.27582 ↗</a></div></div>
-      </article>
-      <article class="paper">
-        <img src="media/multi_robot.jpg" alt="HM3D-M³ 三机协同搜索画面" loading="lazy" width="720" height="406">
-        <div class="pb"><span class="venue">ICRA 2027 在投</span><h3>HM3D-M³</h3><p>首个多机、多模态、多目标导航评测。免训练多机成功率 41.0%，最强适配基线 26.6%。</p></div>
-      </article>
-    </div>
-    <div class="eco">
-      <div><b>团队操作方向工作</b><p>AGiLe <span class="venue">CVPR 2026</span> · GravMAD <span class="venue">ICLR 2025</span> · ManiLong-Shot <span class="venue">AAAI 2026</span></p></div>
-      <div><b>更多操作研究</b><p>RoTri-Diff、Wh0、DeCo、AdaClearGrasp，都是团队在操作技能上的积累。</p></div>
-      <div><b>专利</b><p>导航发明专利 2 项，操作相关受理专利 6 项，拟由南京大学转入公司。</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- BUSINESS -->
-<section class="sec wrap" id="biz" aria-labelledby="biz-t">
-  <div class="col-wide">
-    <p class="kicker">Product &amp; Business</p>
-    <h2 class="statement" id="biz-t">我们不造机器人，<span>我们造机器人的大脑。</span></h2>
-    <p class="lead">本地部署的决策软件 + 多机看板。上层大模型主干可换，下层对接 ROS2 与整机厂接口。整机厂每卖一台，就按台付授权费。</p>
-
-    <div class="biz">
-      <div>
-        <span class="tagf">定价 <span class="chip" style="margin-left:4px">估算</span></span>
-        <div class="num">2–3 万元</div>
-        <h3>每台每年授权费</h3>
-        <p>约为整机价格的 6–9%；车企、园区、集成商另有定制项目。</p>
-      </div>
-      <div>
-        <span class="tagf">第一市场 · 巡检安防</span>
-        <div class="num">31.85 亿元</div>
-        <h3>先去最缺 GPS 的地方</h3>
-        <p>2026 年中国智能巡检机器人市场约 31.85 亿元、约 9,722 台（据智研咨询）。</p>
-      </div>
-      <div>
-        <span class="tagf">第二市场 · 车企与工业</span>
-        <div class="num">宝马南京</div>
-        <h3>已是我们的样板</h3>
-        <p>以宝马南京为样板进入车企与工业场景；同步面向国防异构无人系统。</p>
-      </div>
-    </div>
-    <p class="lead" style="max-width:none">打法很简单：<b style="color:var(--ink)">付费 POC（3–6 个月）→ 按台预装授权。</b>三年毛利率约 71%<span class="chip">预测</span>。收入 600 万（2027）→ 1800 万（2028）→ 4500 万（2029）<span class="chip">预测</span></p>
-    <p class="fc">标注“预测”“估算”的数字均为预测或估算。</p>
-
-    <div class="miles">
-      <h3>接下来 18 个月<span class="chip">预测</span></h3>
-      <div class="mrow">
-        <div><span class="m">M3</span><p>真机做 ≥5 类操作任务，不更新权重</p></div>
-        <div><span class="m">M6</span><p>改进器自我改进，旧技能退化 ≤10%</p></div>
-        <div><span class="m">M9</span><p>现有合作方之外，新签 1–2 个付费 POC</p></div>
-        <div><span class="m">M12</span><p>全国产模型栈跑通，并公开与闭源模型的差距</p></div>
-        <div><span class="m">M18</span><p>≥3 个新付费 POC，首批约 90 台授权</p></div>
-      </div>
-    </div>
-
-    <div class="fund">
-      <div>
-        <p class="kicker">Angel round · 天使轮</p>
-        <div class="num big">1200 万元</div>
-        <p>出让 12%，投后 1 亿元。零收入情况下可支撑约 15 个月<span class="chip">估算</span>。</p>
-      </div>
-      <div>
-        <p class="kicker gray cn">资金用途</p>
-        <div class="split" aria-hidden="true"><i class="s1"></i><i class="s2"></i><i class="s3"></i></div>
-        <div class="splitl">
-          <div><span class="num">40%</span>算法与算力</div>
-          <div><span class="num">35%</span>样机与方案</div>
-          <div><span class="num">25%</span>团队与市场</div>
+    <div class="panel" role="tabpanel" id="p-b2" aria-labelledby="t-b2" tabindex="0" hidden>
+      <div class="board">
+        <div class="board-top">
+          <span>首个多机、多模态、多目标导航评测 · ICRA 2027 在投</span>
+          <span class="hib">SR % · Higher is better</span>
         </div>
+        <div class="scroll">
+          <table class="lb">
+            <thead><tr><th>#</th><th>方法</th><th>成功率</th><th>差值</th></tr></thead>
+            <tbody>
+              <tr class="ours-row"><td><span class="rk">1</span></td><td class="bm"><b>Uni-LaViRA 多机</b><span>免训练</span></td><td><div class="bars"><div class="bar ours"><div class="track"><div class="fill" style="width:41%"></div></div><span class="num">41.0</span></div></div></td><td class="delta">+14.4</td></tr>
+              <tr><td><span class="rk">2</span></td><td class="bm"><b>最强适配基线</b><span>对比方法</span></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:26.6%"></div></div><span class="num">26.6</span></div></div></td><td class="delta"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fine">SPL 约为其他方法的 2 倍。数据集含 16,000 条训练任务、1,000 条验证任务，3,926 个物体，379 个开放词汇类别；目标可以用类别、图像或文字给出。</p>
+        <p class="fine">真机实录：Cobot Magic、Go1、Go2 三台机器人，Qwen3.5-27B 4-bit 跑在 Cobot 板载 RTX 4090 上，6 分钟找到 7/10 个目标，0 次云端调用。同一台 4090 上 81 次实测，语言层中位时延约 2 s，视觉层约 5 s。G1 和 Go1 在板载 Orin NX 上运行 Qwen3.5-9B。</p>
+      </div>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-b3" aria-labelledby="t-b3" tabindex="0" hidden>
+      <div class="board">
+        <div class="board-top">
+          <span>Ultra-LaViRA 仿真 · RGB-D 输入 · 0 次权重更新</span>
+          <span class="hib">SR % · Higher is better</span>
+        </div>
+        <div class="scroll">
+          <table class="lb">
+            <thead><tr><th>#</th><th>方法</th><th>LIBERO-PRO 成功率</th></tr></thead>
+            <tbody>
+              <tr class="ours-row"><td><span class="rk">1</span></td><td class="bm"><b>Ultra-LaViRA</b><span>免训练</span></td><td><div class="bars"><div class="bar ours"><div class="track"><div class="fill" style="width:78.7%"></div></div><span class="num">78.7</span></div></div></td></tr>
+              <tr><td><span class="rk">2</span></td><td class="bm"><b>π0.5</b></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:10.8%"></div></div><span class="num">10.8</span></div></div></td></tr>
+              <tr><td><span class="rk">3</span></td><td class="bm"><b>OpenVLA</b></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:0"></div></div><span class="num">0</span></div></div></td></tr>
+              <tr><td><span class="rk">3</span></td><td class="bm"><b>π0</b></td><td><div class="bars"><div class="bar"><div class="track"><div class="fill" style="width:0"></div></div><span class="num">0</span></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fine">RoboSuite 上成功率 98.3%。RSI 改写 open_drawer 技能代码后，LIBERO-10 留出的 80 条任务上成功率从 44% 升到 86%，模型权重没有改动。下一个里程碑定在第 6 个月：改进器改进自身，旧技能退化不超过 10%。</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- NEWS -->
 <section class="sec wrap" id="news" aria-labelledby="news-t">
-  <div class="col">
+  <div class="col-wide">
     <div class="sec-head">
-      <p class="kicker">News · 进展</p>
-      <h2 id="news-t">从实验室走向落地。</h2>
+      <p class="kicker">News</p>
+      <h2 id="news-t">动态</h2>
+      <p class="lead">按时间倒序，最上面两条是最新进展。</p>
     </div>
-    <ol class="log" reversed>
-      <li><span class="d">最新</span><div><h3>Ultra-LaViRA 上双臂真机<span class="chip">NEW</span></h3><p>取试管与交接、桌面分拣、积木摆字，以及试管倾倒长程任务全程自主；人形机器人完成全身动作模仿。</p></div></li>
-      <li><time datetime="2026-06-02">2026-06-02</time><div><h3>宝马南京官方公众号发布 Uni-LaViRA 联合成果</h3><p>与宝马（南京）的合作成果正式对外发布。</p></div></li>
-      <li><time datetime="2026-03">2026-03</time><div><h3>有关单位出具应用证明</h3><p>无 GPS 条件下，四足机器人在城市街区与楼宇内部完成语义建图与目标导航，证明写明“符合项目预期使用要求”。</p></div></li>
-      <li><time datetime="2025-10">2025-10</time><div><h3>与宝马（南京）信息技术有限公司签订技术开发（合作）合同</h3><p>“人形机器人语义能力与交互的研究”：导航模块分阶段交付，≥23 类语义实时标注、增量地图、语音指令导航，以 Docker 包部署于 Orin NX；验收标准：≥5 个稳定案例，且甲方工程师可独立复现。</p></div></li>
+    <ol class="log">
+      <li><span class="d">最新</span><div><h3>Ultra-LaViRA 在双臂真机上做操作任务<span class="chip">NEW</span></h3><p>取试管、分拣、摆 “NJU”，外加全自主倒试管。</p></div></li>
+      <li><span class="d">最新</span><div><h3>人形机器人全身动作模仿<span class="chip">NEW</span></h3><p>复现 SuperMimic，真机跳完闪身步 Pro。</p></div></li>
+      <li><time datetime="2026-06-02">2026-06-02</time><div><h3>宝马南京官方公众号发布 Uni-LaViRA 联合成果</h3></div></li>
+      <li><time datetime="2026-03">2026-03</time><div><h3>有关单位出具无 GPS 导航应用证明</h3><p>四足语义建图与目标导航，“符合项目预期使用要求”。</p></div></li>
+      <li><time datetime="2025-10">2025-10</time><div><h3>与宝马（南京）信息技术有限公司签订技术开发（合作）合同</h3><p>课题“人形机器人语义能力与交互的研究”，导航模块已分阶段交付。</p></div></li>
     </ol>
   </div>
 </section>
 
-<!-- TEAM -->
+<section class="sec wrap" id="papers" aria-labelledby="papers-t">
+  <div class="col-wide">
+    <div class="sec-head">
+      <p class="kicker">Papers &amp; Ecosystem</p>
+      <h2 id="papers-t">论文</h2>
+      <p class="lead">四篇主线论文，下面是团队在操作方向的其他工作和专利。</p>
+    </div>
+    <div class="papers">
+      <article class="paper">
+        <img src="media/nav_quadruped.jpg" alt="四足机器人室内目标搜索画面" loading="lazy" width="640" height="400">
+        <div class="pb"><span class="venue hot">ICRA 2026</span><h3>LaViRA</h3><p class="au">第一作者 丁泓宇</p><p>零样本指令导航。R2R-CE 成功率 38.3%，发表时零样本方法最佳。</p><div class="links"><span class="pill" aria-disabled="true">暂无公开链接</span></div></div>
+      </article>
+      <article class="paper">
+        <img src="media/nav_drone.jpg" alt="无人机走廊导航画面" loading="lazy" width="640" height="426">
+        <div class="pb"><span class="venue">TPAMI 在审</span><h3>Uni-LaViRA</h3><p class="au">第一作者 丁泓宇</p><p>一个框架做五类任务：指令导航、目标导航、开放词汇导航、具身问答、无人机导航。</p><div class="links"><a class="pill" href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">arXiv 2605.27582 ↗</a></div></div>
+      </article>
+      <article class="paper">
+        <img src="media/multi_robot.jpg" alt="三机协同搜索画面" loading="lazy" width="720" height="406">
+        <div class="pb"><span class="venue">ICRA 2027 在投</span><h3>HM3D-M³</h3><p class="au">共同一作 徐阚宇</p><p>多机、多模态、多目标导航评测。免训练多机成功率 41.0%，最强适配基线 26.6%。</p><div class="links"><span class="pill" aria-disabled="true">暂无公开链接</span></div></div>
+      </article>
+      <article class="paper">
+        <img src="media/manip_tube.jpg" alt="双臂机器人取试管画面" loading="lazy" width="640" height="392">
+        <div class="pb"><span class="venue">Manipulation</span><h3>Ultra-LaViRA</h3><p class="au">第一作者 丁泓宇</p><p>把操作动作写成技能代码。LIBERO-PRO 78.7%，RoboSuite 98.3%，已上双臂真机。</p><div class="links"><span class="pill" aria-disabled="true">暂无公开链接</span></div></div>
+      </article>
+    </div>
+    <div class="eco">
+      <div><b>团队操作方向论文</b><p>AGiLe <span class="venue">CVPR 2026</span><br>GravMAD <span class="venue">ICLR 2025</span><br>ManiLong-Shot <span class="venue">AAAI 2026</span></p></div>
+      <div><b>其他操作研究</b><p>RoTri-Diff、Wh0、DeCo、AdaClearGrasp</p></div>
+      <div><b>专利</b><p>导航发明专利 2 项，操作相关受理专利 6 项，计划从南京大学转入公司。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec wrap" id="apps" aria-labelledby="apps-t">
+  <div class="col-wide">
+    <div class="sec-head">
+      <p class="kicker">Applications</p>
+      <h2 id="apps-t">应用场景</h2>
+    </div>
+    <div class="apps">
+      <div><h3>无 GPS 巡检</h3><p>楼宇内部、城市街区这类卫星信号不可靠的地方。四足建图与导航已拿到应用证明。据智研咨询，2026 年中国智能巡检机器人市场约 31.85 亿元、约 9,722 台。</p></div>
+      <div><h3>车企与工业</h3><p>与宝马（南京）合作人形机器人的语义建图与导航，导航模块已分阶段交付。</p></div>
+      <div><h3>国防异构无人系统</h3><p>人形、四足、无人机、轮式平台接同一套决策软件；三机协同实测全程本地运行国产模型，0 次云端调用。</p></div>
+    </div>
+    <p class="lic"><b>交付方式：</b>本地部署的决策软件和多机看板，按台按年授权，每台每年约 2 至 3 万元<span class="chip">估算</span>；车企、园区和集成商可另做定制项目。</p>
+  </div>
+</section>
+
 <section class="sec wrap" id="team" aria-labelledby="team-t">
   <div class="col-wide">
     <div class="sec-head">
-      <p class="kicker">Team · 南京大学 × 中科院自动化所</p>
-      <h2 id="team-t">写论文的人，也是交付产品的人。</h2>
+      <p class="kicker">Team</p>
+      <h2 id="team-t">团队</h2>
+      <p class="lead">九位成员，来自南京大学和中科院自动化所。</p>
     </div>
+    <p class="affil">南京大学 · 中国科学院自动化研究所</p>
     <div class="team">
       <div class="member"><b>丁泓宇</b><p><span class="role">创始人 · 技术负责人</span><br>LaViRA 系列论文第一作者</p></div>
       <div class="member"><b>霍静</b><p><span class="role">项目牵头人</span><br>国家“万人计划”青年拔尖人才，主持国防院所与企业合作项目 8 项</p></div>
-      <div class="member"><b>高阳</b><p><span class="role">牵头试点与行业对接</span><br>南京大学教授，CAAI / CCF 会士，智能科学与技术学院执行院长，南京大学—中国移动联合研究院院长</p></div>
+      <div class="member"><b>高阳</b><p><span class="role">牵头试点与行业对接</span><br>南京大学教授，CAAI / CCF 会士，南京大学智能科学与技术学院执行院长，南京大学—中国移动联合研究院院长</p></div>
       <div class="member"><b>史桀绮</b><p><span class="role">南京大学副教授</span><br>国家高层次青年人才</p></div>
       <div class="member"><b>张一帆</b><p><span class="role">视觉基础模型</span><br>中科院自动化所研究员，中科院青促会</p></div>
       <div class="member"><b>陈子璇</b><p><span class="role">南京大学博士后</span><br>CCF 智能机器人优博</p></div>
@@ -736,15 +608,15 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
   </div>
 </section>
 
-<!-- CLOSING -->
-<section class="closing wrap" id="contact" aria-labelledby="close-t">
+<section class="closing wrap" id="contact" aria-labelledby="contact-t">
   <div class="col-wide">
-    <p class="kicker cn" id="close-t">我是丁泓宇，我们是 LaViRA。</p>
-    <p class="belief">我们相信，下一代机器人比的不是谁采的数据多，<span>而是谁的大脑更聪明。</span></p>
-    <p class="lead">天使轮 1200 万元，18 个月，让每一台机器人进门就会找，上手就会做。</p>
-    <a class="btn btn-ink" href="#biz" style="margin-top:24px">看融资计划</a>
+    <div class="sec-head">
+      <p class="kicker">Contact</p>
+      <h2 id="contact-t">联系</h2>
+      <p class="lead">合作、试点或数据问题，请发邮件给丁泓宇。</p>
+    </div>
     <div class="contact">
-      <span class="who">联系 · 丁泓宇</span>
+      <span class="who">丁泓宇 · 创始人 · 技术负责人</span>
       <span class="mail" id="mail">hongyuding@smail.nju.edu.cn</span>
       <button class="pill" id="copyBtn" type="button">复制邮箱</button>
       <span class="copied" id="copied" role="status" aria-live="polite"></span>
@@ -757,7 +629,8 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
 <footer class="wrap">
   <div class="col-wide">
     <span>南京大学 · 中国科学院自动化研究所 · 2026</span>
-    <span>LaViRA × RSI · 2026 新域新质创新大赛 高校师生组 · 无人及反无人系统</span>
+    <span>2026 新域新质创新大赛 高校师生组 · 无人及反无人系统 参赛项目</span>
+    <span class="mono">hongyuding@smail.nju.edu.cn</span>
   </div>
 </footer>
 
@@ -767,6 +640,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
   /* theme toggle */
   var tb=document.getElementById('themeBtn');
   try{var saved=localStorage.getItem('lavira-theme');if(saved==='light'||saved==='dark'){root.setAttribute('data-theme',saved);tb.setAttribute('aria-pressed',saved==='dark'?'true':'false');}}catch(e){}
+  if(!root.getAttribute('data-theme')){tb.setAttribute('aria-pressed',window.matchMedia('(prefers-color-scheme: dark)').matches?'true':'false');}
   tb.addEventListener('click',function(){
     var cur=root.getAttribute('data-theme');
     if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
@@ -776,7 +650,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     try{localStorage.setItem('lavira-theme',next);}catch(e){}
   });
 
-  /* videos */
+  /* videos: play only while on screen; reduced motion shows posters */
   var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var vids=[].slice.call(document.querySelectorAll('video[autoplay]'));
   if(reduce){
@@ -792,6 +666,41 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     vids.forEach(function(v){io.observe(v);});
   }
 
+  /* promo sound toggle: sound only after a click */
+  var pv=document.getElementById('promoVid'),sb=document.getElementById('soundBtn');
+  if(pv&&sb){sb.addEventListener('click',function(){
+    var on=pv.muted;pv.muted=!on;
+    sb.setAttribute('aria-pressed',on?'true':'false');sb.textContent=on?'关闭声音':'开启声音';
+    if(on){var p=pv.play();if(p&&p.catch)p.catch(function(){});}
+  });}
+
+  /* tabs */
+  [].slice.call(document.querySelectorAll('[role="tablist"]')).forEach(function(list){
+    var tabs=[].slice.call(list.querySelectorAll('[role="tab"]'));
+    function select(t,focus){
+      tabs.forEach(function(x){
+        var on=x===t;
+        x.setAttribute('aria-selected',on?'true':'false');
+        x.tabIndex=on?0:-1;
+        var p=document.getElementById(x.getAttribute('aria-controls'));
+        if(!p)return;
+        if(on){p.removeAttribute('hidden');}
+        else{p.setAttribute('hidden','');[].slice.call(p.querySelectorAll('video')).forEach(function(v){v.pause();});}
+      });
+      if(focus)t.focus();
+    }
+    tabs.forEach(function(t,i){
+      t.addEventListener('click',function(){select(t,false);});
+      t.addEventListener('keydown',function(e){
+        var j=-1;
+        if(e.key==='ArrowRight')j=(i+1)%tabs.length;
+        else if(e.key==='ArrowLeft')j=(i-1+tabs.length)%tabs.length;
+        else if(e.key==='Home')j=0;
+        else if(e.key==='End')j=tabs.length-1;
+        if(j>-1){e.preventDefault();select(tabs[j],true);}
+      });
+    });
+  });
 
   /* copy email */
   var cb=document.getElementById('copyBtn'),mail=document.getElementById('mail'),fb=document.getElementById('copied');
