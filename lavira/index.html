@@ -168,6 +168,7 @@ section.sec{padding-block:clamp(72px,9vw,120px) 0}
 .card .frame{position:relative;background:var(--media-bg);aspect-ratio:16/10}
 .card .frame video{width:100%;height:100%;object-fit:cover}
 .card.contain .frame video{object-fit:contain}
+#explore .card .frame{aspect-ratio:16/9}
 .card figcaption{padding:14px 16px 16px;display:grid;gap:4px}
 .card .plat{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .card .task{font-size:16px;font-weight:600;color:var(--ink);line-height:1.45}
@@ -347,12 +348,12 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
 
   <div class="peek">
     <div>
-      <p class="kicker">Film · 33 s</p>
+      <p class="kicker">Film · 30 s</p>
       <h2>项目短片</h2>
-      <p>33 秒，默认静音播放。想听原声，点“开启声音”。</p>
+      <p>30 秒，默认静音播放。想听原声，点“开启声音”。</p>
       <div class="btns"><button class="pill" id="soundBtn" type="button" aria-pressed="false">开启声音</button></div>
     </div>
-    <div class="film"><video id="promoVid" autoplay muted loop playsinline preload="metadata" poster="media/hero_promo.jpg" aria-label="LaViRA × RSI 33 秒项目短片，有声"><source src="media/hero_promo.mp4" type="video/mp4"></video></div>
+    <div class="film"><video id="promoVid" autoplay muted loop playsinline preload="metadata" poster="media/hero_promo.jpg" aria-label="LaViRA × RSI 30 秒项目短片，有声"><source src="media/hero_promo.mp4" type="video/mp4"></video></div>
   </div>
 </section>
 
@@ -388,65 +389,83 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     <div class="sec-head">
       <p class="kicker">Explore</p>
       <h2 id="ex-t">真机视频</h2>
-      <p class="lead">每张卡片标了平台和任务，加速片段标了倍速。</p>
+      <p class="lead">全部是真机录像。每张卡片标了平台和任务。</p>
     </div>
 
     <div class="tabs" role="tablist" aria-label="演示分类">
       <button class="tab" role="tab" id="t-nav" aria-controls="p-nav" aria-selected="true" type="button">导航<span class="n">5</span></button>
-      <button class="tab" role="tab" id="t-man" aria-controls="p-man" aria-selected="false" tabindex="-1" type="button">操作<span class="n">4</span></button>
-      <button class="tab" role="tab" id="t-hum" aria-controls="p-hum" aria-selected="false" tabindex="-1" type="button">人形<span class="n">3</span></button>
-      <button class="tab" role="tab" id="t-multi" aria-controls="p-multi" aria-selected="false" tabindex="-1" type="button">多机<span class="n">1</span></button>
+      <button class="tab" role="tab" id="t-multi" aria-controls="p-multi" aria-selected="false" tabindex="-1" type="button">多机<span class="n">3</span></button>
+      <button class="tab" role="tab" id="t-man" aria-controls="p-man" aria-selected="false" tabindex="-1" type="button">双臂操作<span class="n">4</span></button>
+      <button class="tab" role="tab" id="t-hum" aria-controls="p-hum" aria-selected="false" tabindex="-1" type="button">人形<span class="n">2</span></button>
+      <button class="tab" role="tab" id="t-team" aria-controls="p-team" aria-selected="false" tabindex="-1" type="button">团队操作<span class="n">6</span></button>
     </div>
 
     <div class="panel" role="tabpanel" id="p-nav" aria-labelledby="t-nav" tabindex="0">
-      <div class="grid g3">
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_humanoid.jpg" aria-label="人形 Unitree G1 室外园区指令导航"><source src="media/nav_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · Unitree G1</span><span class="task">室外园区，按指令导航</span><span class="spec">真机 · 7 s</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_quadruped.jpg" aria-label="四足 Unitree Go1 室内目标搜索，找花"><source src="media/nav_quadruped.mp4" type="video/mp4"></video></div><figcaption><span class="plat">四足 · Unitree Go1</span><span class="task">室内找一盆花</span><span class="spec">真机 · 7 s</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_drone.jpg" aria-label="自研无人机在走廊和大厅按指令导航"><source src="media/nav_drone.mp4" type="video/mp4"></video></div><figcaption><span class="plat">无人机 · 自研</span><span class="task">走廊和大厅里按指令飞行</span><span class="spec">真机 · 4.6 s</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_wheeled.jpg" aria-label="轮式双臂 AgileX Cobot 室外导航"><source src="media/nav_wheeled.mp4" type="video/mp4"></video></div><figcaption><span class="plat">轮式双臂 · AgileX Cobot</span><span class="task">室外导航</span><span class="spec">真机 · 4.3 s</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/nav_quad_outdoor.jpg" aria-label="四足机器人在室外园区听指令找目标"><source src="media/nav_quad_outdoor.mp4" type="video/mp4"></video></div><figcaption><span class="plat">四足 · 室外</span><span class="task">园区里听指令找目标</span><span class="spec">真机 · 7 s</span></figcaption></figure>
+      <p class="lead">每种机器人一个九宫格：三行是办公室、大厅、室外，三列是指令导航、物体搜索、具身问答。</p>
+      <div class="grid g2">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_g1.jpg" aria-label="人形机器人 G1 的 9 个导航任务九宫格"><source src="media/d_nav_grid_g1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · Unitree G1</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_go1.jpg" aria-label="四足机器人 Go1 的 9 个导航任务九宫格"><source src="media/d_nav_grid_go1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">四足 · Unitree Go1</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_uav.jpg" aria-label="自研无人机的 9 个导航任务九宫格"><source src="media/d_nav_grid_uav.mp4" type="video/mp4"></video></div><figcaption><span class="plat">无人机 · 自研</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_aloha.jpg" aria-label="轮式双臂机器人的 9 个导航任务九宫格"><source src="media/d_nav_grid_aloha.mp4" type="video/mp4"></video></div><figcaption><span class="plat">轮式双臂 · AgileX Cobot Magic</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+      </div>
+      <div class="feature wide">
+        <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_unilavira.jpg" aria-label="Uni-LaViRA 四种机器人真机合集" width="960" height="540"><source src="media/d_unilavira.mp4" type="video/mp4"></video></div>
+        <div>
+          <p class="kicker">Uni-LaViRA</p>
+          <h3>四种机器人，同一套软件</h3>
+          <p>办公室、大厅和室外，分别做指令导航、找东西、回答问题。换机器人只改接口，不重新训练。</p>
+        </div>
       </div>
     </div>
 
-    <div class="panel" role="tabpanel" id="p-man" aria-labelledby="t-man" tabindex="0" hidden>
+    <div class="panel" role="tabpanel" id="p-multi" aria-labelledby="t-multi" tabindex="0" hidden>
       <div class="grid g3">
-        <figure class="card"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_tube.jpg" aria-label="双臂真机在实验台取试管并交接，5 倍速"><source src="media/manip_tube.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">实验台取试管，两臂交接</span><span class="spec">真机 · 5× 速</span></figcaption></figure>
-        <figure class="card"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_classify.jpg" aria-label="双臂真机桌面物体分拣，5 倍速"><source src="media/manip_classify.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">桌面物体按类放进收纳筐</span><span class="spec">真机 · 5× 速</span></figcaption></figure>
-        <figure class="card contain"><div class="frame"><span class="badge">5×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_nju.jpg" aria-label="真机用积木摆出 NJU，5 倍速"><source src="media/manip_nju.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">用积木摆出 “NJU”</span><span class="spec">真机 · 5× 速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo1.jpg" aria-label="三台机器人同时找三个目标"><source src="media/d_m3_demo1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 1 · 三个目标</span><span class="task">目标用图片、类别和一句描述给出：黄色行李箱、打印机、咖啡吧旁的绿色椅子</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo2.jpg" aria-label="三台机器人分头找 10 个目标"><source src="media/d_m3_demo2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 2 · 10 个目标</span><span class="task">6 分钟内找到 10 个目标中的 7 个，全部本地运行</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo3.jpg" aria-label="三台机器人再跑一轮 10 个目标"><source src="media/d_m3_demo3.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 3 · 10 个目标</span><span class="task">同一层楼、同样的目标，再跑一轮</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
       </div>
+      <dl class="kv">
+        <dt>机器人</dt><dd>Cobot Magic、Go1、Go2</dd>
+        <dt>模型</dt><dd>Qwen3.5-27B 4-bit，国产模型</dd>
+        <dt>算力</dt><dd>Cobot 板载 RTX 4090，全部本地运行</dd>
+        <dt>云端调用</dt><dd class="num">0</dd>
+        <dt>项目主页</dt><dd><a href="https://robo-lavira.github.io/hm3d-m3/" target="_blank" rel="noopener">robo-lavira.github.io/hm3d-m3 ↗</a></dd>
+      </dl>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-man" aria-labelledby="t-man" tabindex="0" hidden>
       <div class="feature">
-        <div class="frame"><span class="badge">10×</span><video autoplay muted loop playsinline preload="none" poster="media/manip_pour.jpg" aria-label="双臂真机试管倾倒长程任务，纯自主，10 倍速" width="720" height="810"><source src="media/manip_pour.mp4" type="video/mp4"></video></div>
+        <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_pour.jpg" aria-label="双臂真机从取试管到倒进烧杯，全程自主" width="720" height="810"><source src="media/d_pour.mp4" type="video/mp4"></video></div>
         <div>
           <p class="kicker">Long horizon</p>
-          <h3>试管倾倒长程任务</h3>
-          <p>双臂真机从取试管到倾倒，全程自主完成。原片 49 秒，按 10 倍速播放；画面里的 LaViRA 标识和“纯自主，10倍速”字样是原片自带的。</p>
+          <h3>从取试管到倒进烧杯，全程自主</h3>
+          <p>取试管、换手、对准烧杯、倾倒、放回，中间没有人干预。</p>
         </div>
+      </div>
+      <div class="grid g3" style="margin-top:18px">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_classify.jpg" aria-label="双臂真机桌面物体分拣"><source src="media/d_classify.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">把桌上的东西按类放进收纳筐</span><span class="spec">真机</span></figcaption></figure>
+        <figure class="card contain"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_nju.jpg" aria-label="双臂真机用积木摆出 NJU"><source src="media/d_nju.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">用积木摆出 “NJU”</span><span class="spec">真机</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_openclaw.jpg" aria-label="语音指挥机器人在办公室里完成任务"><source src="media/d_openclaw.mp4" type="video/mp4"></video></div><figcaption><span class="plat">轮式双臂 · Cobot Magic</span><span class="task">在聊天界面里用语音给机器人下任务</span><span class="spec">真机</span></figcaption></figure>
       </div>
     </div>
 
     <div class="panel" role="tabpanel" id="p-hum" aria-labelledby="t-hum" tabindex="0" hidden>
-      <div class="grid g3">
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/humanoid_bear.jpg" aria-label="人形全身动作模仿，闪身步狗熊哆嗦毛片段，左为人类示范，右为真机"><source src="media/humanoid_bear.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步“狗熊哆嗦毛”片段，左为人类示范，右为真机</span><span class="spec">真机 · 8.5 s</span></figcaption></figure>
-        <figure class="card contain"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/humanoid_pro.jpg" aria-label="人形全身动作模仿，闪身步 Pro 完整版，左为人类示范，右为真机"><source src="media/humanoid_pro.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步 Pro 完整版，左为人类示范，右为真机</span><span class="spec">真机 · 14.9 s</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/nav_humanoid.jpg" aria-label="人形 Unitree G1 室外园区指令导航"><source src="media/nav_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · Unitree G1</span><span class="task">室外园区，按指令导航</span><span class="spec">真机 · 7 s</span></figcaption></figure>
+      <div class="grid g2">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_dance.jpg" aria-label="人形全身动作模仿闪身步，左为人类示范，右为真机"><source src="media/d_dance.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步，左为人类示范，右为 G1 真机</span><span class="spec">真机 · 原速</span></figcaption></figure>
+        <figure class="card contain"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_dance_pro.jpg" aria-label="人形全身动作模仿闪身步 Pro 完整版"><source src="media/d_dance_pro.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步 Pro 完整版，左为人类示范，右为真机</span><span class="spec">真机 · 原速</span></figcaption></figure>
       </div>
       <p class="lead">动作模仿部分复现了 SuperMimic。</p>
     </div>
 
-    <div class="panel" role="tabpanel" id="p-multi" aria-labelledby="t-multi" tabindex="0" hidden>
-      <div class="feature wide">
-        <div class="frame"><span class="badge">3 ROBOTS · LOCAL</span><video autoplay muted loop playsinline preload="none" poster="media/multi_robot.jpg" aria-label="三机协同搜索真机实录，画面含实时地图与计时" width="720" height="406"><source src="media/multi_robot.mp4" type="video/mp4"></video></div>
-        <div>
-          <p class="kicker">Multi-robot · HM3D-M³</p>
-          <h3>三台机器人分头找东西</h3>
-          <p>画面里有实时地图和计时。6 分钟内找到 10 个目标中的 7 个。</p>
-          <dl class="kv">
-            <dt>机器人</dt><dd>Cobot Magic、Go1、Go2</dd>
-            <dt>模型</dt><dd>Qwen3.5-27B 4-bit，国产模型</dd>
-            <dt>算力</dt><dd>Cobot 板载 RTX 4090，全部本地运行</dd>
-            <dt>云端调用</dt><dd class="num">0</dd>
-          </dl>
-        </div>
+    <div class="panel" role="tabpanel" id="p-team" aria-labelledby="t-team" tabindex="0" hidden>
+      <p class="lead">团队其他操作论文的真机实验，同一种机型剪成一段，宫格里每格左下角标出论文和任务。</p>
+      <div class="grid g3">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_arm.jpg" aria-label="单臂机械臂 24 个任务九宫格"><source src="media/d_team_arm.mp4" type="video/mp4"></video></div><figcaption><span class="plat">单臂机械臂 · GravMAD / DeCo / ST-VLA</span><span class="task">摆积木、叠杯子、开关抽屉等 24 个任务</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_dual.jpg" aria-label="双臂机械臂 7 个任务"><source src="media/d_team_dual.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂机械臂 · RoTri-Diff</span><span class="task">洗盘子、抬篮子、分拣水果等 7 个任务</span><span class="spec">真机</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_hand.jpg" aria-label="机械臂加灵巧手抓取四宫格"><source src="media/d_team_hand.mp4" type="video/mp4"></video></div><figcaption><span class="plat">机械臂 + 灵巧手 · AdaClearGrasp / GraspClaw</span><span class="task">在杂乱桌面上抓杯子、方块和苹果</span><span class="spec">真机 · 四宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid.jpg" aria-label="人形双臂 12 个桌面任务四宫格"><source src="media/d_team_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形双臂 · Wh0</span><span class="task">桌面取放、擦桌子等 12 个任务</span><span class="spec">真机 · 四宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid2.jpg" aria-label="人形机器人柜内和台面取放"><source src="media/d_team_humanoid2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形机器人 · Wh0</span><span class="task">柜子和台面上取放物品，5 个任务</span><span class="spec">真机</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_industrial.jpg" aria-label="工业机械臂零件抓取与导轨操作"><source src="media/d_team_industrial.mp4" type="video/mp4"></video></div><figcaption><span class="plat">工业机械臂 · 轻量化 VLA</span><span class="task">零件抓取与导轨操作</span><span class="spec">真机</span></figcaption></figure>
       </div>
     </div>
   </div>
@@ -558,19 +577,19 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     </div>
     <div class="papers">
       <article class="paper">
-        <img src="media/nav_quadruped.jpg" alt="四足机器人室内目标搜索画面" loading="lazy" width="640" height="400">
+        <img src="media/d_unilavira.jpg" alt="Uni-LaViRA 真机合集画面" loading="lazy" width="960" height="540">
         <div class="pb"><span class="venue hot">ICRA 2026</span><h3>LaViRA</h3><p class="au">第一作者 丁泓宇</p><p>零样本指令导航。R2R-CE 成功率 38.3%，发表时零样本方法最佳。</p><div class="links"><span class="pill" aria-disabled="true">暂无公开链接</span></div></div>
       </article>
       <article class="paper">
-        <img src="media/nav_drone.jpg" alt="无人机走廊导航画面" loading="lazy" width="640" height="426">
+        <img src="media/d_nav_grid_uav.jpg" alt="无人机 9 个导航任务九宫格" loading="lazy" width="1280" height="720">
         <div class="pb"><span class="venue">TPAMI 在审</span><h3>Uni-LaViRA</h3><p class="au">第一作者 丁泓宇</p><p>覆盖指令导航、目标导航、开放词汇导航、具身问答和无人机导航五类任务。</p><div class="links"><a class="pill" href="https://arxiv.org/abs/2605.27582" target="_blank" rel="noopener">arXiv 2605.27582 ↗</a></div></div>
       </article>
       <article class="paper">
-        <img src="media/multi_robot.jpg" alt="三机协同搜索画面" loading="lazy" width="720" height="406">
-        <div class="pb"><span class="venue">ICRA 2027 在投</span><h3>HM3D-M³</h3><p class="au">共同一作 徐阚宇</p><p>多机、多模态、多目标导航评测。免训练多机成功率 41.0%，最强适配基线 26.6%。</p><div class="links"><span class="pill" aria-disabled="true">暂无公开链接</span></div></div>
+        <img src="media/d_m3_demo2.jpg" alt="三机协同搜索画面" loading="lazy" width="1280" height="720">
+        <div class="pb"><span class="venue">ICRA 2027 在投</span><h3>HM3D-M³</h3><p class="au">共同一作 徐阚宇</p><p>多机、多模态、多目标导航评测。免训练多机成功率 41.0%，最强适配基线 26.6%。</p><div class="links"><a class="pill" href="https://robo-lavira.github.io/hm3d-m3/" target="_blank" rel="noopener">项目主页 ↗</a></div></div>
       </article>
       <article class="paper">
-        <img src="media/manip_tube.jpg" alt="双臂机器人取试管画面" loading="lazy" width="640" height="392">
+        <img src="media/d_classify.jpg" alt="双臂机器人分拣画面" loading="lazy" width="854" height="480">
         <div class="pb"><span class="venue">真机成果</span><h3>Ultra-LaViRA</h3><p>把操作动作写成技能代码。LIBERO-PRO 78.7%，RoboSuite 98.3%，已上双臂真机。</p><div class="links"><span class="pill" aria-disabled="true">暂无公开链接</span></div></div>
       </article>
     </div>
