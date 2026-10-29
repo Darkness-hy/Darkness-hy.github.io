@@ -347,9 +347,9 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
 
   <div class="peek">
     <div>
-      <p class="kicker">Film · 30 s</p>
+      <p class="kicker">Film</p>
       <h2>项目短片</h2>
-      <p>30 秒，默认静音播放。</p>
+      <p>项目短片，默认静音播放。</p>
       <div class="btns"><button class="pill" id="soundBtn" type="button" aria-pressed="false">开启声音</button></div>
     </div>
     <div class="film"><video id="promoVid" autoplay muted loop playsinline preload="metadata" poster="media/hero_promo.jpg" aria-label="LaViRA × RSI 30 秒项目短片，有声"><source src="media/hero_promo.mp4" type="video/mp4"></video></div>
@@ -365,7 +365,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     <div class="ov">
       <div class="abstract">
         <p>LaViRA 把一次决策分成三步：大模型先把指令拆成待办事项，再在画面里框出目标，最后写出动作代码。走路、抓取这些具体动作交给底层控制。整个过程不用机器人训练数据，也不改模型权重，导航和双臂操作用的是同一套流程。</p>
-        <p>RSI 让机器人自己改技能代码：改完先测，成功率提高才留下，旧技能变差就退回去。大模型只给下一步的目标，底层控制每步不到 10 毫秒；每一步的判断都有文字记录，可以回放。接入四种机器人一共用了约 40 个人时。</p>
+        <p>技能代码可以自己改进：编程智能体改完先测，成功率提高才留下，变差就退回去（已实现）；让改进器改进它自己（RSI）还在研发。大模型只给下一步的目标，仿真中底层控制每步不到 10 毫秒；每一步的判断都有文字记录，可以回放。按论文报告，接入四种机器人一共用了约 40 个人时。</p>
       </div>
       <div class="layers">
         <div class="layer"><span class="tag">LA</span><h3>语言层</h3><p>把一句指令拆成待办事项。</p></div>
@@ -375,7 +375,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     </div>
     <div class="stats" role="list">
       <div class="stat" role="listitem"><div class="v">4<small>种</small></div><div class="l">真机：人形、四足、无人机、轮式</div></div>
-      <div class="stat" role="listitem"><div class="v">6<small>项</small></div><div class="l">导航评测，均高于对比基线</div></div>
+      <div class="stat" role="listitem"><div class="v">6<small>项</small></div><div class="l">导航评测，均为免训练方法第一</div></div>
       <div class="stat" role="listitem"><div class="v">41.0<small>%</small></div><div class="l">HM3D-M³ 多机协同成功率</div></div>
       <div class="stat" role="listitem"><div class="v">67.7<small>%</small></div><div class="l">LIBERO-PRO 仿真操作，π0.5 为 10.8%</div></div>
       <div class="stat" role="listitem"><div class="v">0<small>次</small></div><div class="l">权重更新</div></div>
@@ -438,7 +438,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
         <div>
           <p class="kicker">Long horizon</p>
           <h3>从取试管到倒进烧杯，动作由程序自己规划执行</h3>
-          <p>取试管、换手、对准烧杯、倾倒、放回。每一步都由程序根据相机画面规划、执行，没有人遥控；按安全规程，有人在急停旁值守。视频约 20 倍速。</p>
+          <p>取试管、换手、对准烧杯、倾倒、放回。每一步都由程序根据相机画面规划、执行，没有人遥控；按安全规程，有人在急停旁值守。视频约 40 倍速。</p>
         </div>
       </div>
       <div class="grid g3" style="margin-top:18px">
@@ -459,11 +459,11 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     <div class="panel" role="tabpanel" id="p-team" aria-labelledby="t-team" tabindex="0" hidden>
       <p class="lead">团队其他操作论文的真机实验，同一种机型剪成一段，宫格里每格左下角标出论文和任务。</p>
       <div class="grid g3">
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_arm.jpg" aria-label="单臂机械臂 24 个任务九宫格"><source src="media/d_team_arm.mp4" type="video/mp4"></video></div><figcaption><span class="plat">单臂机械臂 · GravMAD / DeCo / ST-VLA</span><span class="task">摆积木、叠杯子、开关抽屉等 24 个任务</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_dual.jpg" aria-label="双臂机械臂 7 个任务"><source src="media/d_team_dual.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂机械臂 · RoTri-Diff</span><span class="task">洗盘子、抬篮子、分拣水果等 7 个任务</span><span class="spec">真机</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_arm.jpg" aria-label="单臂机械臂 24 个任务九宫格"><source src="media/d_team_arm.mp4" type="video/mp4"></video></div><figcaption><span class="plat">单臂机械臂 · GravMAD / DeCo / ST-VLA</span><span class="task">摆积木、叠杯子、开关抽屉等多个任务</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_dual.jpg" aria-label="双臂机械臂 7 个任务"><source src="media/d_team_dual.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂机械臂 · RoTri-Diff</span><span class="task">洗盘子、抬篮子、分拣水果等</span><span class="spec">真机</span></figcaption></figure>
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_hand.jpg" aria-label="机械臂加灵巧手抓取四宫格"><source src="media/d_team_hand.mp4" type="video/mp4"></video></div><figcaption><span class="plat">机械臂 + 灵巧手 · AdaClearGrasp / GraspClaw</span><span class="task">在杂乱桌面上抓杯子、方块和苹果</span><span class="spec">真机 · 四宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid.jpg" aria-label="人形双臂 12 个桌面任务四宫格"><source src="media/d_team_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形双臂 · Wh0</span><span class="task">桌面取放、擦桌子等 12 个任务</span><span class="spec">真机 · 四宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid2.jpg" aria-label="人形机器人柜内和台面取放"><source src="media/d_team_humanoid2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形机器人 · Wh0</span><span class="task">柜子和台面上取放物品，5 个任务</span><span class="spec">真机</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid.jpg" aria-label="人形双臂 12 个桌面任务四宫格"><source src="media/d_team_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形双臂 · Wh0</span><span class="task">桌面取放、擦桌子等</span><span class="spec">真机 · 四宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid2.jpg" aria-label="人形机器人柜内和台面取放"><source src="media/d_team_humanoid2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形机器人 · Wh0</span><span class="task">柜子和台面上取放物品</span><span class="spec">真机</span></figcaption></figure>
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_industrial.jpg" aria-label="工业机械臂零件抓取与导轨操作"><source src="media/d_team_industrial.mp4" type="video/mp4"></video></div><figcaption><span class="plat">工业机械臂 · 轻量化 VLA</span><span class="task">零件抓取与导轨操作</span><span class="spec">真机</span></figcaption></figure>
       </div>
     </div>
@@ -561,8 +561,8 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
       <li><span class="d">最新</span><div><h3>Ultra-LaViRA 在双臂真机上做操作任务<span class="chip">NEW</span></h3><p>取试管、分拣、摆 “NJU”，以及倒试管的长程任务，动作都由程序自己规划执行。</p></div></li>
       <li><span class="d">最新</span><div><h3>人形机器人全身动作模仿<span class="chip">NEW</span></h3><p>复现 SuperMimic，真机跳完闪身步 Pro。</p></div></li>
       <li><time datetime="2026-06-02">2026-06-02</time><div><h3>宝马南京官方公众号发布 Uni-LaViRA 联合成果</h3></div></li>
-      <li><time datetime="2026-03">2026-03</time><div><h3>有关单位出具无 GPS 导航应用证明</h3><p>四足语义建图与目标导航，“符合项目预期使用要求”。</p></div></li>
-      <li><time datetime="2025-10">2025-10</time><div><h3>与宝马（南京）信息技术有限公司签订技术开发（合作）合同</h3><p>课题“人形机器人语义能力与交互的研究”，导航模块已分阶段交付。</p></div></li>
+      <li><time datetime="2026-03">2026-03</time><div><h3>有关单位出具无 GPS 导航应用证明</h3><p>四足语义建图与语义目标点导航，城市街区与建筑室内，“符合项目预期使用要求”。</p></div></li>
+      <li><time datetime="2025-10">2025-10</time><div><h3>与宝马（南京）信息技术有限公司签订技术开发（合作）合同</h3><p>课题“人形机器人语义能力与交互的研究”；已交中期技术报告，语义建图已完成。</p></div></li>
     </ol>
   </div>
 </section>
@@ -611,7 +611,7 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
       <div><h3>车企与工业</h3><p>与宝马（南京）合作人形机器人语义能力与交互研究：语义建图已完成，23 类以上语义标注；导航稳定用例在推进中。</p></div>
       <div><h3>国防异构无人系统</h3><p>人形、四足、无人机和轮式平台都已接入这套决策软件。三机协同演示的决策调用全部来自国产大模型。</p></div>
     </div>
-    <p class="lic"><b>交付方式：</b>本地部署的决策软件和多机看板，按台按年授权，每台每年约 2 至 3 万元<span class="chip">估算</span>；车企、园区和集成商可另做定制项目。</p>
+    <p class="lic"><b>交付方式（计划）：</b>可本地部署的决策软件和多机看板，按台按年授权，每台每年约 2 至 3 万元<span class="chip">估算</span>；车企、园区和集成商可另做定制项目。</p>
   </div>
 </section>
 
@@ -624,12 +624,12 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
     </div>
     <p class="affil">南京大学 · 中国科学院自动化研究所</p>
     <div class="team">
-      <div class="member"><b>丁泓宇</b><p><span class="role">创始人 · 技术负责人</span><br>LaViRA 系列论文共同第一作者</p></div>
+      <div class="member"><b>丁泓宇</b><p><span class="role">创始人 · 技术负责人</span><br>LaViRA 系列三篇论文共同一作、署名第一</p></div>
       <div class="member"><b>霍静</b><p><span class="role">项目牵头人</span><br>国家“万人计划”青年拔尖人才，主持国防院所与企业合作项目 8 项</p></div>
       <div class="member"><b>高阳</b><p><span class="role">牵头试点与行业对接</span><br>南京大学教授，CAAI / CCF 会士，南京大学智能科学与技术学院执行院长，南京大学—中国移动联合研究院院长</p></div>
       <div class="member"><b>史桀绮</b><p><span class="role">南京大学副教授</span><br>国家高层次青年人才</p></div>
       <div class="member"><b>张一帆</b><p><span class="role">视觉基础模型</span><br>中科院自动化所研究员，中科院青促会</p></div>
-      <div class="member"><b>陈子璇</b><p><span class="role">南京大学博士后</span><br>CCF 智能机器人优博</p></div>
+      <div class="member"><b>陈子璇</b><p><span class="role">南京大学博士后</span><br>CCF 智能机器人专委会优博</p></div>
       <div class="member"><b>吴优</b><p><span class="role">零样本导航算法</span><br>博士生</p></div>
       <div class="member"><b>徐阚宇</b><p><span class="role">HM3D-M³ 共同一作</span><br>硕士生</p></div>
       <div class="member"><b>郭锦文</b><p><span class="role">仿真评测</span><br>硕士生</p></div>
