@@ -61,4 +61,4 @@ Static site (homepage + `/skills/` catalog):
 
 ## Deploy
 
-Push to `origin/main`. GitHub Pages serves the repository root. No CI pipeline is defined in-repo.
+Push to `origin/main`. `.github/workflows/pages.yml` uploads the repository root and deploys it to GitHub Pages (Pages source: GitHub Actions). There is no build step.
