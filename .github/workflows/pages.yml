@@ -28,6 +28,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
+      # the artifact API sometimes lags behind the upload ("No artifacts named github-pages"); give it a moment
+      - run: sleep 30
       - id: deployment
         uses: actions/deploy-pages@v4
         with:
