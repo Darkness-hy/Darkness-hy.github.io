@@ -366,7 +366,7 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
   /* Homepage agent (茜茜), same service and widget as hongyuding.site; avatars are served from ./assets/tutor */
   window.HOMEPAGE_AGENT_ENDPOINT = window.HOMEPAGE_AGENT_ENDPOINT || "https://agent.hongyuding.site/chat";
   window.HOMEPAGE_AGENT_HEALTH = window.HOMEPAGE_AGENT_HEALTH || "https://agent.hongyuding.site/health";
-  window.HOMEPAGE_AGENT_CONTEXT = "本页是 LaViRA × RSI 项目页（hongyuding.site/awesome-lavira/），由南京大学与中国科学院自动化研究所的团队完成。LaViRA × RSI 是免训练的具身决策软件，负责机器人导航和双臂操作，已在人形（Unitree G1）、四足（Unitree Go1）、自研无人机和轮式双臂（AgileX Cobot Magic）上真机运行。三层决策结构：语言层（LA）用大模型把指令拆成待办事项、失败时重新规划；视觉层（VA）在相机画面里框出目标和通路；动作层（RA）在导航中交给底层运动控制，在操作中是一段可读的 Python 技能代码。整个过程不用机器人训练数据，不改模型权重。技能代码可以自己改进：编程智能体改完先测试，成功率提高才保留（已实现）；让改进器改进它自己（RSI）还在研发。仿真中底层控制每步不到 10 毫秒；每一步判断都有文字记录，可回放。按论文报告，接入四种机器人约 40 个人时。页面数据：六项导航评测均为免训练方法第一；HM3D-M³ 多机协同成功率 41.0%；LIBERO-PRO 仿真操作 67.7%（π0.5 为 10.8%）；权重更新 0 次。真机视频：导航九宫格、三机协同搜索（Cobot Magic、Go1、Go2，决策调用国产大模型 DeepSeek 与通义千问，单次演示 6 分钟找到 10 个目标中的 7 个）、双臂取试管倒入烧杯的长程任务、物体分拣、用积木摆出 NJU、人形全身动作模仿（复现 SuperMimic）。论文：LaViRA（ICRA 2026，arXiv 2510.19655）、Uni-LaViRA（arXiv 2605.27582）、HM3D-M³（arXiv 2610.20121）；团队操作方向论文 AGiLe（CVPR 2026）、GravMAD（ICLR 2025）、ManiLong-Shot（AAAI 2026）等；发明专利已受理 7 项。动态：Ultra-LaViRA 在双臂真机上做操作任务；2026-06-02 宝马南京官方公众号发布 Uni-LaViRA 联合成果；2026-03 有关单位出具无 GPS 导航应用证明；2025-10 与宝马（南京）信息技术有限公司签订技术开发（合作）合同。联系：丁泓宇，hongyuding@smail.nju.edu.cn。回答时不要讨论比赛或融资话题。";
+  window.HOMEPAGE_AGENT_CONTEXT = "本页是 LaViRA × RSI 项目页（hongyuding.site/awesome-lavira/），由南京大学与中国科学院自动化研究所的团队完成。LaViRA × RSI 是免训练的具身决策软件，负责机器人导航和双臂操作，已在人形（Unitree G1）、四足（Unitree Go1）、自研无人机和轮式双臂（AgileX Cobot Magic）上真机运行。三层决策结构：语言层（LA）用大模型把指令拆成待办事项、失败时重新规划；视觉层（VA）在相机画面里框出目标和通路；动作层（RA）在导航中交给底层运动控制，在操作中是一段可读的 Python 技能代码。整个过程不用机器人训练数据，不改模型权重。技能代码可以自己改进：编程智能体改完先测试，成功率提高才保留（已实现）；让改进器改进它自己（RSI）还在研发。仿真中底层控制每步不到 10 毫秒；每一步判断都有文字记录，可回放。按论文报告，接入四种机器人约 40 个人时。页面数据：六项导航评测均为免训练方法第一；HM3D-M³ 多机协同成功率 41.0%；LIBERO-PRO 仿真操作 67.7%（π0.5 为 10.8%）；权重更新 0 次。真机视频：导航九宫格、三机协同搜索（Cobot Magic、Go1、Go2，决策调用国产大模型 DeepSeek 与通义千问，单次演示 6 分钟找到 10 个目标中的 7 个）、双臂取试管倒入烧杯的长程任务、物体分拣、用积木摆出 NJU、人形全身动作模仿（复现 SuperMimic）；双臂 AgileX Piper 真机 7 个桌面任务（叠杯子、叠碗、把瓶子立起来、用杯子盖方块、叠塔再盖杯、把物品放进篮子、分拣毛绒玩具），画面同时显示语言层（DeepSeek）和视觉层（通义千问）的推理文字与耗时，每条实际用时 3–10 分钟，约 5 倍速播放。论文：LaViRA（ICRA 2026，arXiv 2510.19655）、Uni-LaViRA（arXiv 2605.27582）、HM3D-M³（arXiv 2610.20121）；团队操作方向论文 AGiLe（CVPR 2026）、GravMAD（ICLR 2025）、ManiLong-Shot（AAAI 2026）等；发明专利已受理 7 项。动态：Ultra-LaViRA 在双臂真机上做操作任务；2026-06-02 宝马南京官方公众号发布 Uni-LaViRA 联合成果；2026-03 有关单位出具无 GPS 导航应用证明；2025-10 与宝马（南京）信息技术有限公司签订技术开发（合作）合同。联系：丁泓宇，hongyuding@smail.nju.edu.cn。回答时不要讨论比赛或融资话题。";
   window.HOMEPAGE_AGENT_COPY = {
     zh: { empty: "你好，我是 Hongyu Ding 主页上的 AI 助理。这里是 LaViRA × RSI 项目页，三层决策结构、真机演示、评测结果和论文，都可以问我。" },
     en: { empty: "Hi, I'm the AI assistant from Hongyu Ding's homepage. This is the LaViRA × RSI project page. Ask about the three-layer pipeline, real-robot demos, benchmarks, or papers." }
@@ -453,7 +453,7 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
     <div class="tabs" role="tablist" aria-label="演示分类">
       <button class="tab" role="tab" id="t-nav" aria-controls="p-nav" aria-selected="true" type="button">导航<span class="n">5</span></button>
       <button class="tab" role="tab" id="t-multi" aria-controls="p-multi" aria-selected="false" tabindex="-1" type="button">多机<span class="n">3</span></button>
-      <button class="tab" role="tab" id="t-man" aria-controls="p-man" aria-selected="false" tabindex="-1" type="button">双臂操作<span class="n">4</span></button>
+      <button class="tab" role="tab" id="t-man" aria-controls="p-man" aria-selected="false" tabindex="-1" type="button">双臂操作<span class="n">11</span></button>
       <button class="tab" role="tab" id="t-hum" aria-controls="p-hum" aria-selected="false" tabindex="-1" type="button">人形<span class="n">2</span></button>
       <button class="tab" role="tab" id="t-team" aria-controls="p-team" aria-selected="false" tabindex="-1" type="button">团队操作<span class="n">6</span></button>
     </div>
@@ -492,7 +492,24 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
     </div>
 
     <div class="panel" role="tabpanel" id="p-man" aria-labelledby="t-man" tabindex="0" hidden>
-      <div class="feature">
+      <div class="feature wide">
+        <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_cups.jpg" aria-label="双臂 Piper 真机按一句话指令把杯子叠起来，画面同时显示语言层和视觉层的推理过程" width="1072" height="720"><source src="media/d_piper_cups.mp4" type="video/mp4"></video></div>
+        <div>
+          <p class="kicker">Language → Vision → Action</p>
+          <h3>一句话指令，机器人边看边想边做</h3>
+          <p>指令是 “Stack the cups on the table.”。画面顶部是指令和语言层当前决定的下一步；底部左侧是语言层（DeepSeek）拆解任务的推理文字，右侧是视觉层（通义千问）对桌面物体的识别结果，都标了每次调用的耗时；右侧两格是左右手腕相机。</p>
+          <p>右上角计时为真实用时，这一条用了 6 分 40 秒。本组视频都约 5 倍速播放。</p>
+        </div>
+      </div>
+      <div class="grid g3" style="margin-top:18px">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_bowls.jpg" aria-label="双臂 Piper 真机把碗叠起来"><source src="media/d_piper_bowls.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上的碗叠起来</span><span class="spec">真机 · 实际用时 3 分 20 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_bottles.jpg" aria-label="双臂 Piper 真机把瓶子立起来"><source src="media/d_piper_bottles.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上倒着的瓶子都立起来</span><span class="spec">真机 · 实际用时 3 分 04 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_cover.jpg" aria-label="双臂 Piper 真机用杯子盖住方块"><source src="media/d_piper_cover.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">用倒扣的杯子盖住每个方块</span><span class="spec">真机 · 实际用时 3 分 11 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_stackcover.jpg" aria-label="双臂 Piper 真机叠方块再盖杯子"><source src="media/d_piper_stackcover.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">先把方块叠成一座塔，再用杯子盖住</span><span class="spec">真机 · 实际用时 3 分 12 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_basket.jpg" aria-label="双臂 Piper 真机把桌上物品放进篮子"><source src="media/d_piper_basket.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上所有物品放进篮子</span><span class="spec">真机 · 实际用时 9 分 07 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_plush.jpg" aria-label="双臂 Piper 真机分拣毛绒玩具"><source src="media/d_piper_plush.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把毛绒玩具挑出来，放进左边的红色托盘</span><span class="spec">真机 · 实际用时 9 分 50 秒 · 约 5 倍速</span></figcaption></figure>
+      </div>
+      <div class="feature" style="margin-top:36px">
         <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_pour.jpg" aria-label="双臂真机从取试管到倒进烧杯，动作由程序自己规划执行" width="720" height="810"><source src="media/d_pour.mp4" type="video/mp4"></video></div>
         <div>
           <p class="kicker">Long horizon</p>
