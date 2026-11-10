@@ -168,6 +168,10 @@ section.sec{padding-block:clamp(72px,9vw,120px) 0}
 .grid{display:grid;gap:18px}
 .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3>.card:last-child:nth-child(3n+1){grid-column:2}
+.g-hum{grid-template-columns:minmax(0,16fr) minmax(0,9fr)}
+#explore .g-hum .card:first-child .frame{aspect-ratio:16/9}
+#explore .g-hum .card:last-child .frame{aspect-ratio:1/1}
 .card{margin:0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column}
 .card .frame{position:relative;background:var(--media-bg);aspect-ratio:16/10}
 .card .frame video{width:100%;height:100%;object-fit:cover}
@@ -290,7 +294,8 @@ footer .col-wide{display:flex;justify-content:space-between;gap:12px;flex-wrap:w
 @media (max-width:760px){
   .nav-pill{padding-left:14px}
   .cover{aspect-ratio:auto;min-height:560px;max-height:none}
-  .peek,.ov,.g3,.g2,.feature,.feature.wide,.team,.eco,.apps,.papers{grid-template-columns:minmax(0,1fr)}
+  .peek,.ov,.g3,.g2,.g-hum,.feature,.feature.wide,.team,.eco,.apps,.papers{grid-template-columns:minmax(0,1fr)}
+  .g3>.card:last-child{grid-column:auto}
   .feature .frame{max-width:20rem}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .stat:nth-child(n){border-left:0;padding-left:0;border-top:1px solid var(--line)}
@@ -455,18 +460,10 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
       <button class="tab" role="tab" id="t-multi" aria-controls="p-multi" aria-selected="false" tabindex="-1" type="button">多机<span class="n">3</span></button>
       <button class="tab" role="tab" id="t-man" aria-controls="p-man" aria-selected="false" tabindex="-1" type="button">双臂操作<span class="n">11</span></button>
       <button class="tab" role="tab" id="t-hum" aria-controls="p-hum" aria-selected="false" tabindex="-1" type="button">人形<span class="n">2</span></button>
-      <button class="tab" role="tab" id="t-team" aria-controls="p-team" aria-selected="false" tabindex="-1" type="button">团队操作<span class="n">6</span></button>
     </div>
 
     <div class="panel" role="tabpanel" id="p-nav" aria-labelledby="t-nav" tabindex="0">
-      <p class="lead one-line">每种机器人一个九宫格：三行是办公室、大厅、室外，三列是指令导航、物体搜索、具身问答。</p>
-      <div class="grid g2">
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_g1.jpg" aria-label="人形机器人 G1 的 9 个导航任务九宫格"><source src="media/d_nav_grid_g1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · Unitree G1</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_go1.jpg" aria-label="四足机器人 Go1 的 9 个导航任务九宫格"><source src="media/d_nav_grid_go1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">四足 · Unitree Go1</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_uav.jpg" aria-label="自研无人机的 9 个导航任务九宫格"><source src="media/d_nav_grid_uav.mp4" type="video/mp4"></video></div><figcaption><span class="plat">无人机 · 自研</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_aloha.jpg" aria-label="轮式双臂机器人的 9 个导航任务九宫格"><source src="media/d_nav_grid_aloha.mp4" type="video/mp4"></video></div><figcaption><span class="plat">轮式双臂 · AgileX Cobot Magic</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
-      </div>
-      <div class="feature wide">
+      <div class="feature wide" style="margin-top:0">
         <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_unilavira.jpg" aria-label="Uni-LaViRA 四种机器人真机合集" width="960" height="540"><source src="media/d_unilavira.mp4" type="video/mp4"></video></div>
         <div>
           <p class="kicker">Uni-LaViRA</p>
@@ -474,12 +471,26 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
           <p>办公室、大厅和室外，分别做指令导航、找东西、回答问题。换机器人只改接口，不重新训练。</p>
         </div>
       </div>
+      <p class="lead one-line" style="margin-top:28px">每种机器人一个九宫格：三行是办公室、大厅、室外，三列是指令导航、物体搜索、具身问答。</p>
+      <div class="grid g2">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_g1.jpg" aria-label="人形机器人 G1 的 9 个导航任务九宫格"><source src="media/d_nav_grid_g1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · Unitree G1</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_go1.jpg" aria-label="四足机器人 Go1 的 9 个导航任务九宫格"><source src="media/d_nav_grid_go1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">四足 · Unitree Go1</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_uav.jpg" aria-label="自研无人机的 9 个导航任务九宫格"><source src="media/d_nav_grid_uav.mp4" type="video/mp4"></video></div><figcaption><span class="plat">无人机 · 自研</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="metadata" poster="media/d_nav_grid_aloha.jpg" aria-label="轮式双臂机器人的 9 个导航任务九宫格"><source src="media/d_nav_grid_aloha.mp4" type="video/mp4"></video></div><figcaption><span class="plat">轮式双臂 · AgileX Cobot Magic</span><span class="task">9 个导航任务同屏播放</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
+      </div>
     </div>
 
     <div class="panel" role="tabpanel" id="p-multi" aria-labelledby="t-multi" tabindex="0" hidden>
-      <div class="grid g3">
+      <div class="feature wide" style="margin-top:0">
+        <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo2.jpg" aria-label="三台机器人分头找 10 个目标，6 分钟内找到 7 个" width="1280" height="720"><source src="media/d_m3_demo2.mp4" type="video/mp4"></video></div>
+        <div>
+          <p class="kicker">HM3D-M³ · Demo 2</p>
+          <h3>6 分钟内找到画面所列 10 个目标中的 7 个</h3>
+          <p>Cobot Magic、Go1、Go2 三台机器人分头搜索同一层楼，经 Wi-Fi 共享体素地图，避免重复找同一片区域。目标用图片、类别或一句描述给出。单次定性演示。</p>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:18px">
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo1.jpg" aria-label="三台机器人同时找三个目标"><source src="media/d_m3_demo1.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 1 · 三个目标</span><span class="task">目标用图片、类别和一句描述给出：黄色行李箱、打印机、咖啡吧旁的绿色椅子</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo2.jpg" aria-label="三台机器人分头找 10 个目标"><source src="media/d_m3_demo2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 2 · 10 个目标</span><span class="task">6 分钟内找到画面所列 10 个目标中的 7 个</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_m3_demo3.jpg" aria-label="三台机器人再跑一轮 10 个目标"><source src="media/d_m3_demo3.mp4" type="video/mp4"></video></div><figcaption><span class="plat">Demo 3 · 10 个目标</span><span class="task">同一层楼、同样的目标，再跑一轮</span><span class="spec">真机 · Cobot Magic、Go1、Go2</span></figcaption></figure>
       </div>
       <dl class="kv">
@@ -492,24 +503,7 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
     </div>
 
     <div class="panel" role="tabpanel" id="p-man" aria-labelledby="t-man" tabindex="0" hidden>
-      <div class="feature wide">
-        <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_cups.jpg" aria-label="双臂 Piper 真机按一句话指令把杯子叠起来，画面同时显示语言层和视觉层的推理过程" width="1072" height="720"><source src="media/d_piper_cups.mp4" type="video/mp4"></video></div>
-        <div>
-          <p class="kicker">Language → Vision → Action</p>
-          <h3>一句话指令，机器人边看边想边做</h3>
-          <p>指令是 “Stack the cups on the table.”。画面顶部是指令和语言层当前决定的下一步；底部左侧是语言层（DeepSeek）拆解任务的推理文字，右侧是视觉层（通义千问）对桌面物体的识别结果，都标了每次调用的耗时；右侧两格是左右手腕相机。</p>
-          <p>右上角计时为真实用时，这一条用了 6 分 40 秒。本组视频都约 5 倍速播放。</p>
-        </div>
-      </div>
-      <div class="grid g3" style="margin-top:18px">
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_bowls.jpg" aria-label="双臂 Piper 真机把碗叠起来"><source src="media/d_piper_bowls.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上的碗叠起来</span><span class="spec">真机 · 实际用时 3 分 20 秒 · 约 5 倍速</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_bottles.jpg" aria-label="双臂 Piper 真机把瓶子立起来"><source src="media/d_piper_bottles.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上倒着的瓶子都立起来</span><span class="spec">真机 · 实际用时 3 分 04 秒 · 约 5 倍速</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_cover.jpg" aria-label="双臂 Piper 真机用杯子盖住方块"><source src="media/d_piper_cover.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">用倒扣的杯子盖住每个方块</span><span class="spec">真机 · 实际用时 3 分 11 秒 · 约 5 倍速</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_stackcover.jpg" aria-label="双臂 Piper 真机叠方块再盖杯子"><source src="media/d_piper_stackcover.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">先把方块叠成一座塔，再用杯子盖住</span><span class="spec">真机 · 实际用时 3 分 12 秒 · 约 5 倍速</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_basket.jpg" aria-label="双臂 Piper 真机把桌上物品放进篮子"><source src="media/d_piper_basket.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上所有物品放进篮子</span><span class="spec">真机 · 实际用时 9 分 07 秒 · 约 5 倍速</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_plush.jpg" aria-label="双臂 Piper 真机分拣毛绒玩具"><source src="media/d_piper_plush.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把毛绒玩具挑出来，放进左边的红色托盘</span><span class="spec">真机 · 实际用时 9 分 50 秒 · 约 5 倍速</span></figcaption></figure>
-      </div>
-      <div class="feature" style="margin-top:36px">
+      <div class="feature" style="margin-top:0">
         <div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_pour.jpg" aria-label="双臂真机从取试管到倒进烧杯，动作由程序自己规划执行" width="720" height="810"><source src="media/d_pour.mp4" type="video/mp4"></video></div>
         <div>
           <p class="kicker">Long horizon</p>
@@ -517,7 +511,15 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
           <p>取试管、换手、对准烧杯、倾倒、放回。每一步都由程序根据相机画面规划、执行，没有人遥控；按安全规程，有人在急停旁值守。视频约 40 倍速。</p>
         </div>
       </div>
+      <p class="lead" style="margin-top:28px">下面 7 条是双臂 AgileX Piper 按一句话指令完成的桌面任务。画面顶部是指令和语言层决定的下一步；底部是语言层（DeepSeek）的推理文字和视觉层（通义千问）的识别结果，标了每次调用耗时；右侧是左右手腕相机。右上角计时为真实用时，视频约 5 倍速。</p>
       <div class="grid g3" style="margin-top:18px">
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_cups.jpg" aria-label="双臂 Piper 真机把杯子叠起来"><source src="media/d_piper_cups.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上的杯子叠起来</span><span class="spec">真机 · 实际用时 6 分 40 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_bowls.jpg" aria-label="双臂 Piper 真机把碗叠起来"><source src="media/d_piper_bowls.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上的碗叠起来</span><span class="spec">真机 · 实际用时 3 分 20 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_bottles.jpg" aria-label="双臂 Piper 真机把瓶子立起来"><source src="media/d_piper_bottles.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上倒着的瓶子都立起来</span><span class="spec">真机 · 实际用时 3 分 04 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_cover.jpg" aria-label="双臂 Piper 真机用杯子盖住方块"><source src="media/d_piper_cover.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">用倒扣的杯子盖住每个方块</span><span class="spec">真机 · 实际用时 3 分 11 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_stackcover.jpg" aria-label="双臂 Piper 真机叠方块再盖杯子"><source src="media/d_piper_stackcover.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">先把方块叠成一座塔，再用杯子盖住</span><span class="spec">真机 · 实际用时 3 分 12 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_basket.jpg" aria-label="双臂 Piper 真机把桌上物品放进篮子"><source src="media/d_piper_basket.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把桌上所有物品放进篮子</span><span class="spec">真机 · 实际用时 9 分 07 秒 · 约 5 倍速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_piper_plush.jpg" aria-label="双臂 Piper 真机分拣毛绒玩具"><source src="media/d_piper_plush.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · AgileX Piper</span><span class="task">把毛绒玩具挑出来，放进左边的红色托盘</span><span class="spec">真机 · 实际用时 9 分 50 秒 · 约 5 倍速</span></figcaption></figure>
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_classify.jpg" aria-label="双臂真机桌面物体分拣"><source src="media/d_classify.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">把桌上的东西按类放进收纳筐</span><span class="spec">真机</span></figcaption></figure>
         <figure class="card contain"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_nju.jpg" aria-label="双臂真机用积木摆出 NJU"><source src="media/d_nju.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂 · Ultra-LaViRA</span><span class="task">用积木摆出 “NJU”</span><span class="spec">真机</span></figcaption></figure>
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_openclaw.jpg" aria-label="语音指挥机器人在办公室里完成任务"><source src="media/d_openclaw.mp4" type="video/mp4"></video></div><figcaption><span class="plat">轮式双臂 · Cobot Magic</span><span class="task">在聊天界面里用语音给机器人下任务</span><span class="spec">真机</span></figcaption></figure>
@@ -525,24 +527,13 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
     </div>
 
     <div class="panel" role="tabpanel" id="p-hum" aria-labelledby="t-hum" tabindex="0" hidden>
-      <div class="grid g2">
+      <div class="grid g-hum">
         <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_dance.jpg" aria-label="人形全身动作模仿闪身步，左为人类示范，右为真机"><source src="media/d_dance.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步，左为人类示范，右为 G1 真机</span><span class="spec">真机 · 原速</span></figcaption></figure>
-        <figure class="card contain"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_dance_pro.jpg" aria-label="人形全身动作模仿闪身步 Pro 完整版"><source src="media/d_dance_pro.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步 Pro 完整版，左为人类示范，右为真机</span><span class="spec">真机 · 原速</span></figcaption></figure>
+        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_dance_pro.jpg" aria-label="人形全身动作模仿闪身步 Pro 完整版"><source src="media/d_dance_pro.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形 · 全身动作模仿</span><span class="task">闪身步 Pro 完整版，左为人类示范，右为真机</span><span class="spec">真机 · 原速</span></figcaption></figure>
       </div>
       <p class="lead">动作模仿部分复现了 SuperMimic。</p>
     </div>
 
-    <div class="panel" role="tabpanel" id="p-team" aria-labelledby="t-team" tabindex="0" hidden>
-      <p class="lead">团队其他操作论文的真机实验，同一种机型剪成一段，宫格里每格左下角标出论文和任务。</p>
-      <div class="grid g3">
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_arm.jpg" aria-label="单臂机械臂多任务九宫格"><source src="media/d_team_arm.mp4" type="video/mp4"></video></div><figcaption><span class="plat">单臂机械臂 · GravMAD / DeCo / ST-VLA</span><span class="task">摆积木、叠杯子、开关抽屉等多个任务</span><span class="spec">真机 · 九宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_dual.jpg" aria-label="双臂机械臂多任务"><source src="media/d_team_dual.mp4" type="video/mp4"></video></div><figcaption><span class="plat">双臂机械臂 · RoTri-Diff</span><span class="task">洗盘子、抬篮子、分拣水果等</span><span class="spec">真机</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_hand.jpg" aria-label="机械臂加灵巧手抓取四宫格"><source src="media/d_team_hand.mp4" type="video/mp4"></video></div><figcaption><span class="plat">机械臂 + 灵巧手 · AdaClearGrasp / GraspClaw</span><span class="task">在杂乱桌面上抓杯子、方块和苹果</span><span class="spec">真机 · 四宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid.jpg" aria-label="人形双臂 12 个桌面任务四宫格"><source src="media/d_team_humanoid.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形双臂 · Wh0</span><span class="task">桌面取放、擦桌子等</span><span class="spec">真机 · 四宫格</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_humanoid2.jpg" aria-label="人形机器人柜内和台面取放"><source src="media/d_team_humanoid2.mp4" type="video/mp4"></video></div><figcaption><span class="plat">人形机器人 · Wh0</span><span class="task">柜子和台面上取放物品</span><span class="spec">真机</span></figcaption></figure>
-        <figure class="card"><div class="frame"><video autoplay muted loop playsinline preload="none" poster="media/d_team_industrial.jpg" aria-label="工业机械臂零件抓取与导轨操作"><source src="media/d_team_industrial.mp4" type="video/mp4"></video></div><figcaption><span class="plat">工业机械臂 · 轻量化 VLA</span><span class="task">零件抓取与导轨操作</span><span class="spec">真机</span></figcaption></figure>
-      </div>
-    </div>
   </div>
 </section>
 
