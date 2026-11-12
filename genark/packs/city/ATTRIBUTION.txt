@@ -1,0 +1,2 @@
+© OpenStreetMap contributors, ODbL 1.0
+Map data from OpenStreetMap (https://www.openstreetmap.org/copyright), retrieved via the Overpass API and converted by tools/wuhan_city.py.
