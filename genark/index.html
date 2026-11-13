@@ -75,6 +75,8 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 #talk .ask { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; color: inherit; background: rgba(0,0,0,.35); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; outline: none; }
 #speedo { position: absolute; right: 26px; bottom: 64px; display: none; grid-template-columns: auto auto; column-gap: 6px; align-items: baseline; padding: 10px 16px; border-radius: 12px; background: var(--plate); border: 1px solid var(--line); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 #speedo.show { display: grid; } #speedo b { font-size: 34px; font-variant-numeric: tabular-nums; line-height: 1; } #speedo small { opacity: .6; } #speedo span, #speedo em { grid-column: 1 / 3; font-size: 12px; opacity: .75; font-style: normal; } #speedo em { color: var(--accent); }
+#fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .24s; z-index: 5; } #fade.on { opacity: 1; }
+#lib .lic { font-style: normal; color: var(--bad); }
 #wallet { position: absolute; left: 20px; top: 92px; font-size: 12.5px; color: var(--ok); letter-spacing: .04em; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 #toast.bad { border-color: rgba(255, 122, 102, .5); color: #ffd6cf; }
@@ -106,7 +108,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
     <div id="taskbox" class="plate"><h2>家务清单 <b id="task-count">0/8</b></h2><ul id="tasks"></ul></div>
     <div id="cross"></div><div id="mark"></div><div id="prompt"></div>
     <div id="hands"><div class="hand plate"><small>左手 · 左键</small><span id="hand-l">空</span></div><div class="hand plate"><small>右手 · 右键</small><span id="hand-r">空</span></div></div>
-    <div id="keys"><kbd>H</kbd>说明　<kbd>M</kbd>地图　<kbd>B</kbd>机器人库　<kbd>P</kbd>传感器　<kbd>F</kbd>上车　<kbd>.</kbd>电台　<kbd>Enter</kbd>指令</div>
+    <div id="keys"><kbd>H</kbd>说明　<kbd>M</kbd>地图　<kbd>B</kbd>机器人库　<kbd>P</kbd>传感器　<kbd>F</kbd>接管车辆　<kbd>.</kbd>电台　<kbd>Enter</kbd>指令</div>
     <div id="toast"></div>
     <div id="help" class="plate"><h3>操作说明</h3><dl class="keys">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>行走 · 按住 <kbd>Shift</kbd> 奔跑 · 按住 <kbd>Q</kbd> 侧身横移</dd>
@@ -121,8 +123,10 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
       <dt><kbd>T</kbd></dt><dd>切换时间：上午 / 黄昏 / 夜晚</dd>
       <dt><kbd>F</kbd> <kbd>R</kbd></dt><dd>挥手 · 重置场景</dd>
       <dt><kbd>M</kbd> <kbd>N</kbd></dt><dd>全城地图（点击任意位置自动前往）· 导航到当前城市任务</dd>
-      <dt><kbd>F</kbd> 上下车</dt><dd>靠近任意车辆（行驶中、路边停放、电动车、公交）按 F 上车；W/S 油门·刹车/倒车，A/D 转向，空格手刹，G 喇叭，L 车灯</dd>
-      <dt><kbd>E</kbd> 交谈</dt><dd>和居民、早点摊主用武汉话聊天（带普通话注释）：数字键选择，问路、跑腿赚钱、买过早</dd>
+      <dt>电梯</dt><dd>出生点是武汉天地塔楼顶层的大平层与屋顶露台。到露台前端的电梯厅，对准呼叫按钮按 <kbd>E</kbd> 下楼；在一层塔楼门口按 <kbd>E</kbd> 回家。地图上点目的地时会自动先去乘电梯</dd>
+      <dt>进店</dt><dd>走到有名字的店铺 / 餐馆附近按 <kbd>E</kbd> 进店，在柜台和老板说话、买东西，回到门口按 <kbd>E</kbd> 出来</dd>
+      <dt><kbd>F</kbd> 接管车辆</dt><dd>2050 年的车都是无人驾驶。靠近任意车辆（行驶中、路边停放、电动车、公交）按 F 接管，再按 F 交还；W/S 油门·刹车/倒车，A/D 转向，空格手刹，G 喇叭，L 车灯</dd>
+      <dt><kbd>E</kbd> 交谈</dt><dd>和居民、早点摊主用武汉话聊天（有语音朗读和普通话注释；指令栏输入“语音 关”可静音）：数字键选择，问路、跑腿赚钱、买过早</dd>
       <dt><kbd>,</kbd> <kbd>.</kbd> <kbd>/</kbd></dt><dd>电台：上一个 / 下一个 / 开关（7 个原创程序化电台）</dd>
       <dt><kbd>B</kbd> <kbd>Tab</kbd></dt><dd>机器人库（生成并接管）· 在已生成的机器人之间切换</dd>
       <dt><kbd>P</kbd></dt><dd>机载传感器：RGB / 深度 / 语义分割 / 激光雷达</dd>
@@ -143,7 +147,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
       <dt><kbd>Enter</kbd> <kbd>H</kbd></dt><dd>文字指令 · 全部操作</dd>
     </dl>
     <button id="start">开始</button>
-    <p class="credit" style="margin:16px 0 0;font-size:11.5px;line-height:1.6;color:var(--faint)">地图数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">OpenStreetMap contributors</a>（ODbL）· 材质 Poly Haven（CC0）· 机器人模型许可见 packs/robots/index.js</p>
+    <p class="credit" style="margin:16px 0 0;font-size:11.5px;line-height:1.6;color:var(--faint)">地图数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">OpenStreetMap contributors</a>（ODbL）；样板区另含 Overture Maps、CNBH-10m、Meta/WRI 树冠高度（CC BY 4.0），详见 <a href="packs/city/ATTRIBUTION.txt" target="_blank" rel="noopener" style="color:inherit">ATTRIBUTION</a> · 材质 Poly Haven（CC0）· 机器人模型许可见 packs/robots/index.js</p>
   </div></div>
   <div id="boot"><div class="lockup"><img data-logo alt="Lavira"><div><span>LAVIRA</span><small>武汉 · 城市具身仿真</small></div></div><div class="boot-sub" id="boot-msg">正在启动</div><div class="boot-bar"><i id="boot-fill"></i></div></div>
 </div>

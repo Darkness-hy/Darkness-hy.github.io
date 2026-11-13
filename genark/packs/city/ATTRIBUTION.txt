@@ -1,2 +1,6 @@
 © OpenStreetMap contributors, ODbL 1.0
 Map data from OpenStreetMap (https://www.openstreetmap.org/copyright), retrieved via the Overpass API and converted by tools/wuhan_city.py.
+Sample district (武汉天地 / 汉口江滩 / 长江二桥), additional sources:
+  Building footprints: Overture Maps Foundation, buildings theme, release 2026-10-21.0 (ODbL 1.0); the rows used come from the East Asian buildings dataset (doi:10.5281/zenodo.8174931, CC BY 4.0).
+  Building heights where OpenStreetMap has none: CNBH-10m (Zenodo record 7827315, CC BY 4.0).
+  Tree positions and sizes: Meta / World Resources Institute global canopy height map (CC BY 4.0).
