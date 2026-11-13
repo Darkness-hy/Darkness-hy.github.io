@@ -77,6 +77,11 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 #speedo.show { display: grid; } #speedo b { font-size: 34px; font-variant-numeric: tabular-nums; line-height: 1; } #speedo small { opacity: .6; } #speedo span, #speedo em { grid-column: 1 / 3; font-size: 12px; opacity: .75; font-style: normal; } #speedo em { color: var(--accent); }
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .24s; z-index: 5; } #fade.on { opacity: 1; }
 #lib .lic { font-style: normal; color: var(--bad); }
+#metro { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, 86vw); padding: 14px 18px; display: none; z-index: 6; }
+#metro.show { display: block; } #metro header { display: flex; gap: 8px; align-items: center; font-size: 12px; } #metro header b { font-size: 16px; color: var(--accent); } #metro header em { margin-left: auto; font-style: normal; opacity: .6; }
+#metro header i, #metro li i { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 9px; font-style: normal; font-size: 11px; color: #111; margin-right: 4px; padding: 0 3px; } #metro li i { min-width: 8px; width: 8px; height: 8px; padding: 0; margin-right: 10px; }
+#metro ul { list-style: none; margin: 10px 0 6px; padding: 0; } #metro li { padding: 5px 8px; border-radius: 6px; font-size: 14px; } #metro li.on { background: rgba(255,182,92,.18); } #metro li small { float: right; opacity: .6; } #metro p { margin: 6px 0 0; font-size: 12.5px; opacity: .75; min-height: 18px; }
+#plaque { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(460px, 84vw); padding: 14px 18px; opacity: 0; pointer-events: none; transition: opacity .3s; } #plaque.show { opacity: 1; } #plaque b { font-size: 18px; color: var(--accent); } #plaque small { margin-left: 10px; opacity: .6; } #plaque p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.6; }
 #wallet { position: absolute; left: 20px; top: 92px; font-size: 12.5px; color: var(--ok); letter-spacing: .04em; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 #toast.bad { border-color: rgba(255, 122, 102, .5); color: #ffd6cf; }
@@ -124,6 +129,8 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
       <dt><kbd>F</kbd> <kbd>R</kbd></dt><dd>挥手 · 重置场景</dd>
       <dt><kbd>M</kbd> <kbd>N</kbd></dt><dd>全城地图（点击任意位置自动前往）· 导航到当前城市任务</dd>
       <dt>电梯</dt><dd>出生点是武汉天地塔楼顶层的大平层与屋顶露台。到露台前端的电梯厅，对准呼叫按钮按 <kbd>E</kbd> 下楼；在一层塔楼门口按 <kbd>E</kbd> 回家。地图上点目的地时会自动先去乘电梯</dd>
+      <dt>地标</dt><dd>黄鹤楼、长江大桥、龟山电视塔、江汉关、长江二桥等按资料重建。走近按 <kbd>E</kbd> 看介绍牌；黄鹤楼可以走上台基、进大厅、登顶层回廊；电视塔可乘梯到观景层；江汉关大钟显示游戏时间</dd>
+      <dt>地铁</dt><dd>走到地铁出入口按 <kbd>E</kbd> 进站，↑↓ 选目的站，<kbd>Enter</kbd> 乘车，从目的站出口出来（10 条线、95 座车站；汉口的 1 号线是高架，能看到列车）</dd>
       <dt>进店</dt><dd>走到有名字的店铺 / 餐馆附近按 <kbd>E</kbd> 进店，在柜台和老板说话、买东西，回到门口按 <kbd>E</kbd> 出来</dd>
       <dt><kbd>F</kbd> 接管车辆</dt><dd>2050 年的车都是无人驾驶。靠近任意车辆（行驶中、路边停放、电动车、公交）按 F 接管，再按 F 交还；W/S 油门·刹车/倒车，A/D 转向，空格手刹，G 喇叭，L 车灯</dd>
       <dt><kbd>E</kbd> 交谈</dt><dd>和居民、早点摊主用武汉话聊天（有语音朗读和普通话注释；指令栏输入“语音 关”可静音）：数字键选择，问路、跑腿赚钱、买过早</dd>
@@ -146,10 +153,9 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
       <dt><kbd>M</kbd> <kbd>B</kbd> <kbd>P</kbd></dt><dd>地图 · 机器人库 · 传感器</dd>
       <dt><kbd>Enter</kbd> <kbd>H</kbd></dt><dd>文字指令 · 全部操作</dd>
     </dl>
-    <button id="start">开始</button>
-    <p class="credit" style="margin:16px 0 0;font-size:11.5px;line-height:1.6;color:var(--faint)">地图数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">OpenStreetMap contributors</a>（ODbL）；样板区另含 Overture Maps、CNBH-10m、Meta/WRI 树冠高度（CC BY 4.0），详见 <a href="packs/city/ATTRIBUTION.txt" target="_blank" rel="noopener" style="color:inherit">ATTRIBUTION</a> · 材质 Poly Haven（CC0）· 机器人模型许可见 packs/robots/index.js</p>
+    <button id="start">开始</button><p class="credit" style="margin:16px 0 0;font-size:11.5px;line-height:1.6;color:var(--faint)">地图数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">OpenStreetMap contributors</a>（ODbL）；样板区另含 Overture Maps、CNBH-10m、Meta/WRI 树冠高度（CC BY 4.0），详见 <a href="packs/city/ATTRIBUTION.txt" target="_blank" rel="noopener" style="color:inherit">ATTRIBUTION</a> · 材质 Poly Haven（CC0）· 机器人模型许可见 packs/robots/index.js</p>
   </div></div>
   <div id="boot"><div class="lockup"><img data-logo alt="Lavira"><div><span>LAVIRA</span><small>武汉 · 城市具身仿真</small></div></div><div class="boot-sub" id="boot-msg">正在启动</div><div class="boot-bar"><i id="boot-fill"></i></div></div>
 </div>
-<script src="engine.js"></script>
+<script src="engine.js?v=11131831"></script>
 </body></html>
