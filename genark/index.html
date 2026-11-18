@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Lavira · 武汉城市仿真</title>
+<title>LAVIRA · 斑马都市2049</title>
 <style>
 /* One deliberate dark look (a simulation viewport): quiet glass plates over the scene, warm amber accent. */
 :root {
@@ -20,15 +20,51 @@ body { background: var(--ink); color: var(--bone); overflow: hidden; font-family
 .plate { background: var(--plate); border: 1px solid var(--line); border-radius: 12px; backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); }
 kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--faint); background: rgba(255, 255, 255, .08); color: var(--bone); margin-right: 6px; white-space: nowrap; }
 
-#boot { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--ink); transition: opacity .7s ease; z-index: 50; }
+#boot { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: radial-gradient(120% 90% at 50% 35%, #121824 0%, #090c12 58%, #06070a 100%); transition: opacity .7s ease; z-index: 50; overflow: hidden; pointer-events: auto; }
 #boot.done { opacity: 0; pointer-events: none; }
-.boot-mark { font-size: clamp(30px, 6vw, 60px); font-weight: 700; letter-spacing: .08em; }
-.boot-mark em { font-style: normal; color: var(--accent); }
-.boot-sub { font-family: var(--mono); font-size: 12px; letter-spacing: .16em; color: var(--dim); }
-.boot-bar { width: min(320px, 60vw); height: 2px; background: var(--faint); }
-.boot-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.boot-grid { position: absolute; inset: 0; pointer-events: none; opacity: .28; background-image: linear-gradient(rgba(82, 200, 255, .14) 1px, transparent 1px), linear-gradient(90deg, rgba(82, 200, 255, .14) 1px, transparent 1px), linear-gradient(rgba(255, 182, 92, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 182, 92, .07) 1px, transparent 1px); background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px; mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 82%); -webkit-mask-image: radial-gradient(circle at 50% 45%, #000 30%, transparent 82%); }
+.boot-scan { position: absolute; left: 0; right: 0; height: 2px; top: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(72, 224, 255, .65), rgba(255, 182, 92, .65), transparent); opacity: .55; will-change: transform; animation: bootScan 4.8s linear infinite; }
+@keyframes bootScan { 0% { transform: translateY(-4vh); opacity: 0; } 12% { opacity: .65; } 88% { opacity: .65; } 100% { transform: translateY(104vh); opacity: 0; } }
+@keyframes bootSpinCW { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes bootSpinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+.boot-card { position: relative; z-index: 1; width: min(700px, 92vw); padding: 26px 28px 22px; border-radius: 20px; border: 1px solid rgba(130, 210, 255, .24); background: linear-gradient(180deg, rgba(16, 21, 30, .82), rgba(10, 13, 18, .92)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 30px 90px rgba(0, 0, 0, .7); display: flex; flex-direction: column; gap: 16px; }
+.boot-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.boot-orbit { position: relative; width: 82px; height: 82px; flex: none; display: grid; place-items: center; }
+.boot-ring-a, .boot-ring-b { position: absolute; border-radius: 50%; pointer-events: none; will-change: transform; }
+.boot-ring-a { inset: 0; border: 2px dashed rgba(78, 224, 255, .55); animation: bootSpinCW 16s linear infinite; }
+.boot-ring-b { inset: 7px; border: 1.5px solid rgba(255, 182, 92, .22); border-top-color: #ffb65c; border-right-color: #5ee6ff; animation: bootSpinCCW 7.5s linear infinite; }
+.boot-orbit img { width: 50px; height: 50px; border-radius: 12px; box-shadow: 0 0 24px rgba(78, 224, 255, .28); }
+.boot-orbit img:not([src]) { opacity: 0; }
+.boot-titles { flex: 1; min-width: 190px; }
+.boot-titles h2 { margin: 0; font: 700 clamp(22px, 3vw, 28px) var(--fd); letter-spacing: .16em; }
+.boot-titles h2 em { font-style: normal; color: var(--accent); }
+.boot-titles .boot-sub { margin-top: 4px; font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em; color: var(--dim); }
+.boot-metrics { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.boot-pct { font-size: clamp(28px, 4vw, 38px); font-weight: 700; line-height: 1; color: var(--bone); letter-spacing: .02em; }
+.boot-elapsed { margin-top: 4px; font-size: 11.5px; color: #78dcff; letter-spacing: .08em; }
+.boot-prog { display: flex; flex-direction: column; gap: 8px; }
+.boot-status-row { display: flex; justify-content: space-between; align-items: center; font: 12px var(--mono); color: var(--dim); }
+#boot-msg { color: #dceeff; }
+.boot-bar { width: 100%; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .09); overflow: hidden; border: 1px solid rgba(255, 255, 255, .06); }
+.boot-bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #3de4ff, #ffb65c); box-shadow: 0 0 12px rgba(255, 182, 92, .45); transition: width .16s ease-out; }
+.boot-stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.boot-chip { padding: 7px 9px; border-radius: 9px; border: 1px solid rgba(240, 236, 227, .1); background: rgba(255, 255, 255, .03); font: 11px var(--mono); color: var(--dim); display: flex; align-items: center; gap: 6px; transition: border-color .2s, background .2s, color .2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boot-chip i { width: 7px; height: 7px; border-radius: 50%; background: rgba(240, 236, 227, .24); flex: none; }
+.boot-chip.active { border-color: rgba(255, 182, 92, .65); background: rgba(255, 182, 92, .12); color: #ffe7c2; }
+.boot-chip.active i { background: #ffb65c; box-shadow: 0 0 8px #ffb65c; }
+.boot-chip.done { border-color: rgba(127, 214, 160, .42); background: rgba(127, 214, 160, .09); color: #c7f3d7; }
+.boot-chip.done i { background: #7fd6a0; }
+.boot-tips { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(110, 200, 255, .2); background: rgba(8, 14, 24, .58); display: flex; flex-direction: column; gap: 8px; }
+.boot-tips-hd { display: flex; align-items: center; gap: 8px; font: 11.5px var(--mono); letter-spacing: .08em; color: #7cd8ff; }
+.boot-tips-hd b { flex: 1; }
+.boot-tips-hd span { color: var(--dim); }
+.boot-btn { font: 11px var(--mono); padding: 4px 10px; border-radius: 7px; border: 1px solid rgba(240, 236, 227, .2); background: rgba(255, 255, 255, .06); color: var(--bone); cursor: pointer; transition: background .15s, border-color .15s; }
+.boot-btn:hover { background: rgba(255, 182, 92, .2); border-color: rgba(255, 182, 92, .55); color: #ffe4b8; }
+#boot-tip-text { font-size: 13px; line-height: 1.6; color: var(--bone); min-height: 42px; }
+@media (max-width: 640px) { .boot-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } .boot-card { padding: 18px; } }
+@media (prefers-reduced-motion: reduce) { .boot-scan, .boot-ring-a, .boot-ring-b { animation: none !important; } }
 
-#brand { position: absolute; left: 20px; top: 16px; display: flex; gap: 12px; align-items: center; text-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
+#brand { position: absolute; left: 20px; top: 60px; display: flex; gap: 12px; align-items: center; text-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
 #brand img { width: 38px; height: 38px; border-radius: 9px; box-shadow: 0 2px 10px rgba(0, 0, 0, .45); }
 .wm { letter-spacing: .22em; font-weight: 700; }
 #brand h1, .lockup span, .ov-card h1, #taskbox h2, #help h3, #start { font-family: var(--fd); }
@@ -40,7 +76,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 #brand h1 em { font-style: normal; color: var(--accent); }
 #status { margin-top: 4px; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
 
-#taskbox { position: absolute; right: 20px; top: 18px; width: min(300px, 42vw); padding: 12px 14px 10px; max-height: 62vh; overflow: hidden; }
+#taskbox { display: none; position: absolute; right: 20px; top: 270px; width: min(300px, 42vw); padding: 12px 14px 10px; max-height: 52vh; overflow: hidden; }
 #taskbox h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .14em; color: var(--dim); display: flex; justify-content: space-between; }
 #taskbox h2 b { color: var(--accent); font-family: var(--mono); font-weight: 500; }
 #tasks { list-style: none; margin: 0; padding: 0; }
@@ -82,7 +118,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 #metro header i, #metro li i { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 9px; font-style: normal; font-size: 11px; color: #111; margin-right: 4px; padding: 0 3px; } #metro li i { min-width: 8px; width: 8px; height: 8px; padding: 0; margin-right: 10px; }
 #metro ul { list-style: none; margin: 10px 0 6px; padding: 0; } #metro li { padding: 5px 8px; border-radius: 6px; font-size: 14px; } #metro li.on { background: rgba(255,182,92,.18); } #metro li small { float: right; opacity: .6; } #metro p { margin: 6px 0 0; font-size: 12.5px; opacity: .75; min-height: 18px; }
 #plaque { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(460px, 84vw); padding: 14px 18px; opacity: 0; pointer-events: none; transition: opacity .3s; } #plaque.show { opacity: 1; } #plaque b { font-size: 18px; color: var(--accent); } #plaque small { margin-left: 10px; opacity: .6; } #plaque p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.6; }
-#wallet { position: absolute; left: 20px; top: 92px; font-size: 12.5px; color: var(--ok); letter-spacing: .04em; }
+#wallet { display: none !important; position: absolute; left: 20px; top: 132px; font-size: 12.5px; color: var(--ok); letter-spacing: .04em; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 #toast.bad { border-color: rgba(255, 122, 102, .5); color: #ffd6cf; }
 
@@ -109,53 +145,95 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius
 <div id="app" class="idle">
   <canvas id="view" tabindex="0"></canvas>
   <div id="ui">
-    <div id="brand"><img data-logo alt="Lavira"><div><h1><span class="wm">LAVIRA</span> · <em>武汉</em> 城市具身仿真</h1><div id="status"></div></div></div>
-    <div id="taskbox" class="plate"><h2>家务清单 <b id="task-count">0/8</b></h2><ul id="tasks"></ul></div>
+    <div id="brand"><img data-logo alt="LAVIRA"><div><h1><span class="wm">LAVIRA</span> · <em id="brand-name">斑马都市2049</em> <span id="brand-sub">城市具身仿真</span></h1><div id="status"></div></div></div>
+    <div id="taskbox" class="plate"><h2><span id="taskbox-title">家务清单</span> <b id="task-count">0/8</b></h2><ul id="tasks"></ul></div>
     <div id="cross"></div><div id="mark"></div><div id="prompt"></div>
-    <div id="hands"><div class="hand plate"><small>左手 · 左键</small><span id="hand-l">空</span></div><div class="hand plate"><small>右手 · 右键</small><span id="hand-r">空</span></div></div>
-    <div id="keys"><kbd>H</kbd>说明　<kbd>M</kbd>地图　<kbd>B</kbd>机器人库　<kbd>P</kbd>传感器　<kbd>F</kbd>接管车辆　<kbd>.</kbd>电台　<kbd>Enter</kbd>指令</div>
+    <div id="hands"><div class="hand plate"><small id="hand-l-label">左手 · 2 (Q切)</small><span id="hand-l">空</span></div><div class="hand plate"><small id="hand-r-label">右手 · 3 (Q切)</small><span id="hand-r">空</span></div></div>
+    <div id="keys"><kbd>H</kbd>说明　<kbd>E</kbd>互动　<kbd>F</kbd>上车　<kbd>空格</kbd>跳/翻越　<kbd>X</kbd>战术轮盘　<kbd>N</kbd>领航　<kbd>Tab</kbd>终端　<kbd>`</kbd>切躯体　<kbd>M</kbd>地图　<kbd>J</kbd>传送　<kbd>B</kbd>机器人库</div>
     <div id="toast"></div>
-    <div id="help" class="plate"><h3>操作说明</h3><dl class="keys">
-      <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>行走 · 按住 <kbd>Shift</kbd> 奔跑 · 按住 <kbd>Q</kbd> 侧身横移</dd>
-      <dt><kbd>空格</kbd></dt><dd>跳跃（可跳上跳箱、跨过栏杆）· 面对矮墙时撑手翻越</dd>
-      <dt><kbd>X</kbd></dt><dd>趴下爬行 / 起身（可从餐桌、钻架下面爬过）</dd>
-      <dt><kbd>鼠标</kbd></dt><dd>转动视角 · 滚轮调节距离</dd>
-      <dt><kbd>左键</kbd> / <kbd>右键</kbd></dt><dd>左手 / 右手：抓取准星对准的物体，再次点击放到准星位置</dd>
-      <dt><kbd>E</kbd></dt><dd>操作门、冰箱、抽屉、开关、家电 · 对准沙发 / 床 / 长椅坐下，再按起身</dd>
-      <dt><kbd>G</kbd></dt><dd>松开双手里的物体</dd>
-      <dt><kbd>C</kbd></dt><dd>下蹲 / 起身</dd>
-      <dt><kbd>V</kbd></dt><dd>第一人称 / 跟随视角</dd>
-      <dt><kbd>T</kbd></dt><dd>切换时间：上午 / 黄昏 / 夜晚</dd>
-      <dt><kbd>F</kbd> <kbd>R</kbd></dt><dd>挥手 · 重置场景</dd>
-      <dt><kbd>M</kbd> <kbd>N</kbd></dt><dd>全城地图（点击任意位置自动前往）· 导航到当前城市任务</dd>
-      <dt>电梯</dt><dd>出生点是武汉天地塔楼顶层的大平层与屋顶露台。到露台前端的电梯厅，对准呼叫按钮按 <kbd>E</kbd> 下楼；在一层塔楼门口按 <kbd>E</kbd> 回家。地图上点目的地时会自动先去乘电梯</dd>
+    <div id="help" class="plate"><h3 id="help-title">操作说明</h3><dl class="keys" id="help-dl">
+      <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>移动 · <kbd>Shift</kbd> 奔跑 · <kbd>Ctrl</kbd> 慢走 · <kbd>=</kbd> 自动前进 · <kbd>Alt</kbd> 按住自由观察（身体不转，可侧移）</dd>
+      <dt><kbd>鼠标</kbd></dt><dd>转动视角 · 滚轮调节距离 · <kbd>V</kbd> 第一 / 第三人称</dd>
+      <dt><kbd>空格</kbd></dt><dd>跳跃；面前有能翻的障碍（栏杆、矮墙、花坛、长椅、车头，0.3–1.6 m）时出现提示，按下跨过 / 手撑翻越 / 攀上翻越 · 坐着时起身</dd>
+      <dt><kbd>C</kbd> <kbd>Z</kbd></dt><dd>下蹲 / 起身 · 趴下爬行 / 起身（可从餐桌下面爬过）</dd>
+      <dt><kbd>E</kbd></dt><dd>互动：开门、冰箱、抽屉、开关、家电 · 拾取准星对准的物体 · 走到任何椅子 / 凳子 / 沙发 / 长椅 / 床沿旁坐下（拿着东西也能坐），再按起身 · 交谈 · 进店 / 进站</dd>
+      <dt><kbd>F</kbd></dt><dd>只用于载具：靠近车辆上车，停稳后再按下车交还</dd>
+      <dt><kbd>左键</kbd></dt><dd>当前手的动作：抓取准星对准的物体，再点放到准星位置；对准门把 / 开关则操作 · 发射 2050 型非致命装备 · <kbd>右键</kbd> 按住精细模式 / 折叠护盾</dd>
+      <dt><kbd>Q</kbd> <kbd>1–4</kbd> <kbd>5</kbd></dt><dd>切换左/右手 · 手模式（1 自动 / 2 左手 / 3 右手 / 4 双手依次）· 精细模式开关</dd>
+      <dt><kbd>X</kbd> <kbd>G</kbd> <kbd>R</kbd></dt><dd>非致命战术与姿态轮盘 · 放下手里的东西 · 手臂复位（取消当前动作）</dd>
+      <dt><kbd>Tab</kbd> <kbd>`</kbd> <kbd>N</kbd></dt><dd>ZC-2049 光学系统终端（编队/剧情/市场/设置）· 切换控制的机器人 · 3D AR 自动领航</dd>
+      <dt><kbd>M</kbd></dt><dd>全城地图（单击：导航或传送 · 右键：直接传送 · 可搜索）</dd>
+      <dt><kbd>J</kbd> <kbd>O</kbd></dt><dd>一键到达经典地点 / 回家 · 小地图 车头朝上 ↔ 北朝上</dd>
+      <dt>驾驶</dt><dd>2049 年的车都是无人驾驶。靠近任意车辆按 <kbd>F</kbd> 上车，停稳后再按 <kbd>F</kbd> 下车交还；<kbd>W</kbd><kbd>S</kbd> 油门·刹车/倒车，<kbd>A</kbd><kbd>D</kbd> 转向，<kbd>空格</kbd> 手刹，<kbd>Shift</kbd> 急加速，<kbd>V</kbd> 切换视角（<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>4</kbd> 直接选），<kbd>R</kbd> 按住回头看，<kbd>X</kbd> 慢动作，<kbd>G</kbd> 喇叭，<kbd>L</kbd> 车灯</dd>
+      <dt>飞行·水面·新形态</dt><dd>在 <kbd>B</kbd> 库的载具页还能召唤摩托、空中出租 / 直升机 / 飞艇、无人艇 / 水翼船 / 两栖车和 2049 年的新形态，同样走近按 <kbd>F</kbd> 进入。飞行器：<kbd>空格</kbd> 起飞·上升，<kbd>C</kbd> 下降，<kbd>W</kbd><kbd>S</kbd> 前进·后退，<kbd>A</kbd><kbd>D</kbd> 转向，松开自动悬停，<kbd>E</kbd> 自动降落，落地后才能 <kbd>F</kbd> 离开。船：召唤后自动放到最近的水面，<kbd>W</kbd><kbd>S</kbd> 油门·倒车，<kbd>A</kbd><kbd>D</kbd> 转舵，靠岸停稳后 <kbd>F</kbd> 上岸；两栖车直接开进水里就变船。新形态各有一个 <kbd>E</kbd> 动作（陆空车展开旋翼、滑板底盘换舱、轮腿车升高、磁浮滑橇升高、环轮车原地回旋），上车时会提示</dd>
+      <dt>其他机器人</dt><dd><kbd>B</kbd> 机器人库（93 款：人形、四足、轮式双臂、机械臂、灵巧手…）。接管后同一套按键：<kbd>E</kbd> 抓取 / 放置 / 开门 / 坐下，<kbd>F</kbd> 只用于上车，<kbd>空格</kbd> 翻越（四足腾跃），<kbd>C</kbd> 下蹲 / 降下升降柱，<kbd>Z</kbd> 四足趴下，<kbd>G</kbd> 放下。身体做不到的动作会给替代方式并在提示里说明（没有手臂的驮在背上 / 用身体顶门；轮式不能翻越、在座位旁停靠）。机械臂：<kbd>I</kbd><kbd>K</kbd> <kbd>J</kbd><kbd>L</kbd> <kbd>U</kbd><kbd>O</kbd> 移动末端 · <kbd>Del</kbd> 移除</dd>
+      <dt>电梯</dt><dd>出生点是临江塔楼 22 楼的大平层（全楼 27 层）。到私家电梯厅的电梯前，按 <kbd>E</kbd> 打开楼层面板，数字键选楼层（22 楼家 / 1 层街道 / 1 层大堂 / B1 车库），必须用数字键选楼层后才会出发；在一层塔楼门口、大堂和车库的电梯前同样操作。地下车库里走近车辆按 <kbd>F</kbd> 上车，沿出口坡道可直接开上街道。驾驶时 <kbd>V</kbd> 切换视角、<kbd>R</kbd> 回头看、<kbd>X</kbd> 慢动作。地图上点目的地时会自动先去乘电梯</dd>
+      <dt>进入室内</dt><dd>有名字的店铺、餐馆、地铁站、医院学校等地点，以及居民楼的「住户入口」，走近按 <kbd>E</kbd> 进入：便利店、超市、面馆、办公室、地铁站厅与站台、地下街、六种住宅户型……室内的门、抽屉、家电、开关、货架上的商品都和家里一样可以操作，右上角换成这里的任务；找机器人店员按 <kbd>E</kbd> 交谈，回到出口处按 <kbd>E</kbd> 离开</dd>
       <dt>地标</dt><dd>黄鹤楼、长江大桥、龟山电视塔、江汉关、长江二桥等按资料重建。走近按 <kbd>E</kbd> 看介绍牌；黄鹤楼可以走上台基、进大厅、登顶层回廊；电视塔可乘梯到观景层；江汉关大钟显示游戏时间</dd>
-      <dt>地铁</dt><dd>走到地铁出入口按 <kbd>E</kbd> 进站，↑↓ 选目的站，<kbd>Enter</kbd> 乘车，从目的站出口出来（10 条线、95 座车站；汉口的 1 号线是高架，能看到列车）</dd>
-      <dt>进店</dt><dd>走到有名字的店铺 / 餐馆附近按 <kbd>E</kbd> 进店，在柜台和老板说话、买东西，回到门口按 <kbd>E</kbd> 出来</dd>
-      <dt><kbd>F</kbd> 接管车辆</dt><dd>2050 年的车都是无人驾驶。靠近任意车辆（行驶中、路边停放、电动车、公交）按 F 接管，再按 F 交还；W/S 油门·刹车/倒车，A/D 转向，空格手刹，G 喇叭，L 车灯</dd>
-      <dt><kbd>E</kbd> 交谈</dt><dd>和居民、早点摊主用武汉话聊天（有语音朗读和普通话注释；指令栏输入“语音 关”可静音）：数字键选择，问路、跑腿赚钱、买过早</dd>
+      <dt>地铁</dt><dd>走到地铁出入口按 <kbd>E</kbd> 走进站厅，在站内按 <kbd>T</kbd> 选目的站（↑↓ 选择，<kbd>Enter</kbd> 乘车），从目的站出口出来（10 条线、95 座车站；汉口的 1 号线是高架，能看到列车）</dd>
+      <dt><kbd>E</kbd> 交谈</dt><dd>和居民、早点摊主用武汉话真人录音聊天（带普通话注释，不播放合成语音；指令栏输入“语音 关”可静音）：数字键选择，问路、跑腿赚钱、买过早</dd>
       <dt><kbd>,</kbd> <kbd>.</kbd> <kbd>/</kbd></dt><dd>电台：上一个 / 下一个 / 开关（7 个原创程序化电台）</dd>
-      <dt><kbd>B</kbd> <kbd>Tab</kbd></dt><dd>机器人库（生成并接管）· 在已生成的机器人之间切换</dd>
-      <dt><kbd>P</kbd></dt><dd>机载传感器：RGB / 深度 / 语义分割 / 激光雷达</dd>
+      <dt><kbd>P</kbd> <kbd>T</kbd></dt><dd>机载传感器：RGB / 深度 / 语义分割 / 激光雷达 · 切换时间：上午 / 黄昏 / 夜晚</dd>
       <dt><kbd>Enter</kbd></dt><dd>文字指令：去黄鹤楼、召唤 go2、跟随、天气 雨、放一棵树…</dd>
-      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></dt><dd>画质：流畅 / 均衡 / 精细</dd>
+      <dt><kbd>[</kbd> <kbd>]</kbd> <kbd>\</kbd></dt><dd>画质 降 / 升（流畅 / 均衡 / 精细）· 自动调节开关</dd>
+      <dt><kbd>Y</kbd> <kbd>0</kbd> <kbd>Esc</kbd></dt><dd>挥手（★1 时缴纳罚单）· 重置场景 · 暂停 / 关闭面板</dd>
     </dl></div>
   </div>
   <div id="overlay"><div class="ov-card">
-    <div class="lockup"><img data-logo alt="Lavira"><div><span>LAVIRA</span><small>EMBODIED CITY SIMULATOR · WUHAN</small></div></div>
-    <h1 id="ov-title">武汉城市具身仿真</h1>
-    <p>从家里出发，走进按 OpenStreetMap 真实数据生成的武汉街区：操控 Unitree G1 和机器人库里的几十种机器人，在有车流、行人和红绿灯的城市里导航、配送、巡检。</p>
-    <dl class="keys">
-      <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>行走 · <kbd>Shift</kbd> 奔跑 · 鼠标转视角</dd>
-      <dt><kbd>空格</kbd> <kbd>X</kbd> <kbd>Q</kbd></dt><dd>跳跃 / 翻越 · 爬行 · 侧身</dd>
-      <dt><kbd>左键</kbd> / <kbd>右键</kbd></dt><dd>左手 / 右手 抓取与放置</dd>
-      <dt><kbd>E</kbd></dt><dd>开门、冰箱、抽屉、开关、家电 · 坐下 / 起身</dd>
-      <dt><kbd>M</kbd> <kbd>B</kbd> <kbd>P</kbd></dt><dd>地图 · 机器人库 · 传感器</dd>
+    <div class="lockup"><img data-logo alt="LAVIRA"><div><span>LAVIRA</span><small id="ov-eyebrow">EMBODIED CITY SIMULATOR · ZEBRA CITY 2049</small></div></div>
+    <h1 id="ov-title">斑马都市2049具身仿真</h1>
+    <p id="ov-desc">从家里出发，走进斑马都市2049：操控 Unitree G1 和机器人库里的几十种机器人，在有车流、行人和红绿灯的城市里导航、配送、巡检。</p>
+    <dl class="keys" id="ov-keys">
+      <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>移动 · <kbd>Shift</kbd> 奔跑 · <kbd>Ctrl</kbd> 慢走 · 鼠标转视角</dd>
+      <dt><kbd>空格</kbd> <kbd>C</kbd> <kbd>Z</kbd></dt><dd>跳跃 / 翻越 · 下蹲 · 爬行</dd>
+      <dt><kbd>E</kbd></dt><dd>互动：开门、开关、拾取、坐下 / 起身、交谈、进店</dd>
+      <dt><kbd>F</kbd></dt><dd>上车 / 下车</dd>
+      <dt><kbd>左键</kbd> <kbd>右键</kbd></dt><dd>抓取 / 发射 · 按住精细模式 / 护盾（<kbd>Q</kbd> 换手 · <kbd>1–4</kbd> 手模式 · <kbd>5</kbd> 精细锁）</dd>
+      <dt><kbd>X</kbd> <kbd>G</kbd> <kbd>R</kbd></dt><dd>战术轮盘 · 放下 · 手臂复位</dd>
+      <dt><kbd>Tab</kbd> <kbd>`</kbd> <kbd>N</kbd></dt><dd>系统终端 · 切换躯体 · 3D AR 自动领航</dd>
+      <dt><kbd>M</kbd> <kbd>J</kbd> <kbd>B</kbd></dt><dd>地图 · 一键到达 · 机器人库</dd>
       <dt><kbd>Enter</kbd> <kbd>H</kbd></dt><dd>文字指令 · 全部操作</dd>
     </dl>
-    <button id="start">开始</button><p class="credit" style="margin:16px 0 0;font-size:11.5px;line-height:1.6;color:var(--faint)">地图数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">OpenStreetMap contributors</a>（ODbL）；样板区另含 Overture Maps、CNBH-10m、Meta/WRI 树冠高度（CC BY 4.0），详见 <a href="packs/city/ATTRIBUTION.txt" target="_blank" rel="noopener" style="color:inherit">ATTRIBUTION</a> · 材质 Poly Haven（CC0）· 机器人模型许可见 packs/robots/index.js</p>
+    <button id="start">开始</button>
   </div></div>
-  <div id="boot"><div class="lockup"><img data-logo alt="Lavira"><div><span>LAVIRA</span><small>武汉 · 城市具身仿真</small></div></div><div class="boot-sub" id="boot-msg">正在启动</div><div class="boot-bar"><i id="boot-fill"></i></div></div>
+  <div id="boot">
+    <div class="boot-grid"></div>
+    <div class="boot-scan"></div>
+    <div class="boot-card">
+      <div class="boot-head">
+        <div class="boot-orbit"><div class="boot-ring-a"></div><div class="boot-ring-b"></div><img data-logo alt="LAVIRA"></div>
+        <div class="boot-titles">
+          <h2 id="boot-title">LAVIRA · <em>斑马都市2049</em></h2>
+          <div class="boot-sub" id="boot-sub">斑马都市2049 · 城市具身仿真</div>
+        </div>
+        <div class="boot-metrics">
+          <div class="boot-pct" id="boot-pct">0%</div>
+          <div class="boot-elapsed" id="boot-elapsed">0.0s</div>
+        </div>
+      </div>
+      <div class="boot-prog">
+        <div class="boot-status-row"><span id="boot-msg">正在启动</span><span id="boot-stage-label">01 / 06</span></div>
+        <div class="boot-bar"><i id="boot-fill"></i></div>
+      </div>
+      <div class="boot-stages" id="boot-stages">
+        <div class="boot-chip active" data-stage="0"><i></i><span>01 引擎初始化</span></div>
+        <div class="boot-chip" data-stage="1"><i></i><span>02 程序化材质</span></div>
+        <div class="boot-chip" data-stage="2"><i></i><span>03 斑马都市街区</span></div>
+        <div class="boot-chip" data-stage="3"><i></i><span>04 Unitree G1 装配</span></div>
+        <div class="boot-chip" data-stage="4"><i></i><span>05 环境光探针</span></div>
+        <div class="boot-chip" data-stage="5"><i></i><span>06 管线预热</span></div>
+      </div>
+      <div class="boot-tips" id="boot-tips">
+        <div class="boot-tips-hd">
+          <b id="boot-tips-title">2049 都市生存指南 · URBAN TIPS</b>
+          <span id="boot-tip-idx">1 / 6</span>
+          <button type="button" class="boot-btn" id="boot-next">下一条</button>
+          <button type="button" class="boot-btn" id="boot-lang">EN</button>
+        </div>
+        <div id="boot-tip-text">从 22F 天地江景大平层启程：按 [E] 呼叫私家电梯下至 1 楼街区，探索 156 km² 实景武汉天地、江滩与长江大桥。</div>
+      </div>
+    </div>
+  </div>
 </div>
-<script src="engine.js?v=11131831"></script>
+<script src="engine.js?v=20261119"></script>
 </body></html>

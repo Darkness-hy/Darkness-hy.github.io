@@ -1,0 +1,1 @@
+window.__pack("people_scan",{"glbs":{},"kind":"procedural"});
