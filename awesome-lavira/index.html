@@ -86,6 +86,7 @@ p{margin:0}
 .nav{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:0;right:0;z-index:20}
 .nav-pill{max-width:min(1140px,100%);margin-inline:auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 18px;border-radius:999px;background:var(--nav-bg);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--line);box-shadow:var(--nav-shadow)}
 .brand{font-family:"DingTalk Sans",var(--font);font-weight:400;color:var(--ink);white-space:nowrap;font-size:16px;letter-spacing:0}
+.lv-word{font-family:"DingTalk Sans",var(--font);font-weight:400;letter-spacing:0;text-transform:none}
 .brand b{color:var(--accent);font-weight:400}
 .brand:hover{text-decoration:none}
 .brand{display:inline-flex;align-items:center;gap:9px}
@@ -634,7 +635,7 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
         <div class="feature teaser-card setup-card">
           <div class="frame" style="--lqip:url('data:image/webp;base64,UklGRhwBAABXRUJQVlA4IBABAAAQBwCdASokABsAPtFWo0yoJKMiMBVaqQAaCWkABmmaYloMfUtXGS/3NM/yhG+4d31VbYVu7byLTN6c34FYs/3GAAD+wkF7XgUvp+sOaRdmqPOUh1i6YXsRqm8cReiFk1qDRvb7SO7A0xHGTidMR0XX6Dh+w3JARRXly5t31QAFjGSPJ4uOikHI24nx6gsSFEmxCdj5E1WgVRyE1WbJsTYlHVWtERli9RixPajkuUk6/OdK2NbfcwdpIhmVR9rH4BF4LKr1HMrJNljLpfwq9n8BPyiwvvfHM0/sGAnSIKnYcXT7Ppvi6g9t379Z2VJfoqa8ZTBJq+opJ4eq+Cx7mkpz6Po0jMTjomtG1GCOugAAAA==')"><img src="media/fig_setup_franka.webp" alt="单臂桌面平台配置示意图" width="800" height="600" loading="lazy" decoding="async"></div>
           <div>
-            <p class="kicker">硬件配置 · 单臂机械臂</p>
+            <p class="kicker">硬件配置 · Franka Panda</p>
             <h3>单臂桌面真机平台</h3>
             <p>单臂机械臂搭配并行夹爪，配备前视与腕部双视角相机，在本地算力上直接推理执行。</p>
           </div>
@@ -665,7 +666,7 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
         <div class="feature teaser-card setup-card">
           <div class="frame" style="--lqip:url('data:image/webp;base64,UklGRnQBAABXRUJQVlA4IGgBAAAQCACdASokABsAPtFgrE+oJaSiJWmZABoJZwDPB1/tv8vFrDfyc6gCK4aBuSAK1YnHL0Ei4fqGYZA0TOxrxtSoRoWNHaW5uo0AAP72GQJ++zraTa3YWjreZoIC7qk2xWALflD1vSks2rRkAI5/1cLrblxmWylWgvrN5uS6IA3JvEiJlhlZpl6rJaDkXInu7pnO6xPLGVsfmI2Au2rfJ4DQEe1u1gK6jewr8AHf6GjrUwbLJ424X9zMsc2jsOTBZJ25CpIzRQIXE16k/YA3DreA17+AStMuxOG3iYPAuml0GQq9ZGfIldjo8QtyvMfSCz/deb+f5ADZV1CfLesObu9MdTSdUNWoSNGTlzBaZhEn9ITAkHzAy0s59X7r+IjKAUjSL4FWGCmbrjeIKI5baM6A3JtD+RRFDajUpIOK0dVuH4owl3hywAriwX4TyUQ5j08c/L7cGKnSUxXs8JVvpF8UV/Z2Uhbr4AA=')"><img src="media/fig_setup_piper.webp" alt="桌面双臂平台配置示意图" width="800" height="600" loading="lazy" decoding="async"></div>
           <div>
-            <p class="kicker">硬件配置 · 桌面双臂</p>
+            <p class="kicker">硬件配置 · AgileX Piper</p>
             <h3>双臂桌面真机平台</h3>
             <p>双臂机械臂搭配双侧夹爪，集成头部与双腕多视角相机，在本地算力上驱动双臂协同操作。</p>
           </div>
@@ -698,7 +699,7 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
         <div class="feature teaser-card setup-card">
           <div class="frame" style="--lqip:url('data:image/webp;base64,UklGRkgBAABXRUJQVlA4IDwBAAAQBwCdASokABsAPrlMmkunJCIhtUwA4BcJQBjhIADPBNFD3QwL9kFML054AeRkRiOuB8wQMEGudDlDlrvXB+XJAADLCdQTMvEzKK90CHN3LurAGxmhhPoj/78NYus151FissxOj6m9+gM+WoH6c+ks+/WSQ2TjptOiFFXo8FWMggJ7j9cXCgaZuBx6Re2q8cTPInkecK+LIa/WKG8Tl0pqygsNi2zBJAOqSCl0xtDSgbqaQd6X0qEf/mWfrQ7xL/FEAwVEc8y95otf2ZIciW4be6h+oxKDi05fNqFmbLYdonErY944QCZ9skUH0nor8tvwp36bRWciFQCWrUwzZxnywwfRjzOQd2riIjGaAk9w+CugtiVIXfzfn3tztbshc/o94EgwenMUdZqEO2oUC3jqzP6UYscjWBk/YAAA')"><img src="media/fig_setup_marvin.webp" alt="拟人双臂平台配置示意图" width="800" height="600" loading="lazy" decoding="async"></div>
           <div>
-            <p class="kicker">硬件配置 · 拟人双臂</p>
+            <p class="kicker">硬件配置 · Tianji Marvin Pro</p>
             <h3>双臂拟人真机平台</h3>
             <p>双臂拟人机械臂搭配双侧夹爪，配备头部与双腕多视角相机，在本地算力上实时推理执行。</p>
           </div>
@@ -916,15 +917,63 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
   var root=document.documentElement,btn=document.getElementById('langBtn');
   var has=Object.prototype.hasOwnProperty;
   function norm(v){return v.replace(/\s+/g,' ').trim();}
-  var items=[];
+  var BRAND_RE=/\b(?:Uni-|Ultra-)?LaViRA(?:-M³)?(?![A-Za-z0-9_])/g;
+  function skipBrand(p){return !p||/^(SCRIPT|STYLE|NOSCRIPT|TITLE|DESC|TEXTAREA|INPUT|CODE|PRE)$/.test(p.nodeName)||(p.closest&&p.closest('.brand,.cover h1,.lv-word'));}
+  function makeBrandNodes(str){
+    BRAND_RE.lastIndex=0;
+    if(!BRAND_RE.test(str))return [document.createTextNode(str)];
+    BRAND_RE.lastIndex=0;
+    var out=[],last=0,m;
+    while((m=BRAND_RE.exec(str))){
+      if(m.index>last)out.push(document.createTextNode(str.slice(last,m.index)));
+      var sp=document.createElement('span');
+      sp.className='lv-word';
+      sp.textContent=m[0];
+      out.push(sp);
+      last=m.index+m[0].length;
+    }
+    if(last<str.length)out.push(document.createTextNode(str.slice(last)));
+    return out;
+  }
+  function setSlotText(slot,str){
+    var nodes=slot.nodes,first=nodes[0],parent=first&&first.parentNode;
+    if(!parent)return;
+    var skip=skipBrand(parent);
+    if((skip||str.indexOf('LaViRA')===-1)&&nodes.length===1&&nodes[0].nodeType===3){nodes[0].nodeValue=str;return;}
+    var next=skip?[document.createTextNode(str)]:makeBrandNodes(str);
+    var frag=document.createDocumentFragment();
+    for(var i=0;i<next.length;i++)frag.appendChild(next[i]);
+    parent.insertBefore(frag,first);
+    for(var j=0;j<nodes.length;j++){if(nodes[j].parentNode===parent)parent.removeChild(nodes[j]);}
+    slot.nodes=next;
+  }
+  function wrapStaticBrands(rootEl){
+    var tw=document.createTreeWalker(rootEl,NodeFilter.SHOW_TEXT,null),tn,todo=[];
+    while((tn=tw.nextNode())){
+      var tp=tn.parentNode;
+      if(skipBrand(tp))continue;
+      BRAND_RE.lastIndex=0;
+      if(BRAND_RE.test(tn.nodeValue))todo.push(tn);
+    }
+    todo.forEach(function(nd){setSlotText({nodes:[nd]},nd.nodeValue);});
+  }
+  var items=[],transSet=[];
   var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null);
   var n;
   while((n=w.nextNode())){
     var p=n.parentNode;if(!p||/^(SCRIPT|STYLE|NOSCRIPT)$/.test(p.nodeName))continue;
     var k=norm(n.nodeValue);if(!k||!has.call(EN,k))continue;
     var m=n.nodeValue.match(/^(\s*)[\s\S]*?(\s*)$/);
-    items.push({n:n,zh:n.nodeValue,en:m[1]+EN[k]+m[2]});
+    items.push({nodes:[n],zh:n.nodeValue,en:m[1]+EN[k]+m[2]});
+    transSet.push(n);
   }
+  var twInit=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null),sn,staticTodo=[];
+  while((sn=twInit.nextNode())){
+    if(transSet.indexOf(sn)!==-1||skipBrand(sn.parentNode))continue;
+    BRAND_RE.lastIndex=0;
+    if(BRAND_RE.test(sn.nodeValue))staticTodo.push(sn);
+  }
+  staticTodo.forEach(function(nd){setSlotText({nodes:[nd]},nd.nodeValue);});
   var attrs=[];
   [].slice.call(document.querySelectorAll('[aria-label],[alt],[title]')).forEach(function(el){
     ['aria-label','alt','title'].forEach(function(a){var v=el.getAttribute(a);if(v&&has.call(EN,norm(v)))attrs.push({el:el,a:a,zh:v,en:EN[norm(v)]});});
@@ -934,13 +983,23 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
   });
   function apply(L){
     var en=L==='en';
-    items.forEach(function(t){t.n.nodeValue=en?t.en:t.zh;});
+    items.forEach(function(t){setSlotText(t,en?t.en:t.zh);});
     attrs.forEach(function(t){t.el.setAttribute(t.a,en?t.en:t.zh);});
     root.setAttribute('data-language',L);root.lang=en?'en':'zh-CN';
     if(btn){btn.textContent=en?'中':'EN';btn.setAttribute('aria-label',en?'切换到中文':'Switch to English');btn.setAttribute('lang',en?'zh-CN':'en');}
     root.classList.remove('i18n-pending');
   }
   apply(root.getAttribute('data-language')==='en'?'en':'zh');
+  if('MutationObserver' in window){
+    new MutationObserver(function(ms){
+      ms.forEach(function(mu){
+        [].slice.call(mu.addedNodes).forEach(function(nd){
+          if(nd.nodeType!==1)return;
+          [].slice.call(nd.querySelectorAll('.agent-empty,.agent-chips button')).forEach(wrapStaticBrands);
+        });
+      });
+    }).observe(document.body,{childList:true,subtree:true});
+  }
   if(btn)btn.addEventListener('click',function(){
     var L=root.getAttribute('data-language')==='en'?'zh':'en';
     apply(L);try{localStorage.setItem('lavira-lang',L);}catch(e){}
