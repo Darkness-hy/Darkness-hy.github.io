@@ -172,7 +172,6 @@ section.sec{padding-block:clamp(72px,9vw,120px) 0}
 .tabs::-webkit-scrollbar{display:none}
 .tab:hover{color:var(--ink)}
 .tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--card-shadow)}
-.tab .n{font-family:var(--mono);font-size:12px;color:var(--soft);margin-left:6px;font-weight:500}
 .panel{margin-top:22px}
 .panel[hidden]{display:none}
 .subtabs{display:inline-flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:4px;padding:3px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);margin-top:16px;max-width:100%}
@@ -180,7 +179,6 @@ section.sec{padding-block:clamp(72px,9vw,120px) 0}
 .subtab{font-family:var(--font);font-size:13px;font-weight:600;color:var(--muted);background:transparent;border:0;border-radius:999px;padding:6px 14px;cursor:pointer;line-height:1.25;white-space:nowrap;flex:none}
 .subtab:hover{color:var(--ink)}
 .subtab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--card-shadow)}
-.subtab .n{font-family:var(--mono);font-size:11.5px;color:var(--soft);margin-left:5px;font-weight:500}
 .subpanel{margin-top:16px}
 .subpanel[hidden]{display:none}
 .fig-card{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
@@ -534,18 +532,18 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
 
     <div class="explore-layout">
     <div class="tabs" role="tablist" aria-label="演示分类">
-      <button class="tab" role="tab" id="t-nav" aria-controls="p-nav" aria-selected="true" type="button">具身导航<span class="n">7</span></button>
-      <button class="tab" role="tab" id="t-tabletop" aria-controls="p-tabletop" aria-selected="false" tabindex="-1" type="button">桌面操作<span class="n">38</span></button>
-      <button class="tab" role="tab" id="t-mobile" aria-controls="p-mobile" aria-selected="false" tabindex="-1" type="button">移动操作<span class="n">1</span></button>
-      <button class="tab" role="tab" id="t-hum" aria-controls="p-hum" aria-selected="false" tabindex="-1" type="button">人形运控<span class="n">2</span></button>
-      <button class="tab" role="tab" id="t-gui" aria-controls="p-gui" aria-selected="false" tabindex="-1" type="button">手机 GUI<span class="n">6</span></button>
+      <button class="tab" role="tab" id="t-nav" aria-controls="p-nav" aria-selected="true" type="button">具身导航</button>
+      <button class="tab" role="tab" id="t-tabletop" aria-controls="p-tabletop" aria-selected="false" tabindex="-1" type="button">桌面操作</button>
+      <button class="tab" role="tab" id="t-mobile" aria-controls="p-mobile" aria-selected="false" tabindex="-1" type="button">移动操作</button>
+      <button class="tab" role="tab" id="t-hum" aria-controls="p-hum" aria-selected="false" tabindex="-1" type="button">人形运控</button>
+      <button class="tab" role="tab" id="t-gui" aria-controls="p-gui" aria-selected="false" tabindex="-1" type="button">手机 GUI</button>
     </div>
 
     <div class="panels">
     <div class="panel" role="tabpanel" id="p-nav" aria-labelledby="t-nav" tabindex="0">
       <div class="subtabs" role="tablist" aria-label="选择导航栏目" style="margin-top:0">
-        <button class="subtab" role="tab" id="t-nav-gen" aria-controls="p-nav-gen" aria-selected="true" type="button">通用导航<span class="n">5</span></button>
-        <button class="subtab" role="tab" id="t-nav-multi" aria-controls="p-nav-multi" aria-selected="false" tabindex="-1" type="button">多机协作<span class="n">2</span></button>
+        <button class="subtab" role="tab" id="t-nav-gen" aria-controls="p-nav-gen" aria-selected="true" type="button">通用导航</button>
+        <button class="subtab" role="tab" id="t-nav-multi" aria-controls="p-nav-multi" aria-selected="false" tabindex="-1" type="button">多机协作</button>
       </div>
 
       <div class="subpanel" role="tabpanel" id="p-nav-gen" aria-labelledby="t-nav-gen" tabindex="0">
@@ -628,9 +626,9 @@ html[data-theme="dark"] .agent-form button:not(.agent-stop){color:var(--bg)}
 
     <div class="panel" role="tabpanel" id="p-tabletop" aria-labelledby="t-tabletop" tabindex="0" hidden>
       <div class="subtabs" role="tablist" aria-label="选择桌面操作机器人本体" style="margin-top:0">
-        <button class="subtab" role="tab" id="t-tt-franka" aria-controls="p-tt-franka" aria-selected="true" type="button">Franka Panda<span class="n">14</span></button>
-        <button class="subtab" role="tab" id="t-tt-piper" aria-controls="p-tt-piper" aria-selected="false" tabindex="-1" type="button">AgileX Piper<span class="n">12</span></button>
-        <button class="subtab" role="tab" id="t-tt-marvin" aria-controls="p-tt-marvin" aria-selected="false" tabindex="-1" type="button">Tianji Marvin Pro<span class="n">12</span></button>
+        <button class="subtab" role="tab" id="t-tt-franka" aria-controls="p-tt-franka" aria-selected="true" type="button">Franka Panda</button>
+        <button class="subtab" role="tab" id="t-tt-piper" aria-controls="p-tt-piper" aria-selected="false" tabindex="-1" type="button">AgileX Piper</button>
+        <button class="subtab" role="tab" id="t-tt-marvin" aria-controls="p-tt-marvin" aria-selected="false" tabindex="-1" type="button">Tianji Marvin Pro</button>
       </div>
 
       <div class="subpanel" role="tabpanel" id="p-tt-franka" aria-labelledby="t-tt-franka" tabindex="0">
